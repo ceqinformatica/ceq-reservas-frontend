@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Reservas CEQ</title>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f2a4a 0%, #1a3a6b 50%, #0d1f3c 100%);
+      color: #e8dcc8;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(15, 32, 64, 0.95);
+      border-radius: 16px;
+      border: 1px solid rgba(200, 168, 75, 0.2);
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    header {
+      background: linear-gradient(90deg, #1a3a6b 0%, #2a5298 100%);
+      border-bottom: 3px solid #c8a84b;
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 24px;
+      font-weight: 400;
+      letter-spacing: 1px;
+    }
+
+    header .badge {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .header-buttons {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .admin-link {
+      padding: 8px 16px;
+      background: rgba(200, 168, 75, 0.2);
+      border: 1px solid rgba(200, 168, 75, 0.4);
+      color: #d4c070;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .admin-link:hover {
+      background: rgba(200, 168, 75, 0.3);
+      border-color: #c8a84b;
+    }
+
+    .main {
+      padding: 28px;
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 28px;
+    }
+
+    .space-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .space-btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: 2px solid rgba(200, 168, 75, 0.3);
+      background: rgba(200, 168, 75, 0.08);
+      color: #d4c070;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .space-btn:hover {
+      border-color: #c8a84b;
+      background: rgba(200, 168, 75, 0.15);
+    }
+
+    .space-btn.active {
+      background: #c8a84b;
+      color: #1a3a6b;
+      border-color: #c8a84b;
+    }
+
+    .calendar-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .calendar-nav button {
+      padding: 8px 12px;
+      background: rgba(200, 168, 75, 0.1);
+      border: 1px solid rgba(200, 168, 75, 0.3);
+      color: #d4c070;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .calendar-nav button:hover {
+      border-color: #c8a84b;
+      background: rgba(200, 168, 75, 0.15);
+    }
+
+    .calendar-month {
+      text-align: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: #d4c070;
+    }
+
+    .calendar-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .calendar-header-day {
+      text-align: center;
+      font-weight: 600;
+      color: #c8a84b;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 8px 0;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .calendar-day {
+      aspect-ratio: 1;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(200, 168, 75, 0.1);
+      border-radius: 6px;
+      padding: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      font-size: 11px;
+    }
+
+    .calendar-day:hover {
+      border-color: #c8a84b;
+      background: rgba(200, 168, 75, 0.05);
+    }
+
+    .calendar-day.has-reservas {
+      background: rgba(80, 200, 80, 0.15);
+      border-color: #5cc85c;
+    }
+
+    .calendar-day.today {
+      background: rgba(200, 168, 75, 0.2);
+      border: 2px solid #c8a84b;
+    }
+
+    .calendar-day.selected {
+      background: rgba(220, 100, 100, 0.25);
+      border: 2px solid #d86060;
+    }
+
+    .calendar-day.disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .calendar-day-number {
+      font-weight: 600;
+      color: #d4c070;
+      margin-bottom: 4px;
+    }
+
+    .calendar-day-indicator {
+      font-size: 10px;
+      color: #888;
+    }
+
+    .form-panel {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(200, 168, 75, 0.15);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      height: fit-content;
+    }
+
+    .form-panel h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      font-weight: 400;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: #888;
+      text-transform: uppercase;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f0e6d0;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: #c8a84b;
+      background: rgba(200, 168, 75, 0.08);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .hours-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .hour-btn {
+      padding: 10px;
+      border: 1px solid rgba(200, 168, 75, 0.3);
+      background: rgba(200, 168, 75, 0.08);
+      color: #d4c070;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .hour-btn:hover:not(.disabled) {
+      border-color: #c8a84b;
+      background: rgba(200, 168, 75, 0.15);
+    }
+
+    .hour-btn.selected {
+      background: #c8a84b;
+      color: #1a3a6b;
+      border-color: #c8a84b;
+    }
+
+    .hour-btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      border-color: rgba(255, 255, 255, 0.05);
+      background: rgba(0, 0, 0, 0.2);
+      color: #555;
+    }
+
+    .selected-range {
+      margin-top: 12px;
+      padding: 12px;
+      background: rgba(200, 168, 75, 0.1);
+      border: 1px solid rgba(200, 168, 75, 0.2);
+      border-radius: 6px;
+      font-size: 13px;
+      color: #d4c070;
+      text-align: center;
+    }
+
+    button.btn-primary {
+      padding: 12px;
+      background: linear-gradient(135deg, #c8a84b, #e0c46a);
+      color: #1a3a6b;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 1px;
+      transition: all 0.3s;
+      margin-top: 8px;
+    }
+
+    button.btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(200, 168, 75, 0.3);
+    }
+
+    button.btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status-message {
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .status-success {
+      background: rgba(80, 200, 80, 0.15);
+      border: 1px solid rgba(80, 200, 80, 0.3);
+      color: #8c8;
+    }
+
+    .status-error {
+      background: rgba(200, 80, 80, 0.15);
+      border: 1px solid rgba(200, 80, 80, 0.3);
+      color: #e88;
+    }
+
+    .required {
+      color: #e88;
+    }
+
+    @media (max-width: 768px) {
+      .main {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+        padding: 16px;
+      }
+
+      header h1 {
+        font-size: 18px;
+      }
+
+      .header-buttons {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .badge {
+        font-size: 11px;
+        padding: 4px 12px;
+      }
+
+      .admin-link {
+        padding: 6px 12px;
+        font-size: 11px;
+      }
+
+      .space-buttons {
+        flex-direction: column;
+      }
+
+      .space-btn {
+        width: 100%;
+        padding: 10px 16px;
+        font-size: 11px;
+      }
+
+      .calendar-grid {
+        gap: 4px;
+      }
+
+      .calendar-day {
+        padding: 6px;
+        font-size: 10px;
+        aspect-ratio: auto;
+        min-height: 60px;
+      }
+
+      .calendar-day-number {
+        font-size: 12px;
+        margin-bottom: 2px;
+      }
+
+      .calendar-day-indicator {
+        font-size: 9px;
+      }
+
+      .form-panel {
+        padding: 16px;
+      }
+
+      .form-panel h3 {
+        font-size: 16px;
+      }
+
+      .form-group label {
+        font-size: 10px;
+      }
+
+      .form-group input,
+      .form-group textarea {
+        padding: 10px;
+        font-size: 13px;
+      }
+
+      .hours-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+
+      .hour-btn {
+        padding: 8px;
+        font-size: 11px;
+      }
+
+      button.btn-primary {
+        padding: 10px;
+        font-size: 12px;
+      }
+
+      .calendar-nav button {
+        padding: 6px 10px;
+        font-size: 10px;
+      }
+
+      .calendar-month {
+        font-size: 14px;
+      }
+
+      .calendar-header-day {
+        font-size: 9px;
+        padding: 4px 0;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .main {
+        padding: 12px;
+        gap: 12px;
+      }
+
+      header {
+        padding: 12px;
+      }
+
+      header h1 {
+        font-size: 16px;
+      }
+
+      .container {
+        border-radius: 8px;
+      }
+
+      .form-panel {
+        padding: 12px;
+      }
+
+      .space-btn {
+        padding: 8px 12px;
+        font-size: 10px;
+      }
+
+      .calendar-day {
+        min-height: 50px;
+        padding: 4px;
+      }
+
+      .calendar-day-number {
+        font-size: 11px;
+      }
+
+      .hours-grid {
+        grid-template-columns: repeat(2, 1fr);
+        max-height: 250px;
+      }
+
+      .status-message {
+        font-size: 11px;
+        padding: 8px;
+      }
+
+      .selected-range {
+        font-size: 12px;
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Centro de Estudiantes de Química — Reservas de Espacios</h1>
+      <div class="header-buttons">
+        <div class="badge" id="stats">Cargando...</div>
+        <a href="https://ceq-reservas-frontend.vercel.app/admin.html" class="admin-link">🔐 Admin</a>
+      </div>
+    </header>
+
+    <div class="main">
+      <div>
+        <div class="space-buttons">
+          <button class="space-btn active" data-espacio="1">🏠 Altillo</button>
+          <button class="space-btn" data-espacio="2">🏛 Sala de Reuniones</button>
+          <button class="space-btn" data-espacio="3">🚪 Frente</button>
+        </div>
+
+        <div class="calendar-nav">
+          <button onclick="mesAnterior()">← Anterior</button>
+          <div class="calendar-month" id="calendarMonth"></div>
+          <button onclick="hoy()">Hoy</button>
+          <button onclick="mesSiguiente()">Siguiente →</button>
+        </div>
+
+        <div class="calendar-header">
+          <div class="calendar-header-day">Lun</div>
+          <div class="calendar-header-day">Mar</div>
+          <div class="calendar-header-day">Mié</div>
+          <div class="calendar-header-day">Jue</div>
+          <div class="calendar-header-day">Vie</div>
+          <div class="calendar-header-day">Sáb</div>
+          <div class="calendar-header-day">Dom</div>
+        </div>
+
+        <div class="calendar-grid" id="calendarGrid"></div>
+
+        <div id="reservasDelDia" style="margin-top: 20px;"></div>
+      </div>
+
+      <div class="form-panel">
+        <h3>Nueva Reserva</h3>
+        <div id="statusMessage"></div>
+
+        <div class="form-group">
+          <label>Espacio seleccionado</label>
+          <input type="text" id="espacioNombre" disabled style="background: rgba(200,168,75,0.1); border-color: #c8a84b;">
+        </div>
+
+        <div class="form-group">
+          <label>Fecha <span class="required">*</span></label>
+          <input type="date" id="fecha" disabled style="background: rgba(200,168,75,0.1);">
+        </div>
+
+        <div class="form-group">
+          <label>Horario (1-3 horas) <span class="required">*</span></label>
+          <div class="hours-grid" id="hoursGrid"></div>
+          <div class="selected-range" id="selectedRange" style="display:none;"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="nombre">Nombre Completo <span class="required">*</span></label>
+          <input type="text" id="nombre" placeholder="Ej: Juan García" required>
+        </div>
+
+        <div class="form-group">
+          <label for="celular">Celular <span class="required">*</span></label>
+          <input type="tel" id="celular" inputmode="numeric" pattern="[0-9+\s-]*" placeholder="Ej: +595 123 456789" required>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email <span class="required">*</span></label>
+          <input type="email" id="email" placeholder="Ej: juan@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="motivo">Motivo <span class="required">*</span></label>
+          <textarea id="motivo" placeholder="Descripción del uso..." required></textarea>
+        </div>
+
+        <button class="btn-primary" id="btnReservar" disabled>Crear Reserva</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://ceq-reservas-api.onrender.com/api';
+    let espacioSeleccionado = 1;
+    let diaSeleccionado = null;
+    let horasSeleccionadas = [];
+    let reservasActuales = [];
+    let mesCalendario = new Date();
+    const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
+
+    async function init() {
+      await cargarReservas();
+      configurarBotonespacios();
+      configurarFormulario();
+      actualizarCalendario();
+    }
+
+    async function cargarReservas() {
+      try {
+        const res = await fetch(`${API_BASE}/reservas`);
+        reservasActuales = await res.json();
+        actualizarEstadisticas();
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    async function actualizarEstadisticas() {
+      try {
+        const res = await fetch(`${API_BASE}/estadisticas`);
+        const stats = await res.json();
+        document.getElementById('stats').textContent = `${stats.reservas_activas} reserva${stats.reservas_activas !== 1 ? 's' : ''}`;
+      } catch (error) {}
+    }
+
+    function configurarBotonespacios() {
+      document.querySelectorAll('.space-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.space-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          espacioSeleccionado = parseInt(btn.dataset.espacio);
+          document.getElementById('espacioNombre').value = espacios[espacioSeleccionado];
+          document.getElementById('fecha').value = '';
+          document.getElementById('hoursGrid').innerHTML = '';
+          document.getElementById('selectedRange').style.display = 'none';
+          document.getElementById('reservasDelDia').innerHTML = '';
+          diaSeleccionado = null;
+          horasSeleccionadas = [];
+          actualizarCalendario();
+        });
+      });
+    }
+
+    function actualizarCalendario() {
+      const mes = mesCalendario.getMonth();
+      const año = mesCalendario.getFullYear();
+      
+      document.getElementById('calendarMonth').textContent = 
+        new Intl.DateTimeFormat('es-PY', { month: 'long', year: 'numeric' }).format(mesCalendario);
+
+      const primerDia = new Date(año, mes, 1);
+      const ultimoDia = new Date(año, mes + 1, 0);
+      const diasEnMes = ultimoDia.getDate();
+      const diaInicio = primerDia.getDay() || 7;
+
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      // Espacios vacíos
+      for (let i = 1; i < diaInicio; i++) {
+        const empty = document.createElement('div');
+        grid.appendChild(empty);
+      }
+
+      // Días del mes
+      const hoy = new Date();
+      const hoyStr = hoy.toISOString().split('T')[0];
+
+      for (let dia = 1; dia <= diasEnMes; dia++) {
+        const fecha = `${año}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+
+        const fechaObj = new Date(año, mes, dia);
+        const esFinDeSemana = fechaObj.getDay() === 0 || fechaObj.getDay() === 6;
+
+        const reservasDia = reservasActuales.filter(r => 
+          r.fecha === fecha && r.espacio_id === espacioSeleccionado && r.estado === 'activa'
+        );
+
+        const dayEl = document.createElement('div');
+        dayEl.className = 'calendar-day';
+        
+        // Deshabilitar días pasados y fin de semana
+        const esPasado = fecha < hoyStr;
+        
+        if (reservasDia.length > 0) dayEl.classList.add('has-reservas');
+        if (fecha === hoyStr) dayEl.classList.add('today');
+        if (esPasado || esFinDeSemana) dayEl.classList.add('disabled');
+
+        dayEl.innerHTML = `
+          <div class="calendar-day-number">${dia}</div>
+          ${reservasDia.length > 0 ? `<div class="calendar-day-indicator">${reservasDia.length} reserva${reservasDia.length > 1 ? 's' : ''}</div>` : ''}
+        `;
+
+        if (!esPasado && !esFinDeSemana) {
+          dayEl.addEventListener('click', () => seleccionarDia(fecha));
+        }
+        grid.appendChild(dayEl);
+      }
+    }
+
+    function seleccionarDia(fecha) {
+      // Limpiar selección anterior
+      document.querySelectorAll('.calendar-day.selected').forEach(d => d.classList.remove('selected'));
+      
+      // Marcar nuevo día seleccionado
+      const [año, mes, día] = fecha.split('-');
+      const diaNum = parseInt(día);
+      
+      const dias = document.querySelectorAll('.calendar-day');
+      dias.forEach(d => {
+        const textContent = d.querySelector('.calendar-day-number').textContent.trim();
+        if (parseInt(textContent) === diaNum) {
+          d.classList.add('selected');
+        }
+      });
+
+      diaSeleccionado = fecha;
+      document.getElementById('fecha').value = fecha;
+      actualizarHorasDisponibles(fecha);
+      mostrarReservasDelDia(fecha);
+    }
+
+    function actualizarHorasDisponibles(fecha) {
+      const grid = document.getElementById('hoursGrid');
+      grid.innerHTML = '';
+      horasSeleccionadas = [];
+
+      const horas = Array.from({ length: 10 }, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
+      
+      const reservasDelDia = reservasActuales.filter(r => 
+        r.espacio_id === espacioSeleccionado && r.fecha === fecha && r.estado === 'activa'
+      );
+
+      const horasOcupadas = new Set();
+      reservasDelDia.forEach(r => {
+        const [horaIni] = r.hora_inicio.split(':');
+        const [horaFin] = r.hora_fin.split(':');
+        for (let i = parseInt(horaIni); i < parseInt(horaFin); i++) {
+          horasOcupadas.add(`${i.toString().padStart(2, '0')}:00`);
+        }
+      });
+
+      horas.forEach((hora, indice) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'hour-btn';
+        btn.textContent = hora;
+        btn.dataset.indice = indice;
+
+        if (horasOcupadas.has(hora)) {
+          btn.classList.add('disabled');
+          btn.disabled = true;
+        } else {
+          btn.addEventListener('click', () => toggleHora(btn, indice, horas));
+        }
+        grid.appendChild(btn);
+      });
+    }
+
+    function toggleHora(btn, indice, todasHoras) {
+      // Si ya está seleccionada, deseleccionar solo esa hora
+      if (horasSeleccionadas.includes(btn.textContent)) {
+        horasSeleccionadas = horasSeleccionadas.filter(h => h !== btn.textContent);
+        btn.classList.remove('selected');
+        
+        if (horasSeleccionadas.length === 0) {
+          document.getElementById('selectedRange').style.display = 'none';
+        } else {
+          mostrarRango();
+        }
+        validarFormulario();
+        return;
+      }
+
+      // Máximo 3 horas
+      if (horasSeleccionadas.length >= 3) {
+        mostrarError('Máximo 3 horas de duración');
+        return;
+      }
+
+      // Si hace click en el primer botón
+      if (horasSeleccionadas.length === 0) {
+        horasSeleccionadas = [btn.textContent];
+        btn.classList.add('selected');
+        mostrarRango();
+        validarFormulario();
+        return;
+      }
+
+      // Obtener todas las horas seleccionadas y ordenarlas
+      const horasConNueva = [...horasSeleccionadas, btn.textContent];
+      const horasOrdenadas = horasConNueva.sort();
+
+      // Verificar que sean consecutivas
+      let sonConsecutivas = true;
+      for (let i = 0; i < horasOrdenadas.length - 1; i++) {
+        const [horaActual] = horasOrdenadas[i].split(':');
+        const [horaSiguiente] = horasOrdenadas[i + 1].split(':');
+        if (parseInt(horaSiguiente) !== parseInt(horaActual) + 1) {
+          sonConsecutivas = false;
+          break;
+        }
+      }
+
+      if (!sonConsecutivas) {
+        mostrarError('Las horas deben ser consecutivas');
+        return;
+      }
+
+      // Agregar la nueva hora
+      horasSeleccionadas = horasOrdenadas;
+      btn.classList.add('selected');
+      mostrarRango();
+      validarFormulario();
+    }
+
+    function mostrarRango() {
+      if (horasSeleccionadas.length === 0) return;
+
+      const rangoDiv = document.getElementById('selectedRange');
+      const [hInicio] = horasSeleccionadas[0].split(':');
+      const [hFin] = horasSeleccionadas[horasSeleccionadas.length - 1].split(':');
+      const duracion = parseInt(hFin) - parseInt(hInicio) + 1;
+      
+      rangoDiv.textContent = `${horasSeleccionadas[0]} - ${String(parseInt(hFin) + 1).padStart(2, '0')}:00 (${duracion} hora${duracion > 1 ? 's' : ''})`;
+      rangoDiv.style.display = 'block';
+    }
+
+    function mostrarReservasDelDia(fecha) {
+      let reservas = reservasActuales.filter(r =>
+        r.espacio_id === espacioSeleccionado && r.fecha === fecha && r.estado === 'activa'
+      );
+
+      const div = document.getElementById('reservasDelDia');
+      if (reservas.length === 0) {
+        div.innerHTML = '';
+        return;
+      }
+
+      // Convertir fecha YYYY-MM-DD a DD/MM/YYYY
+      const [año, mes, día] = fecha.split('-');
+      const fechaFormato = `${día}/${mes}/${año}`;
+
+      div.innerHTML = `
+        <h4 style="margin-bottom: 12px; color: #d4c070;">Reservas del ${fechaFormato}</h4>
+        <div style="display: grid; gap: 12px;">
+          ${reservas.map(r => {
+            const horaInicio = r.hora_inicio.substring(0, 5);
+            const horaFin = r.hora_fin.substring(0, 5);
+            return `
+            <div style="background: rgba(200,168,75,0.1); border: 1px solid rgba(200,168,75,0.2); border-radius: 6px; padding: 12px;">
+              <div style="margin-bottom: 8px;">
+                <strong>${r.nombre_solicitante}</strong><br>
+                <span style="font-size: 11px; color: #888;">${horaInicio} - ${horaFin}</span><br>
+                <em style="font-size: 11px; color: #aaa;">${r.motivo || '-'}</em>
+              </div>
+            </div>
+          `}).join('')}
+        </div>
+      `;
+    }
+
+    function configurarFormulario() {
+      document.getElementById('nombre').addEventListener('input', validarFormulario);
+      document.getElementById('celular').addEventListener('input', validarFormulario);
+      document.getElementById('email').addEventListener('input', validarFormulario);
+      document.getElementById('motivo').addEventListener('input', validarFormulario);
+      document.getElementById('btnReservar').addEventListener('click', crearReserva);
+
+      document.getElementById('espacioNombre').value = espacios[espacioSeleccionado];
+    }
+
+    function validarFormulario() {
+      const nombre = document.getElementById('nombre').value.trim();
+      const celular = document.getElementById('celular').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const motivo = document.getElementById('motivo').value.trim();
+      const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      const celularValido = celular.length >= 9;
+
+      document.getElementById('btnReservar').disabled = !(
+        nombre && celularValido && emailValido && motivo && diaSeleccionado && horasSeleccionadas.length > 0
+      );
+    }
+
+    async function crearReserva() {
+      const nombre = document.getElementById('nombre').value.trim();
+      const celular = document.getElementById('celular').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const motivo = document.getElementById('motivo').value.trim();
+
+      if (horasSeleccionadas.length === 0) {
+        mostrarError('Selecciona al menos 1 hora');
+        return;
+      }
+
+      try {
+        // Calcular hora_fin
+        const [horaInicio] = horasSeleccionadas[0].split(':');
+        const [horaFin] = horasSeleccionadas[horasSeleccionadas.length - 1].split(':');
+        const minuto = horasSeleccionadas[0].split(':')[1];
+        const horaFinCalculada = String(parseInt(horaFin) + 1).padStart(2, '0') + ':' + minuto;
+
+        const res = await fetch(`${API_BASE}/reservas`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            espacio_id: espacioSeleccionado,
+            nombre_solicitante: nombre,
+            contacto: `${celular} | ${email}`,
+            fecha: diaSeleccionado,
+            hora_inicio: horasSeleccionadas[0],
+            hora_fin: horaFinCalculada,
+            motivo: motivo
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          mostrarError(data.error);
+          return;
+        }
+
+        mostrarExito(`Reserva creada: ${horasSeleccionadas[0]} - ${horaFinCalculada}`);
+        
+        document.getElementById('nombre').value = '';
+        document.getElementById('celular').value = '';
+        document.getElementById('email').value = '';
+        document.getElementById('motivo').value = '';
+        document.getElementById('fecha').value = '';
+        document.getElementById('hoursGrid').innerHTML = '';
+        document.getElementById('selectedRange').style.display = 'none';
+        diaSeleccionado = null;
+        horasSeleccionadas = [];
+
+        await cargarReservas();
+        actualizarCalendario();
+      } catch (error) {
+        mostrarError('Error al crear la reserva');
+      }
+    }
+
+    function mostrarError(msg) {
+      const div = document.getElementById('statusMessage');
+      div.className = 'status-message status-error';
+      div.textContent = '⚠ ' + msg;
+      setTimeout(() => div.innerHTML = '', 5000);
+    }
+
+    function mostrarExito(msg) {
+      const div = document.getElementById('statusMessage');
+      div.className = 'status-message status-success';
+      div.textContent = '✓ ' + msg;
+      setTimeout(() => div.innerHTML = '', 5000);
+    }
+
+    function mesAnterior() {
+      mesCalendario.setMonth(mesCalendario.getMonth() - 1);
+      actualizarCalendario();
+    }
+
+    function mesSiguiente() {
+      mesCalendario.setMonth(mesCalendario.getMonth() + 1);
+      actualizarCalendario();
+    }
+
+    function hoy() {
+      mesCalendario = new Date();
+      actualizarCalendario();
+    }
+
+    init();
+  </script>
+</body>
+</html>
