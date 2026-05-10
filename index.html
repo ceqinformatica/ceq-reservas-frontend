@@ -188,19 +188,34 @@
       background: rgba(200, 168, 75, 0.05);
     }
 
+    .calendar-day.today {
+      background: rgba(70, 130, 180, 0.25);
+      border: 2px solid rgba(70, 130, 180, 0.6);
+    }
+
+    .calendar-day.available {
+      background: rgba(80, 200, 80, 0.15);
+      border-color: rgba(80, 200, 80, 0.4);
+    }
+
+    .calendar-day.partial {
+      background: rgba(255, 200, 80, 0.15);
+      border-color: rgba(255, 200, 80, 0.4);
+    }
+
+    .calendar-day.full {
+      background: rgba(220, 100, 100, 0.15);
+      border-color: rgba(220, 100, 100, 0.4);
+    }
+
     .calendar-day.has-reservas {
       background: rgba(80, 200, 80, 0.15);
       border-color: #5cc85c;
     }
 
-    .calendar-day.today {
-      background: rgba(200, 168, 75, 0.2);
-      border: 2px solid #c8a84b;
-    }
-
     .calendar-day.selected {
-      background: rgba(220, 100, 100, 0.25);
-      border: 2px solid #d86060;
+      background: rgba(180, 180, 180, 0.25);
+      border: 2px solid rgba(180, 180, 180, 0.6);
     }
 
     .calendar-day.disabled {
@@ -298,7 +313,21 @@
       font-weight: 500;
     }
 
-    .hour-btn:hover:not(.disabled) {
+    .hour-btn.available {
+      background: rgba(80, 200, 80, 0.15);
+      border-color: rgba(80, 200, 80, 0.4);
+      color: #8c8;
+    }
+
+    .hour-btn.full {
+      background: rgba(220, 100, 100, 0.15);
+      border-color: rgba(220, 100, 100, 0.4);
+      color: #c88;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .hour-btn:hover:not(.disabled):not(.full) {
       border-color: #c8a84b;
       background: rgba(200, 168, 75, 0.15);
     }
@@ -543,6 +572,7 @@
   <div class="container">
     <header>
       <h1>Centro de Estudiantes de Química — Reservas de Espacios</h1>
+      <p style="text-align: center; color: #888; font-size: 11px; margin-top: 5px;">🧪 PRUEBA PILOTO — VERSIÓN 1.2a</p>
       <div class="header-buttons">
         <div class="badge" id="stats">Cargando...</div>
         <a href="https://ceq-reservas-frontend-pink.vercel.app/admin.html" class="admin-link">🔐 Admin</a>
@@ -717,9 +747,35 @@
         // Deshabilitar días pasados y fin de semana
         const esPasado = fecha < hoyStr;
         
-        if (reservasDia.length > 0) dayEl.classList.add('has-reservas');
-        if (fecha === hoyStr) dayEl.classList.add('today');
-        if (esPasado || esFinDeSemana) dayEl.classList.add('disabled');
+        // Determinar estado del día
+        if (fecha === hoyStr) {
+          dayEl.classList.add('today'); // Gris - Hoy
+        } else if (esPasado || esFinDeSemana) {
+          dayEl.classList.add('disabled');
+        } else if (reservasDia.length === 0) {
+          dayEl.classList.add('available'); // Verde - Sin reservas
+        } else {
+          // Calcular cuántas horas están ocupadas
+          const horasOcupadas = new Set();
+          reservasDia.forEach(r => {
+            const horaInicio = parseInt(r.hora_inicio.split(':')[0]);
+            const horaFin = parseInt(r.hora_fin.split(':')[0]);
+            for (let h = horaInicio; h < horaFin; h++) {
+              horasOcupadas.add(h);
+            }
+          });
+
+          // Calcular horas disponibles según espacio
+          const horaMin = espacioSeleccionado === 3 ? 7 : 8;
+          const horaMax = espacioSeleccionado === 3 ? 18 : 18;
+          const horasDisponibles = (horaMax - horaMin) - horasOcupadas.size;
+
+          if (horasDisponibles === 0) {
+            dayEl.classList.add('full'); // Rojo - Lleno
+          } else {
+            dayEl.classList.add('partial'); // Amarillo - Parcial
+          }
+        }
 
         dayEl.innerHTML = `
           <div class="calendar-day-number">${dia}</div>
@@ -760,7 +816,13 @@
       grid.innerHTML = '';
       horasSeleccionadas = [];
 
-      const horas = Array.from({ length: 10 }, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
+      // Para Frente: 7-18, para otros: 8-18
+      const horaInicio = espacioSeleccionado === 3 ? 7 : 8;
+      const horaFin = espacioSeleccionado === 3 ? 18 : 18;
+      
+      const horas = Array.from({ length: horaFin - horaInicio }, (_, i) => 
+        `${(i + horaInicio).toString().padStart(2, '0')}:00`
+      );
       
       const reservasDelDia = reservasActuales.filter(r => 
         r.espacio_id === espacioSeleccionado && r.fecha === fecha && r.estado === 'activa'
@@ -784,8 +846,10 @@
 
         if (horasOcupadas.has(hora)) {
           btn.classList.add('disabled');
+          btn.classList.add('full'); // Rojo - Lleno
           btn.disabled = true;
         } else {
+          btn.classList.add('available'); // Verde - Disponible
           btn.addEventListener('click', () => toggleHora(btn, indice, horas));
         }
         grid.appendChild(btn);
@@ -1005,6 +1069,43 @@
     }
 
     init();
+  </script>
+
+  <footer style="text-align: center; padding: 20px; margin-top: 40px; border-top: 1px solid rgba(200, 168, 75, 0.1); color: rgba(255, 255, 255, 0.5); font-size: 11px;">
+    <button onclick="irCancelar()" style="background: none; border: none; color: #d4c070; cursor: pointer; font-size: 11px;">
+      ❌ Cancelar Reserva
+    </button>
+    <span style="margin: 0 8px;">•</span>
+    <button onclick="abrirReporte()" style="background: none; border: none; color: #d4c070; cursor: pointer; font-size: 11px;">
+      🐛 Reportar Errores
+    </button>
+  </footer>
+
+  <script>
+    function irCancelar() {
+      window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app/cancelar.html';
+    }
+
+    function abrirReporte() {
+      const mensaje = prompt('Describe el error que encontraste:');
+      if (!mensaje) return;
+
+      fetch(API_BASE + '/reportes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mensaje: mensaje,
+          url: window.location.href,
+          navegador: navigator.userAgent
+        })
+      }).then(r => r.json()).then(data => {
+        if (data.reporte) {
+          alert('✓ Reporte enviado. ¡Gracias!');
+        }
+      }).catch(err => {
+        alert('Error al enviar el reporte');
+      });
+    }
   </script>
 </body>
 </html>
