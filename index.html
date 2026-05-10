@@ -1076,19 +1076,50 @@
       ❌ Cancelar Reserva
     </button>
     <span style="margin: 0 8px;">•</span>
-    <button onclick="abrirReporte()" style="background: none; border: none; color: #d4c070; cursor: pointer; font-size: 11px;">
+    <button onclick="abrirModalReporte()" style="background: none; border: none; color: #d4c070; cursor: pointer; font-size: 11px;">
       🐛 Reportar Errores
     </button>
   </footer>
+
+  <!-- MODAL REPORTAR ERRORES -->
+  <div id="modalReporte" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); align-items: center; justify-content: center; z-index: 1000;">
+    <div style="background: #1a3a6b; border: 1px solid rgba(200, 168, 75, 0.3); border-radius: 12px; padding: 32px; max-width: 500px; width: 90%;">
+      <h3 style="color: #d4c070; margin-bottom: 20px; font-size: 18px;">🐛 Reportar Error</h3>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px;">Describe el error que encontraste</label>
+        <textarea id="reporteTexto" placeholder="Sé específico: ¿qué hiciste? ¿qué pasó?" style="width: 100%; padding: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(200, 168, 75, 0.2); border-radius: 6px; color: #f0e6d0; font-family: inherit; min-height: 100px; resize: vertical;"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 12px;">
+        <button onclick="cerrarModalReporte()" style="flex: 1; padding: 12px; background: rgba(200, 168, 75, 0.1); border: 1px solid rgba(200, 168, 75, 0.3); color: #d4c070; border-radius: 8px; cursor: pointer; font-weight: 600;">Cancelar</button>
+        <button onclick="enviarReporte()" style="flex: 1; padding: 12px; background: #c8a84b; color: #1a3a6b; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Enviar Reporte</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     function irCancelar() {
       window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app/cancelar.html';
     }
 
-    function abrirReporte() {
-      const mensaje = prompt('Describe el error que encontraste:');
-      if (!mensaje) return;
+    function abrirModalReporte() {
+      document.getElementById('modalReporte').style.display = 'flex';
+      document.getElementById('reporteTexto').value = '';
+      document.getElementById('reporteTexto').focus();
+    }
+
+    function cerrarModalReporte() {
+      document.getElementById('modalReporte').style.display = 'none';
+      document.getElementById('reporteTexto').value = '';
+    }
+
+    function enviarReporte() {
+      const mensaje = document.getElementById('reporteTexto').value.trim();
+      if (!mensaje) {
+        alert('Por favor describe el error');
+        return;
+      }
 
       fetch(API_BASE + '/reportes', {
         method: 'POST',
@@ -1100,11 +1131,16 @@
         })
       }).then(r => r.json()).then(data => {
         if (data.reporte) {
-          alert('✓ Reporte enviado. ¡Gracias!');
+          alert('✓ Reporte enviado. ¡Gracias por ayudarnos a mejorar!');
+          cerrarModalReporte();
         }
       }).catch(err => {
         alert('Error al enviar el reporte');
       });
+    }
+
+    function abrirReporte() {
+      abrirModalReporte();
     }
   </script>
 </body>
