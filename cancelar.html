@@ -162,12 +162,12 @@
     <button id="btnCancelar" onclick="cancelarReserva()">Cancelar Reserva</button>
 
     <div class="back-link">
-      <a href="https://ceq-reservas-frontend.vercel.app">← Volver a reservas</a>
+      <a href="https://ceq-reservas-frontend-pink.vercel.app">← Volver a reservas</a>
     </div>
   </div>
 
   <script>
-    const API_BASE = 'https://ceq-reservas-api.onrender.com/api';
+    const API_BASE = 'https://ceq-reservas.onrender.com/api';
 
     function mostrarMensaje(texto, tipo) {
       const div = document.getElementById('statusMessage');
@@ -200,7 +200,7 @@
           mostrarMensaje('✓ Reserva cancelada exitosamente', 'success');
           document.getElementById('codigo').value = '';
           setTimeout(() => {
-            window.location.href = 'https://ceq-reservas-frontend.vercel.app';
+            window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app';
           }, 2000);
         } else {
           mostrarMensaje('❌ ' + (data.error || 'Error al cancelar'), 'error');
