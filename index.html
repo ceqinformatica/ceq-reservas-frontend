@@ -596,8 +596,8 @@
 <body>
   <div class="container">
     <header>
-      <h1>Centro de Estudiantes de Química - Reservas de Espacios</h1>
-      <p style="text-align: center; color: #888; font-size: 11px; margin-top: 5px;"> PRUEBA PILOTO - VERSIÓN 1.2a</p>
+      <h1>Centro de Estudiantes de Química — Reservas de Espacios</h1>
+      <p style="text-align: center; color: #888; font-size: 11px; margin-top: 5px;">🧪 PRUEBA PILOTO — VERSIÓN 1.2a</p>
       <div class="header-buttons">
         <div class="badge" id="stats">Cargando...</div>
         <a href="https://ceq-reservas-frontend-pink.vercel.app/admin.html" class="admin-link">🔐 Admin</a>
@@ -607,9 +607,9 @@
     <div class="main">
       <div>
         <div class="space-buttons">
-          <button class="space-btn active" data-espacio="1"> Altillo</button>
-          <button class="space-btn" data-espacio="2"> Sala de Reuniones</button>
-          <button class="space-btn" data-espacio="3"> Frente</button>
+          <button class="space-btn active" data-espacio="1">- Altillo</button>
+          <button class="space-btn" data-espacio="2">- Sala de Reuniones</button>
+          <button class="space-btn" data-espacio="3">- Frente</button>
         </div>
 
         <div class="calendar-nav">
@@ -776,17 +776,25 @@
           r.fecha === fecha && r.espacio_id === espacioSeleccionado && r.estado === 'activa'
         );
 
+        // Detectar si hay bloqueo completo en este día
+        const hayBloqueCompleto = bloqueosCargados.some(b => 
+          b.espacio_id === espacioSeleccionado && 
+          b.fecha === fecha && 
+          b.hora_inicio === '00:00' && 
+          b.hora_fin === '23:59'
+        );
+
         const dayEl = document.createElement('div');
         dayEl.className = 'calendar-day';
         
-        // Deshabilitar días pasados, fin de semana, y más allá de 30 días
+        // Deshabilitar días pasados, fin de semana, más allá de 30 días, Y días con bloqueo completo
         const esPasado = fecha < hoyStr;
         const esFueraDelRango = fecha > fechaLimiteStr;
         
         // Determinar estado del día
         if (fecha === hoyStr) {
           dayEl.classList.add('today'); // Gris - Hoy
-        } else if (esPasado || esFinDeSemana || esFueraDelRango) {
+        } else if (esPasado || esFinDeSemana || esFueraDelRango || hayBloqueCompleto) {
           dayEl.classList.add('disabled');
         } else if (reservasDia.length === 0) {
           dayEl.classList.add('available'); // Verde - Sin reservas
@@ -809,18 +817,26 @@
             const bloqueosDelDia = bloqueosCargados.filter(b => 
               b.espacio_id === espacioSeleccionado && b.fecha === fecha
             );
-            bloqueosDelDia.forEach(b => {
-              const horaInicio = parseInt(b.hora_inicio.split(':')[0]);
-              const horaFin = parseInt(b.hora_fin.split(':')[0]);
-              for (let h = horaInicio; h < horaFin; h++) {
-                horasOcupadas.add(h);
-              }
-            });
+
+            // Detectar si hay bloqueo de todo el día (00:00 - 23:59)
+            const hayBloqueoTotal = bloqueosDelDia.some(b => 
+              b.hora_inicio === '00:00' && b.hora_fin === '23:59'
+            );
+
+            if (!hayBloqueoTotal) {
+              bloqueosDelDia.forEach(b => {
+                const horaInicio = parseInt(b.hora_inicio.split(':')[0]);
+                const horaFin = parseInt(b.hora_fin.split(':')[0]);
+                for (let h = horaInicio; h < horaFin; h++) {
+                  horasOcupadas.add(h);
+                }
+              });
+            }
 
             // Calcular horas disponibles según espacio
             const horaMin = espacioSeleccionado === 3 ? 7 : 8;
             const horaMax = espacioSeleccionado === 3 ? 18 : 18;
-            const horasDisponibles = (horaMax - horaMin) - horasOcupadas.size;
+            const horasDisponibles = hayBloqueoTotal ? 0 : (horaMax - horaMin) - horasOcupadas.size;
 
             if (horasDisponibles === 0) {
               dayEl.classList.add('full'); // Rojo - Lleno
@@ -947,10 +963,17 @@
         });
 
         bloqueosDelDia.forEach(b => {
-          const [horaIni] = b.hora_inicio.split(':');
-          const [horaFin] = b.hora_fin.split(':');
-          for (let i = parseInt(horaIni); i < parseInt(horaFin); i++) {
-            horasOcupadas.add(`${i.toString().padStart(2, '0')}:00`);
+          // Si es bloqueo completo (00:00 - 23:59), marcar todas las horas
+          if (b.hora_inicio === '00:00' && b.hora_fin === '23:59') {
+            for (let i = 0; i < 24; i++) {
+              horasOcupadas.add(`${i.toString().padStart(2, '0')}:00`);
+            }
+          } else {
+            const [horaIni] = b.hora_inicio.split(':');
+            const [horaFin] = b.hora_fin.split(':');
+            for (let i = parseInt(horaIni); i < parseInt(horaFin); i++) {
+              horasOcupadas.add(`${i.toString().padStart(2, '0')}:00`);
+            }
           }
         });
 
