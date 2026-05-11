@@ -904,28 +904,11 @@
               </div>
 
               <div class="form-group">
-                <label>Hora Inicio</label>
-                <input type="time" id="bloqueHoraInicio">
-              </div>
-
-              <div class="form-group">
-                <label>Duración (horas)</label>
-                <select id="bloqueDuracion">
-                  <option value="1">1 hora</option>
-                  <option value="2">2 horas</option>
-                  <option value="3">3 horas</option>
-                  <option value="4">4 horas</option>
-                  <option value="5">5 horas</option>
-                  <option value="8">Todo el día (8 horas)</option>
-                </select>
-              </div>
-
-              <div class="form-group">
                 <label>Motivo</label>
-                <input type="text" id="bloqueMotivoInput" placeholder="Ej: Mantenimiento">
+                <input type="text" id="bloqueMotivoInput" placeholder="Ej: Mantenimiento, Feriado">
               </div>
 
-              <button class="btn-block" style="width: 100%;" onclick="bloquearHorario()">Bloquear Horario</button>
+              <button class="btn-block" style="width: 100%;" onclick="bloquearTodoDia()">Bloquear Todo El Día</button>
             </div>
 
             <div>
@@ -1156,48 +1139,41 @@
     // BLOQUEOS
     let bloqueosCargados = [];
 
-    async function bloquearHorario() {
+    async function bloquearTodoDia() {
       const espacio = document.getElementById('bloqueEspacio').value;
       const fecha = document.getElementById('bloqueFecha').value;
-      const horaInicio = document.getElementById('bloqueHoraInicio').value;
-      const duracion = parseInt(document.getElementById('bloqueDuracion').value);
       const motivo = document.getElementById('bloqueMotivoInput').value;
 
-      if (!fecha || !horaInicio) {
-        alert('Completá todos los campos');
+      if (!fecha) {
+        alert('Selecciona una fecha');
         return;
       }
 
       try {
-        const [hora, minuto] = horaInicio.split(':');
-        const horaFin = String(parseInt(hora) + duracion).padStart(2, '0') + ':' + minuto;
-
         const res = await fetch(`${API_BASE}/bloqueos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             espacio_id: parseInt(espacio),
             fecha,
-            hora_inicio: horaInicio,
-            hora_fin: horaFin,
+            hora_inicio: '00:00',
+            hora_fin: '23:59',
             motivo: motivo || 'Sin especificar'
           })
         });
 
         const data = await res.json();
         if (res.ok) {
-          alert('✓ Horario bloqueado');
+          alert('✓ Día bloqueado');
           document.getElementById('bloqueFecha').value = '';
-          document.getElementById('bloqueHoraInicio').value = '';
           document.getElementById('bloqueMotivoInput').value = '';
-          document.getElementById('bloqueDuracion').value = '1';
           await cargarBloqueos();
         } else {
           alert('Error: ' + data.error);
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error al bloquear horario');
+        alert('Error al bloquear el día');
       }
     }
 
