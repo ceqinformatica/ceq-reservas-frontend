@@ -596,8 +596,8 @@
 <body>
   <div class="container">
     <header>
-      <h1>Centro de Estudiantes de Química — Reservas de Espacios</h1>
-      <p style="text-align: center; color: #888; font-size: 11px; margin-top: 5px;"> PRUEBA PILOTO — VERSIÓN 1.2a</p>
+      <h1>Centro de Estudiantes de Química - Reservas de Espacios</h1>
+      <p style="text-align: center; color: #888; font-size: 11px; margin-top: 5px;"> PRUEBA PILOTO - VERSIÓN 1.2a</p>
       <div class="header-buttons">
         <div class="badge" id="stats">Cargando...</div>
         <a href="https://ceq-reservas-frontend-pink.vercel.app/admin.html" class="admin-link">🔐 Admin</a>
@@ -685,6 +685,7 @@
     let diaSeleccionado = null;
     let horasSeleccionadas = [];
     let reservasActuales = [];
+    let bloqueosCargados = [];
     let mesCalendario = new Date();
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
 
@@ -699,6 +700,10 @@
       try {
         const res = await fetch(`${API_BASE}/reservas`);
         reservasActuales = await res.json();
+        
+        const resBloqueos = await fetch(`${API_BASE}/bloqueos`);
+        bloqueosCargados = await resBloqueos.json() || [];
+        
         actualizarEstadisticas();
       } catch (error) {
         console.error('Error:', error);
@@ -800,6 +805,18 @@
               }
             });
 
+            // Agregar horas bloqueadas
+            const bloqueosDelDia = bloqueosCargados.filter(b => 
+              b.espacio_id === espacioSeleccionado && b.fecha === fecha
+            );
+            bloqueosDelDia.forEach(b => {
+              const horaInicio = parseInt(b.hora_inicio.split(':')[0]);
+              const horaFin = parseInt(b.hora_fin.split(':')[0]);
+              for (let h = horaInicio; h < horaFin; h++) {
+                horasOcupadas.add(h);
+              }
+            });
+
             // Calcular horas disponibles según espacio
             const horaMin = espacioSeleccionado === 3 ? 7 : 8;
             const horaMax = espacioSeleccionado === 3 ? 18 : 18;
@@ -855,13 +872,17 @@
       // Si es Frente, mostrar solo 3 botones de turnos
       if (espacioSeleccionado === 3) {
         const turnos = [
-          { nombre: ' Desayuno', inicio: '07:00', fin: '10:00' },
-          { nombre: ' Almuerzo', inicio: '10:00', fin: '13:00' },
-          { nombre: ' Merienda', inicio: '14:00', fin: '18:00' }
+          { nombre: '- Desayuno', inicio: '07:00', fin: '10:00' },
+          { nombre: '- Almuerzo', inicio: '10:00', fin: '13:00' },
+          { nombre: '- Merienda', inicio: '14:00', fin: '18:00' }
         ];
 
         const reservasDelDia = reservasActuales.filter(r => 
           r.espacio_id === 3 && r.fecha === fecha && r.estado === 'activa'
+        );
+
+        const bloqueosDelDia = bloqueosCargados.filter(b => 
+          b.espacio_id === 3 && b.fecha === fecha
         );
 
         turnos.forEach(turno => {
@@ -872,16 +893,24 @@
           btn.dataset.inicio = turno.inicio;
           btn.dataset.fin = turno.fin;
 
-          // Verificar si este turno tiene conflicto
-          const tieneConflicto = reservasDelDia.some(r => {
+          // Verificar si este turno tiene conflicto con reservas O bloqueos
+          const tieneConflictoReserva = reservasDelDia.some(r => {
             const rInicio = parseInt(r.hora_inicio.split(':')[0]);
             const rFin = parseInt(r.hora_fin.split(':')[0]);
             const tInicio = parseInt(turno.inicio.split(':')[0]);
             const tFin = parseInt(turno.fin.split(':')[0]);
-            return !(rFin <= tInicio || rInicio >= tFin); // Hay solapamiento
+            return !(rFin <= tInicio || rInicio >= tFin);
           });
 
-          if (tieneConflicto) {
+          const tieneConflictoBloqueo = bloqueosDelDia.some(b => {
+            const bInicio = parseInt(b.hora_inicio.split(':')[0]);
+            const bFin = parseInt(b.hora_fin.split(':')[0]);
+            const tInicio = parseInt(turno.inicio.split(':')[0]);
+            const tFin = parseInt(turno.fin.split(':')[0]);
+            return !(bFin <= tInicio || bInicio >= tFin);
+          });
+
+          if (tieneConflictoReserva || tieneConflictoBloqueo) {
             btn.classList.add('disabled');
             btn.classList.add('full');
             btn.disabled = true;
@@ -904,10 +933,22 @@
           r.espacio_id === espacioSeleccionado && r.fecha === fecha && r.estado === 'activa'
         );
 
+        const bloqueosDelDia = bloqueosCargados.filter(b => 
+          b.espacio_id === espacioSeleccionado && b.fecha === fecha
+        );
+
         const horasOcupadas = new Set();
         reservasDelDia.forEach(r => {
           const [horaIni] = r.hora_inicio.split(':');
           const [horaFin] = r.hora_fin.split(':');
+          for (let i = parseInt(horaIni); i < parseInt(horaFin); i++) {
+            horasOcupadas.add(`${i.toString().padStart(2, '0')}:00`);
+          }
+        });
+
+        bloqueosDelDia.forEach(b => {
+          const [horaIni] = b.hora_inicio.split(':');
+          const [horaFin] = b.hora_fin.split(':');
           for (let i = parseInt(horaIni); i < parseInt(horaFin); i++) {
             horasOcupadas.add(`${i.toString().padStart(2, '0')}:00`);
           }
