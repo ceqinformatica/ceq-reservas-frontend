@@ -780,8 +780,8 @@
         const hayBloqueCompleto = bloqueosCargados.some(b => 
           b.espacio_id === espacioSeleccionado && 
           b.fecha === fecha && 
-          b.hora_inicio === '00:00' && 
-          b.hora_fin === '23:59'
+          b.hora_inicio === '00:00:00' && 
+          b.hora_fin === '23:59:00'
         );
 
         const dayEl = document.createElement('div');
@@ -818,9 +818,9 @@
               b.espacio_id === espacioSeleccionado && b.fecha === fecha
             );
 
-            // Detectar si hay bloqueo de todo el día (00:00 - 23:59)
+            // Detectar si hay bloqueo de todo el día (00:00:00 - 23:59:00)
             const hayBloqueoTotal = bloqueosDelDia.some(b => 
-              b.hora_inicio === '00:00' && b.hora_fin === '23:59'
+              b.hora_inicio === '00:00:00' && b.hora_fin === '23:59:00'
             );
 
             if (!hayBloqueoTotal) {
@@ -963,8 +963,8 @@
         });
 
         bloqueosDelDia.forEach(b => {
-          // Si es bloqueo completo (00:00 - 23:59), marcar todas las horas
-          if (b.hora_inicio === '00:00' && b.hora_fin === '23:59') {
+          // Si es bloqueo completo (00:00:00 - 23:59:00), marcar todas las horas
+          if (b.hora_inicio === '00:00:00' && b.hora_fin === '23:59:00') {
             for (let i = 0; i < 24; i++) {
               horasOcupadas.add(`${i.toString().padStart(2, '0')}:00`);
             }
