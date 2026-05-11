@@ -1154,6 +1154,8 @@
     }
 
     // BLOQUEOS
+    let bloqueosCargados = [];
+
     async function bloquearHorario() {
       const espacio = document.getElementById('bloqueEspacio').value;
       const fecha = document.getElementById('bloqueFecha').value;
@@ -1170,29 +1172,28 @@
         const [hora, minuto] = horaInicio.split(':');
         const horaFin = String(parseInt(hora) + duracion).padStart(2, '0') + ':' + minuto;
 
-        const res = await fetch(`${API_BASE}/reservas`, {
+        const res = await fetch(`${API_BASE}/bloqueos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            espacio_id: espacio,
-            nombre_solicitante: '[BLOQUEADO]',
-            contacto: 'admin',
+            espacio_id: parseInt(espacio),
             fecha,
             hora_inicio: horaInicio,
             hora_fin: horaFin,
-            motivo: `Bloqueo: ${motivo || 'Sin especificar'}`
+            motivo: motivo || 'Sin especificar'
           })
         });
 
+        const data = await res.json();
         if (res.ok) {
+          alert('✓ Horario bloqueado');
           document.getElementById('bloqueFecha').value = '';
           document.getElementById('bloqueHoraInicio').value = '';
           document.getElementById('bloqueMotivoInput').value = '';
           document.getElementById('bloqueDuracion').value = '1';
-          await cargarDatos();
+          await cargarBloqueos();
         } else {
-          const error = await res.json();
-          alert('Error: ' + error.error);
+          alert('Error: ' + data.error);
         }
       } catch (error) {
         console.error('Error:', error);
@@ -1200,16 +1201,40 @@
       }
     }
 
-    function cargarBloqueos() {
-      const bloqueos = reservasActuales.filter(r => r.nombre_solicitante === '[BLOQUEADO]');
-      const bloqueosList = document.getElementById('bloquesList');
-      bloqueosList.innerHTML = bloqueos.map(b => `
-        <div style="padding: 8px; background: rgba(200,168,75,0.05); border-radius: 4px; margin-bottom: 8px; font-size: 11px;">
-          <strong>${b.fecha} ${b.hora_inicio.substring(0, 5)}</strong><br>
-          ${espacios[b.espacio_id]}<br>
-          <em style="color: #888;">${b.motivo}</em>
-        </div>
-      `).join('') || '<p style="color: #666;">Sin bloqueos</p>';
+    async function cargarBloqueos() {
+      try {
+        const res = await fetch(`${API_BASE}/bloqueos`);
+        bloqueosCargados = await res.json();
+        
+        const bloqueosList = document.getElementById('bloquesList');
+        bloqueosList.innerHTML = bloqueosCargados.map(b => `
+          <div style="padding: 8px; background: rgba(200,168,75,0.05); border-radius: 4px; margin-bottom: 8px; font-size: 11px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong>${b.fecha} ${b.hora_inicio.substring(0, 5)} - ${b.hora_fin.substring(0, 5)}</strong><br>
+              ${espacios[b.espacio_id] || 'Desconocido'}<br>
+              <em style="color: #888;">${b.motivo}</em>
+            </div>
+            <button onclick="eliminarBloqueo(${b.id})" style="padding: 4px 8px; background: rgba(220,100,100,0.2); border: 1px solid rgba(220,100,100,0.4); color: #c88; border-radius: 4px; cursor: pointer; font-size: 10px;">✕ Eliminar</button>
+          </div>
+        `).join('') || '<p style="color: #666;">Sin bloqueos</p>';
+      } catch (error) {
+        console.error('Error al cargar bloqueos:', error);
+      }
+    }
+
+    async function eliminarBloqueo(id) {
+      if (!confirm('¿Eliminar este bloqueo?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/bloqueos/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          alert('✓ Bloqueo eliminado');
+          await cargarBloqueos();
+        } else {
+          alert('Error al eliminar');
+        }
+      } catch (error) {
+        alert('Error al eliminar bloqueo');
+      }
     }
 
     // EXPORTAR EXCEL
