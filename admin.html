@@ -977,106 +977,37 @@
 
   <script>
     const API_BASE = 'https://ceq-reservas.onrender.com/api';
-    
-    // Helper para hacer fetch con JWT
-    async function fetchConJWT(url, options = {}) {
-      const token = localStorage.getItem('adminToken');
-      
-      if (!token) {
-        throw new Error('No hay sesión activa');
-      }
-      
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        ...options.headers
-      };
-      
-      const response = await fetch(url, {
-        ...options,
-        headers
-      });
-      
-      // Si el token expiró
-      if (response.status === 401) {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('tokenExpiry');
-        window.location.reload();
-        throw new Error('Sesión expirada');
-      }
-      
-      return response;
-    }
-    const ADMIN_API = 'https://ceq-reservas.onrender.com';
+    const ADMIN_PASSWORD = 'ceq@yjk2026';
     let reservasActuales = [];
     let reservaSeleccionada = null;
     let mesCalendario = new Date();
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
 
-    // LOGIN CON JWT
-    async function login() {
+    // LOGIN
+    function login() {
       const password = document.getElementById('passwordInput').value;
-      
-      if (!password) {
-        document.getElementById('loginError').textContent = 'Ingresa la contraseña';
-        return;
-      }
-      
-      try {
-        const res = await fetch(`${ADMIN_API}/api/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password })
-        });
-        
-        const data = await res.json();
-        
-        if (!res.ok) {
-          document.getElementById('loginError').textContent = data.error || 'Error al iniciar sesión';
-          return;
-        }
-        
-        // Guardar token JWT
-        localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('tokenExpiry', new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString());
-        
-        // Mostrar panel admin
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('adminPanel').classList.remove('admin-hidden');
-        document.getElementById('passwordInput').value = '';
-        document.getElementById('loginError').textContent = '';
-        
-        cargarDatos();
-      } catch (error) {
-        console.error('Error:', error);
-        document.getElementById('loginError').textContent = 'Error de conexión';
-      }
-    }
-
-    function logout() {
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('tokenExpiry');
-      document.getElementById('loginOverlay').style.display = 'flex';
-      document.getElementById('adminPanel').classList.add('admin-hidden');
-      document.getElementById('passwordInput').value = '';
-      window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app/';
-    }
-
-    // Verificar sesión y token
-    window.onload = function() {
-      const token = localStorage.getItem('adminToken');
-      const expiry = localStorage.getItem('tokenExpiry');
-      
-      if (token && expiry && new Date() < new Date(expiry)) {
+      if (password === ADMIN_PASSWORD) {
+        sessionStorage.setItem('adminLogged', 'true');
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('adminPanel').classList.remove('admin-hidden');
         cargarDatos();
       } else {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('tokenExpiry');
-        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('loginError').textContent = 'Contraseña incorrecta';
       }
-    };
+    }
+
+    function logout() {
+      sessionStorage.removeItem('adminLogged');
+      document.getElementById('loginOverlay').style.display = 'flex';
+      document.getElementById('adminPanel').classList.add('admin-hidden');
+      document.getElementById('passwordInput').value = '';
+      // Redirigir a la página principal
+      window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app/';
+    }
+
+    // Verificar sesión
+    window.onload = function() {
+      if (sessionStorage.getItem('adminLogged')) {
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('adminPanel').classList.remove('admin-hidden');
         cargarDatos();
@@ -1104,13 +1035,10 @@
     // CARGAR DATOS
     async function cargarDatos() {
       try {
-        const res = await fetchConJWT(`${API_BASE}/admin/reservas`);
-        if (!res.ok) throw new Error('Error al cargar reservas');
-        
+        const res = await fetch(`${API_BASE}/admin/reservas`);
         reservasActuales = await res.json();
         actualizarEstadisticas();
         mostrarReservas(reservasActuales);
-        await cargarBloqueos();
         cargarBloqueos();
         cargarReportes();
       } catch (error) {
@@ -1192,8 +1120,9 @@
       }
 
       try {
-        const res = await fetchConJWT(`${API_BASE}/admin/cancelar/${reservaSeleccionada}`, {
+        const res = await fetch(`${API_BASE}/admin/cancelar/${reservaSeleccionada}`, {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ motivo })
         });
 
@@ -1201,12 +1130,9 @@
           cerrarModal();
           document.getElementById('motivoCancelacion').value = '';
           await cargarDatos();
-        } else {
-          alert('Error al cancelar reserva');
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error de conexión');
       }
     }
 
@@ -1224,13 +1150,14 @@
       }
 
       try {
-        const res = await fetchConJWT(`${API_BASE}/bloqueos`, {
+        const res = await fetch(`${API_BASE}/bloqueos`, {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             espacio_id: parseInt(espacio),
             fecha,
-            hora_inicio: '00:00:00',
-            hora_fin: '23:59:00',
+            hora_inicio: '00:00',
+            hora_fin: '23:59',
             motivo: motivo || 'Sin especificar'
           })
         });
@@ -1274,7 +1201,7 @@
     async function eliminarBloqueo(id) {
       if (!confirm('¿Eliminar este bloqueo?')) return;
       try {
-        const res = await fetchConJWT(`${API_BASE}/bloqueos/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/bloqueos/${id}`, { method: 'DELETE' });
         if (res.ok) {
           alert('✓ Bloqueo eliminado');
           await cargarBloqueos();
@@ -1505,9 +1432,7 @@
     // REPORTES
     async function cargarReportes() {
       try {
-        const res = await fetchConJWT(`${API_BASE}/admin/reportes`);
-        if (!res.ok) throw new Error('Error al cargar reportes');
-        
+        const res = await fetch(`${API_BASE}/admin/reportes`);
         const reportes = await res.json();
         mostrarReportes(reportes);
       } catch (error) {
@@ -1536,10 +1461,8 @@
 
     async function marcarLeido(id) {
       try {
-        const res = await fetchConJWT(`${API_BASE}/admin/reportes/${id}/leer`, { method: 'POST' });
-        if (res.ok) {
-          cargarReportes();
-        }
+        await fetch(`${API_BASE}/admin/reportes/${id}/leer`, { method: 'POST' });
+        cargarReportes();
       } catch (error) {
         console.error('Error:', error);
       }
