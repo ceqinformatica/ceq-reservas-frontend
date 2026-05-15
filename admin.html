@@ -976,9 +976,17 @@
   </div>
 
   <script>
-    const API_BASE = 'https://ceq-reservas.onrender.com/api';
+    // ========== CONFIGURACIÓN ==========
+    const ADMIN_API = 'https://ceq-reservas.onrender.com';
+    const API_BASE = `${ADMIN_API}/api`;
     
-    // Helper para hacer fetch con JWT
+    // Variables globales
+    let reservasActuales = [];
+    let reservaSeleccionada = null;
+    let mesCalendario = new Date();
+    const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
+
+    // ========== HELPER PARA FETCH CON JWT ==========
     async function fetchConJWT(url, options = {}) {
       const token = localStorage.getItem('adminToken');
       
@@ -1007,13 +1015,8 @@
       
       return response;
     }
-    const ADMIN_API = 'https://ceq-reservas.onrender.com';
-    let reservasActuales = [];
-    let reservaSeleccionada = null;
-    let mesCalendario = new Date();
-    const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
 
-    // LOGIN CON JWT
+    // ========== LOGIN CON JWT ==========
     async function login() {
       const password = document.getElementById('passwordInput').value;
       
