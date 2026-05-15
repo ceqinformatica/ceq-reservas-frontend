@@ -976,17 +976,15 @@
   </div>
 
   <script>
-    // ========== CONFIGURACIÓN ==========
+    const API_BASE = 'https://ceq-reservas.onrender.com/api';
     const ADMIN_API = 'https://ceq-reservas.onrender.com';
-    const API_BASE = `${ADMIN_API}/api`;
-    
-    // Variables globales
     let reservasActuales = [];
     let reservaSeleccionada = null;
     let mesCalendario = new Date();
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
+    let bloqueosCargados = [];
 
-    // ========== HELPER PARA FETCH CON JWT ==========
+    // Helper para hacer fetch con JWT
     async function fetchConJWT(url, options = {}) {
       const token = localStorage.getItem('adminToken');
       
@@ -1016,7 +1014,7 @@
       return response;
     }
 
-    // ========== LOGIN CON JWT ==========
+    // LOGIN CON JWT
     async function login() {
       const password = document.getElementById('passwordInput').value;
       
@@ -1065,8 +1063,8 @@
       window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app/';
     }
 
-    // Verificar sesión y token
-    window.onload = function() {
+    // Verificar sesión y token al cargar
+    window.addEventListener('load', function() {
       const token = localStorage.getItem('adminToken');
       const expiry = localStorage.getItem('tokenExpiry');
       
@@ -1079,7 +1077,7 @@
         localStorage.removeItem('tokenExpiry');
         document.getElementById('loginOverlay').style.display = 'flex';
       }
-    };
+    });
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('adminPanel').classList.remove('admin-hidden');
         cargarDatos();
