@@ -904,1055 +904,28 @@
               </div>
 
               <div class="form-group">
-                <label>Motivo</label>
-                <input type="text" id="bloqueMotivoInput" placeholder="Ej: Mantenimiento, Feriado">
+                <label>Hora Inicio</label>
+                <input type="time" id="bloqueHoraInicio">
               </div>
 
-              <button class="btn-block" style="width: 100%;" onclick="bloquearTodoDia()">Bloquear Todo El Día</button>
-            </div>
-
-            <div>
-              <h4 style="margin-bottom: 12px; color: #d4c070;">Horarios Bloqueados</h4>
-              <div id="bloquesList" style="max-height: 400px; overflow-y: auto;"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: EXPORTAR -->
-        <div id="tab-exportar" class="tab-content">
-          <h3 style="margin-bottom: 20px;">Exportar Reservas a Excel</h3>
-
-          <div class="filters">
-            <input type="date" id="exportFechaInicio" placeholder="Fecha inicio">
-            <input type="date" id="exportFechaFin" placeholder="Fecha fin">
-            <select id="exportEspacio">
-              <option value="">Todos los espacios</option>
-              <option value="1">Altillo</option>
-              <option value="2">Sala de Reuniones</option>
-              <option value="3">Frente</option>
-            </select>
-          </div>
-
-          <button class="btn-export" onclick="exportarExcel()">📥 Descargar Excel</button>
-          <p style="margin-top: 16px; font-size: 12px; color: #888;">Cada día será una hoja separada en el archivo Excel.</p>
-        </div>
-      </div>
-
-      <!-- TAB: REPORTES -->
-      <div id="tab-reportes" class="tab-content" style="display: none;">
-        <h3 style="margin-bottom: 20px;">Reportes de Errores</h3>
-        
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Mensaje</th>
-                <th>URL</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="reportesTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB: REPORTES -->
-  <div class="modal" id="modalCancelar">
-    <div class="modal-content">
-      <h3>Cancelar Reserva</h3>
-      <div class="form-group">
-        <label>Motivo de Cancelación</label>
-        <input type="text" id="motivoCancelacion" placeholder="Ej: Cancelación del cliente">
-      </div>
-      <div class="modal-buttons">
-        <button class="btn-cancel-modal" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn-confirm" onclick="confirmarCancelacion()">Confirmar Cancelación</button>
-      </div>
-    </div>
-  </div>
-
-    <script>
-    const API_BASE = 'https://ceq-reservas.onrender.com/api';
-    let bloqueosCargados = [];
-    const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
-
-    async function fetchConJWT(url, options = {}) {
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('Sin token');
-      const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...options.headers };
-      const res = await fetch(url, { ...options, headers });
-      if (res.status === 401) { localStorage.removeItem('adminToken'); window.location.reload(); }
-      return res;
-    }
-
-    async function login() {
-      const pwd = document.getElementById('passwordInput').value;
-      if (!pwd) { document.getElementById('loginError').textContent = 'Ingresa contraseña'; return; }
-      try {
-        const res = await fetch('https://ceq-reservas.onrender.com/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pwd }) });
-        const data = await res.json();
-        if (!res.ok) { document.getElementById('loginError').textContent = data.error || 'Error'; return; }
-        localStorage.setItem('adminToken', data.token);
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('adminPanel').classList.remove('admin-hidden');
-        document.getElementById('passwordInput').value = '';
-        cargarBloqueos();
-      } catch (e) { document.getElementById('loginError').textContent = 'Error conexión'; }
-    }
-
-    function logout() {
-      localStorage.removeItem('adminToken');
-      document.getElementById('loginOverlay').style.display = 'flex';
-      document.getElementById('adminPanel').classList.add('admin-hidden');
-      document.getElementById('passwordInput').value = '';
-      window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app/';
-    }
-
-    window.addEventListener('load', function() {
-      const token = localStorage.getItem('adminToken');
-      if (token) {
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('adminPanel').classList.remove('admin-hidden');
-        cargarBloqueos();
-      }
-    });
-
-    async function cargarBloqueos() {
-      try {
-        const res = await fetch(`${API_BASE}/bloqueos`);
-        bloqueosCargados = await res.json() || [];
-      } catch (e) { console.error(e); }
-    }
-
-    async function bloquearTodoDia() {
-      const espacio = document.getElementById('bloqueEspacio').value;
-      const fecha = document.getElementById('bloqueFecha').value;
-      const motivo = document.getElementById('bloqueMotivoInput').value;
-      if (!fecha) { alert('Selecciona fecha'); return; }
-      try {
-        const res = await fetchConJWT(`${API_BASE}/bloqueos`, { method: 'POST', body: JSON.stringify({ espacio_id: parseInt(espacio), fecha, hora_inicio: '00:00:00', hora_fin: '23:59:00', motivo: motivo || 'Sin especificar' }) });
-        if (res.ok) { alert('✓ Bloqueado'); document.getElementById('bloqueFecha').value = ''; document.getElementById('bloqueMotivoInput').value = ''; cargarBloqueos(); }
-      } catch (e) { alert('Error'); }
-    }
-
-    async function eliminarBloqueo(id) {
-      if (!confirm('¿Eliminar?')) return;
-      try {
-        const res = await fetchConJWT(`${API_BASE}/bloqueos/${id}`, { method: 'DELETE' });
-        if (res.ok) cargarBloqueos();
-      } catch (e) { alert('Error'); }
-    }
-
-    document.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') login();
-    });
-  </script></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #0f2a4a 0%, #1a3a6b 50%, #0d1f3c 100%);
-      color: #e8dcc8;
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    /* LOGIN */
-    .login-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .login-box {
-      background: rgba(15, 32, 64, 0.95);
-      border: 2px solid #c8a84b;
-      border-radius: 16px;
-      padding: 40px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    }
-
-    .login-box h1 {
-      margin-bottom: 30px;
-      font-size: 24px;
-      text-align: center;
-      font-weight: 400;
-      letter-spacing: 1px;
-    }
-
-    .login-box .form-group {
-      margin-bottom: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .login-box label {
-      font-size: 12px;
-      letter-spacing: 2px;
-      color: #888;
-      text-transform: uppercase;
-    }
-
-    .login-box input {
-      padding: 12px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #f0e6d0;
-      font-size: 14px;
-      outline: none;
-      transition: all 0.2s;
-    }
-
-    .login-box input:focus {
-      border-color: #c8a84b;
-      background: rgba(200, 168, 75, 0.08);
-    }
-
-    .login-box button {
-      width: 100%;
-      padding: 12px;
-      background: linear-gradient(135deg, #c8a84b, #e0c46a);
-      color: #1a3a6b;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-      letter-spacing: 1px;
-      transition: all 0.3s;
-      margin-top: 10px;
-    }
-
-    .login-box button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(200, 168, 75, 0.3);
-    }
-
-    .login-error {
-      color: #e88;
-      font-size: 12px;
-      text-align: center;
-      margin-bottom: 15px;
-    }
-
-    /* ADMIN PANEL */
-    .admin-hidden {
-      display: none;
-    }
-
-    header {
-      background: linear-gradient(90deg, #1a3a6b 0%, #2a5298 100%);
-      border-bottom: 3px solid #c8a84b;
-      padding: 24px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-radius: 16px 16px 0 0;
-      margin-bottom: 0;
-    }
-
-    header h1 {
-      font-size: 24px;
-      font-weight: 400;
-      letter-spacing: 1px;
-    }
-
-    .logout-btn {
-      padding: 8px 16px;
-      background: rgba(200, 80, 80, 0.2);
-      border: 1px solid rgba(200, 80, 80, 0.5);
-      color: #e88;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .logout-btn:hover {
-      background: rgba(200, 80, 80, 0.3);
-      border-color: rgba(200, 80, 80, 0.7);
-    }
-
-    .admin-content {
-      background: rgba(15, 32, 64, 0.95);
-      border: 1px solid rgba(200, 168, 75, 0.2);
-      border-radius: 0 0 16px 16px;
-      padding: 28px;
-      border-top: none;
-    }
-
-    .tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 24px;
-      border-bottom: 1px solid rgba(200, 168, 75, 0.15);
-      padding-bottom: 16px;
-    }
-
-    .tab-btn {
-      padding: 12px 24px;
-      background: rgba(200, 168, 75, 0.08);
-      border: 1px solid rgba(200, 168, 75, 0.3);
-      color: #d4c070;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      transition: all 0.2s;
-    }
-
-    .tab-btn:hover {
-      border-color: #c8a84b;
-      background: rgba(200, 168, 75, 0.15);
-    }
-
-    .tab-btn.active {
-      background: #c8a84b;
-      color: #1a3a6b;
-      border-color: #c8a84b;
-    }
-
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block !important;
-    }
-
-    .filters {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-
-    .filters input,
-    .filters select {
-      padding: 10px 12px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #f0e6d0;
-      font-size: 12px;
-      outline: none;
-      transition: all 0.2s;
-    }
-
-    .filters input:focus,
-    .filters select:focus {
-      border-color: #c8a84b;
-      background: rgba(200, 168, 75, 0.08);
-    }
-
-    /* Mejorar contraste en dropdowns */
-    .filters select option {
-      background: #1a3a6b;
-      color: #f0e6d0;
-    }
-
-    .table-wrapper {
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-
-    table th {
-      background: rgba(200, 168, 75, 0.1);
-      border: 1px solid rgba(200, 168, 75, 0.2);
-      padding: 12px;
-      text-align: left;
-      font-size: 11px;
-      font-weight: 600;
-      color: #d4c070;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-
-    table td {
-      border: 1px solid rgba(200, 168, 75, 0.1);
-      padding: 12px;
-      font-size: 12px;
-    }
-
-    table tr:nth-child(even) {
-      background: rgba(255, 255, 255, 0.02);
-    }
-
-    table tr:hover {
-      background: rgba(200, 168, 75, 0.05);
-    }
-
-    .btn-small {
-      padding: 6px 12px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-      font-size: 11px;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .btn-cancel {
-      background: rgba(200, 80, 80, 0.2);
-      color: #e88;
-      border: 1px solid rgba(200, 80, 80, 0.3);
-    }
-
-    .btn-cancel:hover {
-      background: rgba(200, 80, 80, 0.3);
-      border-color: rgba(200, 80, 80, 0.5);
-    }
-
-    .btn-export {
-      background: rgba(80, 200, 80, 0.2);
-      color: #8c8;
-      border: 1px solid rgba(80, 200, 80, 0.3);
-      padding: 10px 20px;
-      font-size: 12px;
-    }
-
-    .btn-export:hover {
-      background: rgba(80, 200, 80, 0.3);
-      border-color: rgba(80, 200, 80, 0.5);
-    }
-
-    .btn-block {
-      background: rgba(200, 168, 75, 0.2);
-      color: #d4c070;
-      border: 1px solid rgba(200, 168, 75, 0.3);
-      padding: 10px 20px;
-      font-size: 12px;
-    }
-
-    .btn-block:hover {
-      background: rgba(200, 168, 75, 0.3);
-      border-color: rgba(200, 168, 75, 0.5);
-    }
-
-    .form-group {
-      margin-bottom: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .form-group label {
-      font-size: 11px;
-      letter-spacing: 2px;
-      color: #888;
-      text-transform: uppercase;
-    }
-
-    .form-group input,
-    .form-group select {
-      padding: 10px 12px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #f0e6d0;
-      font-size: 12px;
-      outline: none;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus {
-      border-color: #c8a84b;
-      background: rgba(200, 168, 75, 0.08);
-    }
-
-    .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-    }
-
-    .modal.active {
-      display: flex;
-    }
-
-    .modal-content {
-      background: rgba(15, 32, 64, 0.95);
-      border: 1px solid rgba(200, 168, 75, 0.3);
-      border-radius: 12px;
-      padding: 28px;
-      width: 100%;
-      max-width: 500px;
-    }
-
-    .modal-content h3 {
-      margin-bottom: 20px;
-      font-size: 18px;
-      font-weight: 400;
-    }
-
-    .modal-buttons {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      margin-top: 20px;
-    }
-
-    .modal-buttons button {
-      padding: 10px 20px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 12px;
-      transition: all 0.2s;
-    }
-
-    .btn-confirm {
-      background: linear-gradient(135deg, #c8a84b, #e0c46a);
-      color: #1a3a6b;
-    }
-
-    .btn-confirm:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(200, 168, 75, 0.3);
-    }
-
-    .btn-cancel-modal {
-      background: rgba(255, 255, 255, 0.1);
-      color: #d4c070;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .btn-cancel-modal:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
-      background: rgba(200, 168, 75, 0.1);
-      border: 1px solid rgba(200, 168, 75, 0.2);
-      border-radius: 8px;
-      padding: 16px;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    .stat-value {
-      font-size: 24px;
-      font-weight: 600;
-      color: #c8a84b;
-    }
-
-    .status-badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .status-activa {
-      background: rgba(80, 200, 80, 0.2);
-      color: #8c8;
-    }
-
-    .status-cancelada {
-      background: rgba(200, 80, 80, 0.2);
-      color: #e88;
-    }
-
-    .status-bloqueada {
-      background: rgba(200, 168, 75, 0.2);
-      color: #d4c070;
-    }
-
-    /* RESPONSIVE MOBILE */
-    @media (max-width: 768px) {
-      body {
-        padding: 10px;
-      }
-
-      header {
-        flex-direction: column;
-        gap: 12px;
-        text-align: center;
-        padding: 16px;
-      }
-
-      header h1 {
-        font-size: 18px;
-      }
-
-      .admin-content {
-        padding: 12px;
-      }
-
-      .tabs {
-        flex-direction: column;
-      }
-
-      .tab-btn {
-        width: 100%;
-        font-size: 10px;
-      }
-
-      .stats {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .filters {
-        flex-direction: column;
-      }
-
-      .filters input,
-      .filters select {
-        width: 100%;
-        font-size: 12px;
-      }
-
-      table {
-        font-size: 10px;
-      }
-
-      table th,
-      table td {
-        padding: 6px;
-      }
-
-      .calendar-nav {
-        flex-direction: column;
-      }
-
-      .calendar-nav button {
-        width: 100%;
-      }
-
-      .calendar-day {
-        min-height: 50px;
-        font-size: 9px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      body {
-        padding: 8px;
-      }
-
-      header h1 {
-        font-size: 14px;
-      }
-
-      .admin-content {
-        padding: 8px;
-      }
-
-      .stats {
-        grid-template-columns: 1fr;
-      }
-
-      table {
-        font-size: 8px;
-      }
-
-      table th,
-      table td {
-        padding: 4px;
-      }
-
-      .btn-small {
-        padding: 3px 6px;
-        font-size: 8px;
-      }
-
-      .login-box {
-        width: 95%;
-        padding: 20px;
-      }
-
-      .modal-content {
-        margin: 20px;
-        padding: 16px;
-      }
-
-      .calendar-grid {
-        gap: 4px;
-      }
-
-      .calendar-day {
-        min-height: 45px;
-        padding: 4px;
-        font-size: 8px;
-        aspect-ratio: 1;
-      }
-
-      .calendar-day-number {
-        font-size: 10px;
-        margin-bottom: 2px;
-      }
-
-      .calendar-day-indicator {
-        font-size: 7px;
-      }
-
-      .calendar-header-day {
-        font-size: 8px;
-      }
-
-      .calendar-month {
-        font-size: 12px;
-      }
-
-      .calendar-nav button {
-        padding: 6px;
-        font-size: 10px;
-      }
-    }
-
-    /* VIEW TOGGLE */
-    .view-toggle {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .view-btn {
-      padding: 8px 16px;
-      background: rgba(200, 168, 75, 0.08);
-      border: 1px solid rgba(200, 168, 75, 0.3);
-      color: #d4c070;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 11px;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .view-btn:hover {
-      border-color: #c8a84b;
-      background: rgba(200, 168, 75, 0.15);
-    }
-
-    .view-btn.active {
-      background: #c8a84b;
-      color: #1a3a6b;
-      border-color: #c8a84b;
-    }
-
-    /* CALENDAR VIEW */
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-
-    .calendar-day {
-      aspect-ratio: 1;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(200, 168, 75, 0.1);
-      border-radius: 6px;
-      padding: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      flex-direction: column;
-      font-size: 11px;
-      min-height: 60px;
-    }
-
-    .calendar-day:hover {
-      border-color: #c8a84b;
-      background: rgba(200, 168, 75, 0.05);
-    }
-
-    .calendar-day.has-reservas {
-      background: rgba(80, 200, 80, 0.15);
-      border-color: #5cc85c;
-    }
-
-    .calendar-day.today {
-      background: rgba(200, 168, 75, 0.2);
-      border: 2px solid #c8a84b;
-    }
-
-    .calendar-day.selected-day {
-      background: rgba(220, 100, 100, 0.25);
-      border: 2px solid #d86060;
-    }
-
-    .calendar-day-number {
-      font-weight: 600;
-      color: #d4c070;
-      margin-bottom: 4px;
-    }
-
-    .calendar-day-indicator {
-      font-size: 10px;
-      color: #888;
-    }
-
-    .calendar-header {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .calendar-header-day {
-      text-align: center;
-      font-weight: 600;
-      color: #c8a84b;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 8px 0;
-    }
-
-    .calendar-nav {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .calendar-nav button {
-      padding: 10px 16px;
-      background: rgba(200, 168, 75, 0.1);
-      border: 1px solid rgba(200, 168, 75, 0.3);
-      color: #d4c070;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      flex: 1;
-      min-width: 100px;
-    }
-
-    .calendar-nav button:hover {
-      border-color: #c8a84b;
-      background: rgba(200, 168, 75, 0.15);
-    }
-
-    .calendar-month {
-      text-align: center;
-      font-size: 16px;
-      font-weight: 600;
-      color: #d4c070;
-      flex: 1;
-    }
-  </style>
-</head>
-<body>
-  <!-- LOGIN -->
-  <div class="login-overlay" id="loginOverlay">
-    <div class="login-box">
-      <h1>Admin CEQ</h1>
-      <div id="loginError" class="login-error"></div>
-      <div class="form-group">
-        <label>Contraseña</label>
-        <input type="password" id="passwordInput" placeholder="Ingresá la contraseña">
-      </div>
-      <button onclick="login()">Ingresar</button>
-    </div>
-  </div>
-
-  <!-- ADMIN PANEL -->
-  <div class="admin-hidden" id="adminPanel">
-    <div class="container">
-      <header>
-        <h1>Panel Administrativo — CEQ</h1>
-        <button class="logout-btn" onclick="logout()">Cerrar sesión</button>
-      </header>
-
-      <div class="admin-content">
-        <div class="tabs">
-          <button class="tab-btn active" onclick="switchTab('reservas')">📋 Reservas</button>
-          <button class="tab-btn" onclick="switchTab('bloqueos')">🔒 Bloqueos</button>
-          <button class="tab-btn" onclick="switchTab('exportar')">📊 Exportar</button>
-          <button class="tab-btn" onclick="switchTab('reportes')">🐛 Reportes</button>
-        </div>
-
-        <!-- TAB: RESERVAS -->
-        <div id="tab-reservas" class="tab-content active">
-          <div class="stats">
-            <div class="stat-card">
-              <div class="stat-label">Total Reservas</div>
-              <div class="stat-value" id="totalReservas">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Hoy</div>
-              <div class="stat-value" id="reservasHoy">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Esta Semana</div>
-              <div class="stat-value" id="reservasSemana">0</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Canceladas</div>
-              <div class="stat-value" id="reservasCanceladas">0</div>
-            </div>
-          </div>
-
-          <div class="view-toggle">
-            <button class="view-btn active" onclick="cambiarVista('lista')">📋 Lista</button>
-            <button class="view-btn" onclick="cambiarVista('calendario')">📅 Calendario</button>
-          </div>
-
-          <!-- VISTA LISTA -->
-          <div id="vista-lista">
-            <div class="filters">
-              <input type="date" id="filterFecha" onchange="filtrarReservas()">
-              <select id="filterEspacio" onchange="filtrarReservas()">
-                <option value="">Todos los espacios</option>
-                <option value="1">Altillo</option>
-                <option value="2">Sala de Reuniones</option>
-                <option value="3">Frente</option>
-              </select>
-              <select id="filterEstado" onchange="filtrarReservas()">
-                <option value="">Todos los estados</option>
-                <option value="activa">Activas</option>
-                <option value="cancelada">Canceladas</option>
-              </select>
-            </div>
-
-            <div class="table-wrapper">
-              <table id="reservasTable">
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Horario</th>
-                    <th>Espacio</th>
-                    <th>Nombre</th>
-                    <th>Celular</th>
-                    <th>Email</th>
-                    <th>Motivo</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody id="reservasTableBody"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- VISTA CALENDARIO -->
-          <div id="vista-calendario" style="display: none;">
-            <div class="filters" style="margin-bottom: 16px;">
-              <select id="filterEspacioCalendario" onchange="actualizarCalendario()">
-                <option value="">Todos los espacios</option>
-                <option value="1">Altillo</option>
-                <option value="2">Sala de Reuniones</option>
-                <option value="3">Frente</option>
-              </select>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-              <!-- CALENDARIO -->
-              <div>
-                <div class="calendar-nav">
-                  <button onclick="mesAnterior()">← Anterior</button>
-                  <div class="calendar-month" id="calendarMonth"></div>
-                  <button onclick="hoy()">Hoy</button>
-                  <button onclick="mesSiguiente()">Siguiente →</button>
-                </div>
-
-                <div class="calendar-header">
-                  <div class="calendar-header-day">Lun</div>
-                  <div class="calendar-header-day">Mar</div>
-                  <div class="calendar-header-day">Mié</div>
-                  <div class="calendar-header-day">Jue</div>
-                  <div class="calendar-header-day">Vie</div>
-                  <div class="calendar-header-day">Sáb</div>
-                  <div class="calendar-header-day">Dom</div>
-                </div>
-
-                <div class="calendar-grid" id="calendarGrid"></div>
-              </div>
-
-              <!-- DETALLES DE RESERVAS -->
-              <div id="reservasDelDiaCalendario"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: BLOQUEOS -->
-        <div id="tab-bloqueos" class="tab-content">
-          <h3 style="margin-bottom: 20px;">Bloquear Horarios</h3>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
-            <div>
               <div class="form-group">
-                <label>Espacio</label>
-                <select id="bloqueEspacio">
-                  <option value="1">Altillo</option>
-                  <option value="2">Sala de Reuniones</option>
-                  <option value="3">Frente</option>
+                <label>Duración (horas)</label>
+                <select id="bloqueDuracion">
+                  <option value="1">1 hora</option>
+                  <option value="2">2 horas</option>
+                  <option value="3">3 horas</option>
+                  <option value="4">4 horas</option>
+                  <option value="5">5 horas</option>
+                  <option value="8">Todo el día (8 horas)</option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label>Fecha</label>
-                <input type="date" id="bloqueFecha">
-              </div>
-
-              <div class="form-group">
                 <label>Motivo</label>
-                <input type="text" id="bloqueMotivoInput" placeholder="Ej: Mantenimiento, Feriado">
+                <input type="text" id="bloqueMotivoInput" placeholder="Ej: Mantenimiento">
               </div>
 
-              <button class="btn-block" style="width: 100%;" onclick="bloquearTodoDia()">Bloquear Todo El Día</button>
+              <button class="btn-block" style="width: 100%;" onclick="bloquearHorario()">Bloquear Horario</button>
             </div>
 
             <div>
@@ -2021,106 +994,37 @@
 
   <script>
     const API_BASE = 'https://ceq-reservas.onrender.com/api';
-    
-    // Helper para hacer fetch con JWT
-    async function fetchConJWT(url, options = {}) {
-      const token = localStorage.getItem('adminToken');
-      
-      if (!token) {
-        throw new Error('No hay sesión activa');
-      }
-      
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        ...options.headers
-      };
-      
-      const response = await fetch(url, {
-        ...options,
-        headers
-      });
-      
-      // Si el token expiró
-      if (response.status === 401) {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('tokenExpiry');
-        window.location.reload();
-        throw new Error('Sesión expirada');
-      }
-      
-      return response;
-    }
-    const ADMIN_API = 'https://ceq-reservas.onrender.com';
+    const ADMIN_PASSWORD = 'ceq@yjk2026';
     let reservasActuales = [];
     let reservaSeleccionada = null;
     let mesCalendario = new Date();
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
 
-    // LOGIN CON JWT
-    async function login() {
+    // LOGIN
+    function login() {
       const password = document.getElementById('passwordInput').value;
-      
-      if (!password) {
-        document.getElementById('loginError').textContent = 'Ingresa la contraseña';
-        return;
-      }
-      
-      try {
-        const res = await fetch(`${ADMIN_API}/api/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password })
-        });
-        
-        const data = await res.json();
-        
-        if (!res.ok) {
-          document.getElementById('loginError').textContent = data.error || 'Error al iniciar sesión';
-          return;
-        }
-        
-        // Guardar token JWT
-        localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('tokenExpiry', new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString());
-        
-        // Mostrar panel admin
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('adminPanel').classList.remove('admin-hidden');
-        document.getElementById('passwordInput').value = '';
-        document.getElementById('loginError').textContent = '';
-        
-        cargarDatos();
-      } catch (error) {
-        console.error('Error:', error);
-        document.getElementById('loginError').textContent = 'Error de conexión';
-      }
-    }
-
-    function logout() {
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('tokenExpiry');
-      document.getElementById('loginOverlay').style.display = 'flex';
-      document.getElementById('adminPanel').classList.add('admin-hidden');
-      document.getElementById('passwordInput').value = '';
-      window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app/';
-    }
-
-    // Verificar sesión y token
-    window.onload = function() {
-      const token = localStorage.getItem('adminToken');
-      const expiry = localStorage.getItem('tokenExpiry');
-      
-      if (token && expiry && new Date() < new Date(expiry)) {
+      if (password === ADMIN_PASSWORD) {
+        sessionStorage.setItem('adminLogged', 'true');
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('adminPanel').classList.remove('admin-hidden');
         cargarDatos();
       } else {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('tokenExpiry');
-        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('loginError').textContent = 'Contraseña incorrecta';
       }
-    };
+    }
+
+    function logout() {
+      sessionStorage.removeItem('adminLogged');
+      document.getElementById('loginOverlay').style.display = 'flex';
+      document.getElementById('adminPanel').classList.add('admin-hidden');
+      document.getElementById('passwordInput').value = '';
+      // Redirigir a la página principal
+      window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app/';
+    }
+
+    // Verificar sesión
+    window.onload = function() {
+      if (sessionStorage.getItem('adminLogged')) {
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('adminPanel').classList.remove('admin-hidden');
         cargarDatos();
@@ -2148,13 +1052,10 @@
     // CARGAR DATOS
     async function cargarDatos() {
       try {
-        const res = await fetchConJWT(`${API_BASE}/admin/reservas`);
-        if (!res.ok) throw new Error('Error al cargar reservas');
-        
+        const res = await fetch(`${API_BASE}/admin/reservas`);
         reservasActuales = await res.json();
         actualizarEstadisticas();
         mostrarReservas(reservasActuales);
-        await cargarBloqueos();
         cargarBloqueos();
         cargarReportes();
       } catch (error) {
@@ -2236,8 +1137,9 @@
       }
 
       try {
-        const res = await fetchConJWT(`${API_BASE}/admin/cancelar/${reservaSeleccionada}`, {
+        const res = await fetch(`${API_BASE}/admin/cancelar/${reservaSeleccionada}`, {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ motivo })
         });
 
@@ -2245,89 +1147,69 @@
           cerrarModal();
           document.getElementById('motivoCancelacion').value = '';
           await cargarDatos();
-        } else {
-          alert('Error al cancelar reserva');
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error de conexión');
       }
     }
 
     // BLOQUEOS
-    let bloqueosCargados = [];
-
-    async function bloquearTodoDia() {
+    async function bloquearHorario() {
       const espacio = document.getElementById('bloqueEspacio').value;
       const fecha = document.getElementById('bloqueFecha').value;
+      const horaInicio = document.getElementById('bloqueHoraInicio').value;
+      const duracion = parseInt(document.getElementById('bloqueDuracion').value);
       const motivo = document.getElementById('bloqueMotivoInput').value;
 
-      if (!fecha) {
-        alert('Selecciona una fecha');
+      if (!fecha || !horaInicio) {
+        alert('Completá todos los campos');
         return;
       }
 
       try {
-        const res = await fetchConJWT(`${API_BASE}/bloqueos`, {
+        const [hora, minuto] = horaInicio.split(':');
+        const horaFin = String(parseInt(hora) + duracion).padStart(2, '0') + ':' + minuto;
+
+        const res = await fetch(`${API_BASE}/reservas`, {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            espacio_id: parseInt(espacio),
+            espacio_id: espacio,
+            nombre_solicitante: '[BLOQUEADO]',
+            contacto: 'admin',
             fecha,
-            hora_inicio: '00:00:00',
-            hora_fin: '23:59:00',
-            motivo: motivo || 'Sin especificar'
+            hora_inicio: horaInicio,
+            hora_fin: horaFin,
+            motivo: `Bloqueo: ${motivo || 'Sin especificar'}`
           })
         });
 
-        const data = await res.json();
         if (res.ok) {
-          alert('✓ Día bloqueado');
           document.getElementById('bloqueFecha').value = '';
+          document.getElementById('bloqueHoraInicio').value = '';
           document.getElementById('bloqueMotivoInput').value = '';
-          await cargarBloqueos();
+          document.getElementById('bloqueDuracion').value = '1';
+          await cargarDatos();
         } else {
-          alert('Error: ' + data.error);
+          const error = await res.json();
+          alert('Error: ' + error.error);
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error al bloquear el día');
+        alert('Error al bloquear horario');
       }
     }
 
-    async function cargarBloqueos() {
-      try {
-        const res = await fetch(`${API_BASE}/bloqueos`);
-        bloqueosCargados = await res.json();
-        
-        const bloqueosList = document.getElementById('bloquesList');
-        bloqueosList.innerHTML = bloqueosCargados.map(b => `
-          <div style="padding: 8px; background: rgba(200,168,75,0.05); border-radius: 4px; margin-bottom: 8px; font-size: 11px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <strong>${b.fecha} ${b.hora_inicio.substring(0, 5)} - ${b.hora_fin.substring(0, 5)}</strong><br>
-              ${espacios[b.espacio_id] || 'Desconocido'}<br>
-              <em style="color: #888;">${b.motivo}</em>
-            </div>
-            <button onclick="eliminarBloqueo(${b.id})" style="padding: 4px 8px; background: rgba(220,100,100,0.2); border: 1px solid rgba(220,100,100,0.4); color: #c88; border-radius: 4px; cursor: pointer; font-size: 10px;">✕ Eliminar</button>
-          </div>
-        `).join('') || '<p style="color: #666;">Sin bloqueos</p>';
-      } catch (error) {
-        console.error('Error al cargar bloqueos:', error);
-      }
-    }
-
-    async function eliminarBloqueo(id) {
-      if (!confirm('¿Eliminar este bloqueo?')) return;
-      try {
-        const res = await fetchConJWT(`${API_BASE}/bloqueos/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-          alert('✓ Bloqueo eliminado');
-          await cargarBloqueos();
-        } else {
-          alert('Error al eliminar');
-        }
-      } catch (error) {
-        alert('Error al eliminar bloqueo');
-      }
+    function cargarBloqueos() {
+      const bloqueos = reservasActuales.filter(r => r.nombre_solicitante === '[BLOQUEADO]');
+      const bloqueosList = document.getElementById('bloquesList');
+      bloqueosList.innerHTML = bloqueos.map(b => `
+        <div style="padding: 8px; background: rgba(200,168,75,0.05); border-radius: 4px; margin-bottom: 8px; font-size: 11px;">
+          <strong>${b.fecha} ${b.hora_inicio.substring(0, 5)}</strong><br>
+          ${espacios[b.espacio_id]}<br>
+          <em style="color: #888;">${b.motivo}</em>
+        </div>
+      `).join('') || '<p style="color: #666;">Sin bloqueos</p>';
     }
 
     // EXPORTAR EXCEL
@@ -2549,9 +1431,7 @@
     // REPORTES
     async function cargarReportes() {
       try {
-        const res = await fetchConJWT(`${API_BASE}/admin/reportes`);
-        if (!res.ok) throw new Error('Error al cargar reportes');
-        
+        const res = await fetch(`${API_BASE}/admin/reportes`);
         const reportes = await res.json();
         mostrarReportes(reportes);
       } catch (error) {
@@ -2580,10 +1460,8 @@
 
     async function marcarLeido(id) {
       try {
-        const res = await fetchConJWT(`${API_BASE}/admin/reportes/${id}/leer`, { method: 'POST' });
-        if (res.ok) {
-          cargarReportes();
-        }
+        await fetch(`${API_BASE}/admin/reportes/${id}/leer`, { method: 'POST' });
+        cargarReportes();
       } catch (error) {
         console.error('Error:', error);
       }
