@@ -102,6 +102,7 @@
       margin-bottom: 12px;
       text-align: center;
       display: none;
+      line-height: 1.6;
     }
 
     .status-success {
@@ -142,6 +143,22 @@
     .back-link a:hover {
       color: #e0c46a;
     }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(200, 168, 75, 0.3);
+      border-top: 2px solid #c8a84b;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -156,7 +173,7 @@
 
     <div class="form-group">
       <label>Código de Cancelación</label>
-      <input type="text" id="codigo" placeholder="Ej: RES-ABC123" autofocus>
+      <input type="text" id="codigo" placeholder="Ej: ABC123DEF456" autofocus>
     </div>
 
     <button id="btnCancelar" onclick="cancelarReserva()">Cancelar Reserva</button>
@@ -172,8 +189,14 @@
     function mostrarMensaje(texto, tipo) {
       const div = document.getElementById('statusMessage');
       div.className = `status-message status-${tipo}`;
-      div.textContent = texto;
+      div.innerHTML = texto;
       div.style.display = 'block';
+      
+      // No desaparecer automáticamente si es error importante
+      if (tipo === 'error' && texto.includes('CANCELACION GRATUITA')) {
+        return;
+      }
+      
       setTimeout(() => div.style.display = 'none', 5000);
     }
 
@@ -185,7 +208,9 @@
         return;
       }
 
-      document.getElementById('btnCancelar').disabled = true;
+      const btn = document.getElementById('btnCancelar');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Procesando...';
 
       try {
         const res = await fetch(`${API_BASE}/cancelar-por-codigo`, {
@@ -197,25 +222,35 @@
         const data = await res.json();
 
         if (res.ok) {
-          mostrarMensaje('✓ Reserva cancelada exitosamente', 'success');
+          mostrarMensaje('✓ Reserva cancelada exitosamente. Redirigiendo...', 'success');
           document.getElementById('codigo').value = '';
           setTimeout(() => {
             window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app';
           }, 2000);
         } else {
-          mostrarMensaje('❌ ' + (data.error || 'Error al cancelar'), 'error');
+          // Manejar mensajes de error específicos
+          if (data.error.includes('CANCELACION GRATUITA')) {
+            mostrarMensaje(`❌ ${data.error}`, 'error');
+          } else if (data.error.includes('no válido')) {
+            mostrarMensaje('❌ El código ingresado no es válido', 'error');
+          } else {
+            mostrarMensaje('❌ ' + (data.error || 'Error al cancelar'), 'error');
+          }
         }
       } catch (error) {
         console.error('Error:', error);
-        mostrarMensaje('❌ Error de conexión', 'error');
+        mostrarMensaje('❌ Error de conexión. Intenta de nuevo.', 'error');
       } finally {
-        document.getElementById('btnCancelar').disabled = false;
+        btn.disabled = false;
+        btn.innerHTML = 'Cancelar Reserva';
       }
     }
 
     // Permitir Enter
     document.getElementById('codigo').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') cancelarReserva();
+      if (e.key === 'Enter' && !document.getElementById('btnCancelar').disabled) {
+        cancelarReserva();
+      }
     });
   </script>
 </body>
