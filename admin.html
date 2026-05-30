@@ -904,28 +904,11 @@
               </div>
 
               <div class="form-group">
-                <label>Hora Inicio</label>
-                <input type="time" id="bloqueHoraInicio">
-              </div>
-
-              <div class="form-group">
-                <label>Duración (horas)</label>
-                <select id="bloqueDuracion">
-                  <option value="1">1 hora</option>
-                  <option value="2">2 horas</option>
-                  <option value="3">3 horas</option>
-                  <option value="4">4 horas</option>
-                  <option value="5">5 horas</option>
-                  <option value="8">Todo el día (8 horas)</option>
-                </select>
-              </div>
-
-              <div class="form-group">
                 <label>Motivo</label>
-                <input type="text" id="bloqueMotivoInput" placeholder="Ej: Mantenimiento">
+                <input type="text" id="bloqueMotivoInput" placeholder="Ej: Mantenimiento, Feriado">
               </div>
 
-              <button class="btn-block" style="width: 100%;" onclick="bloquearHorario()">Bloquear Horario</button>
+              <button class="btn-block" style="width: 100%;" onclick="bloquearTodoDia()">Bloquear Todo El Día</button>
             </div>
 
             <div>
@@ -994,40 +977,104 @@
 
   <script>
     const API_BASE = 'https://ceq-reservas.onrender.com/api';
-    const ADMIN_PASSWORD = 'ceq@yjk2026';
+    
+    // Helper para hacer fetch con JWT
+    async function fetchConJWT(url, options = {}) {
+      const token = localStorage.getItem('adminToken');
+      
+      if (!token) {
+        throw new Error('No hay sesión activa');
+      }
+      
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...options.headers
+      };
+      
+      const response = await fetch(url, {
+        ...options,
+        headers
+      });
+      
+      // Si el token expiró
+      if (response.status === 401) {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('tokenExpiry');
+        window.location.reload();
+        throw new Error('Sesión expirada');
+      }
+      
+      return response;
+    }
+    const ADMIN_API = 'https://ceq-reservas.onrender.com';
     let reservasActuales = [];
     let reservaSeleccionada = null;
     let mesCalendario = new Date();
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
 
-    // LOGIN
-    function login() {
+    // LOGIN CON JWT
+    async function login() {
       const password = document.getElementById('passwordInput').value;
-      if (password === ADMIN_PASSWORD) {
-        sessionStorage.setItem('adminLogged', 'true');
+      
+      if (!password) {
+        document.getElementById('loginError').textContent = 'Ingresa la contraseña';
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${ADMIN_API}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          document.getElementById('loginError').textContent = data.error || 'Error al iniciar sesión';
+          return;
+        }
+        
+        // Guardar token JWT
+        localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('tokenExpiry', new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString());
+        
+        // Mostrar panel admin
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('adminPanel').classList.remove('admin-hidden');
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('loginError').textContent = '';
+        
         cargarDatos();
-      } else {
-        document.getElementById('loginError').textContent = 'Contraseña incorrecta';
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('loginError').textContent = 'Error de conexión';
       }
     }
 
     function logout() {
-      sessionStorage.removeItem('adminLogged');
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('tokenExpiry');
       document.getElementById('loginOverlay').style.display = 'flex';
       document.getElementById('adminPanel').classList.add('admin-hidden');
       document.getElementById('passwordInput').value = '';
-      // Redirigir a la página principal
       window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app/';
     }
 
-    // Verificar sesión
+    // Verificar sesión y token
     window.onload = function() {
-      if (sessionStorage.getItem('adminLogged')) {
+      const token = localStorage.getItem('adminToken');
+      const expiry = localStorage.getItem('tokenExpiry');
+      
+      if (token && expiry && new Date() < new Date(expiry)) {
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('adminPanel').classList.remove('admin-hidden');
         cargarDatos();
+      } else {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('tokenExpiry');
+        document.getElementById('loginOverlay').style.display = 'flex';
       }
     };
 
@@ -1052,10 +1099,13 @@
     // CARGAR DATOS
     async function cargarDatos() {
       try {
-        const res = await fetch(`${API_BASE}/admin/reservas`);
+        const res = await fetchConJWT(`${API_BASE}/admin/reservas`);
+        if (!res.ok) throw new Error('Error al cargar reservas');
+        
         reservasActuales = await res.json();
         actualizarEstadisticas();
         mostrarReservas(reservasActuales);
+        await cargarBloqueos();
         cargarBloqueos();
         cargarReportes();
       } catch (error) {
@@ -1137,9 +1187,8 @@
       }
 
       try {
-        const res = await fetch(`${API_BASE}/admin/cancelar/${reservaSeleccionada}`, {
+        const res = await fetchConJWT(`${API_BASE}/admin/cancelar/${reservaSeleccionada}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ motivo })
         });
 
@@ -1147,69 +1196,89 @@
           cerrarModal();
           document.getElementById('motivoCancelacion').value = '';
           await cargarDatos();
+        } else {
+          alert('Error al cancelar reserva');
         }
       } catch (error) {
         console.error('Error:', error);
+        alert('Error de conexión');
       }
     }
 
     // BLOQUEOS
-    async function bloquearHorario() {
+    let bloqueosCargados = [];
+
+    async function bloquearTodoDia() {
       const espacio = document.getElementById('bloqueEspacio').value;
       const fecha = document.getElementById('bloqueFecha').value;
-      const horaInicio = document.getElementById('bloqueHoraInicio').value;
-      const duracion = parseInt(document.getElementById('bloqueDuracion').value);
       const motivo = document.getElementById('bloqueMotivoInput').value;
 
-      if (!fecha || !horaInicio) {
-        alert('Completá todos los campos');
+      if (!fecha) {
+        alert('Selecciona una fecha');
         return;
       }
 
       try {
-        const [hora, minuto] = horaInicio.split(':');
-        const horaFin = String(parseInt(hora) + duracion).padStart(2, '0') + ':' + minuto;
-
-        const res = await fetch(`${API_BASE}/reservas`, {
+        const res = await fetchConJWT(`${API_BASE}/bloqueos`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            espacio_id: espacio,
-            nombre_solicitante: '[BLOQUEADO]',
-            contacto: 'admin',
+            espacio_id: parseInt(espacio),
             fecha,
-            hora_inicio: horaInicio,
-            hora_fin: horaFin,
-            motivo: `Bloqueo: ${motivo || 'Sin especificar'}`
+            hora_inicio: '00:00:00',
+            hora_fin: '23:59:00',
+            motivo: motivo || 'Sin especificar'
           })
         });
 
+        const data = await res.json();
         if (res.ok) {
+          alert('✓ Día bloqueado');
           document.getElementById('bloqueFecha').value = '';
-          document.getElementById('bloqueHoraInicio').value = '';
           document.getElementById('bloqueMotivoInput').value = '';
-          document.getElementById('bloqueDuracion').value = '1';
-          await cargarDatos();
+          await cargarBloqueos();
         } else {
-          const error = await res.json();
-          alert('Error: ' + error.error);
+          alert('Error: ' + data.error);
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error al bloquear horario');
+        alert('Error al bloquear el día');
       }
     }
 
-    function cargarBloqueos() {
-      const bloqueos = reservasActuales.filter(r => r.nombre_solicitante === '[BLOQUEADO]');
-      const bloqueosList = document.getElementById('bloquesList');
-      bloqueosList.innerHTML = bloqueos.map(b => `
-        <div style="padding: 8px; background: rgba(200,168,75,0.05); border-radius: 4px; margin-bottom: 8px; font-size: 11px;">
-          <strong>${b.fecha} ${b.hora_inicio.substring(0, 5)}</strong><br>
-          ${espacios[b.espacio_id]}<br>
-          <em style="color: #888;">${b.motivo}</em>
-        </div>
-      `).join('') || '<p style="color: #666;">Sin bloqueos</p>';
+    async function cargarBloqueos() {
+      try {
+        const res = await fetch(`${API_BASE}/bloqueos`);
+        bloqueosCargados = await res.json();
+        
+        const bloqueosList = document.getElementById('bloquesList');
+        bloqueosList.innerHTML = bloqueosCargados.map(b => `
+          <div style="padding: 8px; background: rgba(200,168,75,0.05); border-radius: 4px; margin-bottom: 8px; font-size: 11px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong>${b.fecha} ${b.hora_inicio.substring(0, 5)} - ${b.hora_fin.substring(0, 5)}</strong><br>
+              ${espacios[b.espacio_id] || 'Desconocido'}<br>
+              <em style="color: #888;">${b.motivo}</em>
+            </div>
+            <button onclick="eliminarBloqueo(${b.id})" style="padding: 4px 8px; background: rgba(220,100,100,0.2); border: 1px solid rgba(220,100,100,0.4); color: #c88; border-radius: 4px; cursor: pointer; font-size: 10px;">✕ Eliminar</button>
+          </div>
+        `).join('') || '<p style="color: #666;">Sin bloqueos</p>';
+      } catch (error) {
+        console.error('Error al cargar bloqueos:', error);
+      }
+    }
+
+    async function eliminarBloqueo(id) {
+      if (!confirm('¿Eliminar este bloqueo?')) return;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/bloqueos/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          alert('✓ Bloqueo eliminado');
+          await cargarBloqueos();
+        } else {
+          alert('Error al eliminar');
+        }
+      } catch (error) {
+        alert('Error al eliminar bloqueo');
+      }
     }
 
     // EXPORTAR EXCEL
@@ -1431,7 +1500,9 @@
     // REPORTES
     async function cargarReportes() {
       try {
-        const res = await fetch(`${API_BASE}/admin/reportes`);
+        const res = await fetchConJWT(`${API_BASE}/admin/reportes`);
+        if (!res.ok) throw new Error('Error al cargar reportes');
+        
         const reportes = await res.json();
         mostrarReportes(reportes);
       } catch (error) {
@@ -1460,8 +1531,10 @@
 
     async function marcarLeido(id) {
       try {
-        await fetch(`${API_BASE}/admin/reportes/${id}/leer`, { method: 'POST' });
-        cargarReportes();
+        const res = await fetchConJWT(`${API_BASE}/admin/reportes/${id}/leer`, { method: 'POST' });
+        if (res.ok) {
+          cargarReportes();
+        }
       } catch (error) {
         console.error('Error:', error);
       }
