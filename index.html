@@ -1254,15 +1254,20 @@
       </div>
 
       <div style="display: flex; gap: 12px;">
-        <button onclick="cerrarModalReporte()" style="flex: 1; padding: 12px; background: rgba(46, 123, 180, 0.1); border: 1px solid rgba(46, 123, 180, 0.3); color: #173874; border-radius: 8px; cursor: pointer; font-weight: 600;">Cancelar</button>
-        <button onclick="enviarReporte()" style="flex: 1; padding: 12px; background: #2e7bb4; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Enviar Reporte</button>
+        <button id="btnCancelarReporte" onclick="cerrarModalReporte()" style="flex: 1; padding: 12px; background: rgba(46, 123, 180, 0.1); border: 1px solid rgba(46, 123, 180, 0.3); color: #173874; border-radius: 8px; cursor: pointer; font-weight: 600;">Cancelar</button>
+        <button id="btnEnviarReporte" onclick="enviarReporte()" style="flex: 1; padding: 12px; background: #2e7bb4; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Enviar Reporte</button>
       </div>
     </div>
   </div>
 
   <script>
     function irCancelar() {
-      window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app/cancelar.html';
+      // Limpiar cache y volver
+      sessionStorage.clear();
+      localStorage.removeItem('reservasCache');
+      setTimeout(() => {
+        window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app';
+      }, 100);
     }
 
     function abrirModalReporte() {
@@ -1279,9 +1284,17 @@
     function enviarReporte() {
       const mensaje = document.getElementById('reporteTexto').value.trim();
       if (!mensaje) {
-        alert('Por favor describe el error');
+        mostrarAlertaReporte('Por favor describe el error', 'error');
         return;
       }
+
+      const btnEnviar = document.getElementById('btnEnviarReporte');
+      const btnCancelar = document.getElementById('btnCancelarReporte');
+      
+      btnEnviar.disabled = true;
+      btnCancelar.disabled = true;
+      const textoOriginal = btnEnviar.textContent;
+      btnEnviar.textContent = '⏳ Enviando...';
 
       fetch(API_BASE + '/reportes', {
         method: 'POST',
@@ -1292,13 +1305,53 @@
           navegador: navigator.userAgent
         })
       }).then(r => r.json()).then(data => {
-        if (data.reporte) {
-          alert('✓ Reporte enviado. ¡Gracias por ayudarnos a mejorar!');
-          cerrarModalReporte();
+        if (data.mensaje || data.error === undefined) {
+          btnEnviar.textContent = '✓ ¡Reporte Enviado!';
+          btnEnviar.style.background = '#4caf50';
+          
+          setTimeout(() => {
+            cerrarModalReporte();
+            btnEnviar.textContent = textoOriginal;
+            btnEnviar.style.background = '';
+            btnEnviar.disabled = false;
+            btnCancelar.disabled = false;
+            document.getElementById('reporteTexto').value = '';
+          }, 1500);
+        } else {
+          throw new Error(data.error || 'Error desconocido');
         }
       }).catch(err => {
-        alert('Error al enviar el reporte');
+        console.error('Error:', err);
+        btnEnviar.textContent = '❌ Error al enviar';
+        btnEnviar.style.background = '#d32f2f';
+        
+        setTimeout(() => {
+          btnEnviar.textContent = textoOriginal;
+          btnEnviar.style.background = '';
+          btnEnviar.disabled = false;
+          btnCancelar.disabled = false;
+        }, 2000);
       });
+    }
+
+    function mostrarAlertaReporte(texto, tipo) {
+      // Crear alerta en el modal
+      let alertDiv = document.getElementById('reportAlert');
+      if (!alertDiv) {
+        alertDiv = document.createElement('div');
+        alertDiv.id = 'reportAlert';
+        alertDiv.style.cssText = 'padding: 12px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; text-align: center;';
+        document.getElementById('modalReporte').insertBefore(alertDiv, document.getElementById('reporteTexto'));
+      }
+      
+      if (tipo === 'error') {
+        alertDiv.style.background = 'rgba(211, 47, 47, 0.15)';
+        alertDiv.style.color = '#c33';
+        alertDiv.style.borderLeft = '3px solid #d32f2f';
+      }
+      
+      alertDiv.textContent = texto;
+      alertDiv.style.display = 'block';
     }
 
     function abrirReporte() {
