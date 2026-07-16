@@ -78,8 +78,8 @@
     .login-box input {
       padding: 12px;
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.6);
+      border: 2px solid rgba(46, 123, 180, 0.3);
       color: #173874;
       font-size: 14px;
       outline: none;
@@ -87,7 +87,7 @@
     }
 
     .login-box input:focus {
-      border-color: #2e7bb4;
+      border-color: white;
       background: rgba(46, 123, 180, 0.08);
     }
 
@@ -95,7 +95,7 @@
       width: 100%;
       padding: 12px;
       background: linear-gradient(135deg, #2e7bb4, #5ba3d0);
-      color: #2e7bb4;
+      color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
@@ -188,14 +188,14 @@
     }
 
     .tab-btn:hover {
-      border-color: #2e7bb4;
+      border-color: white;
       background: rgba(46, 123, 180, 0.15);
     }
 
     .tab-btn.active {
       background: #2e7bb4;
-      color: #2e7bb4;
-      border-color: #2e7bb4;
+      color: white;
+      border-color: white;
     }
 
     .tab-content {
@@ -217,8 +217,8 @@
     .filters select {
       padding: 10px 12px;
       border-radius: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.6);
+      border: 2px solid rgba(46, 123, 180, 0.3);
       color: #173874;
       font-size: 12px;
       outline: none;
@@ -227,7 +227,7 @@
 
     .filters input:focus,
     .filters select:focus {
-      border-color: #2e7bb4;
+      border-color: white;
       background: rgba(46, 123, 180, 0.08);
     }
 
@@ -338,8 +338,8 @@
     .form-group select {
       padding: 10px 12px;
       border-radius: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.6);
+      border: 2px solid rgba(46, 123, 180, 0.3);
       color: #173874;
       font-size: 12px;
       outline: none;
@@ -347,7 +347,7 @@
 
     .form-group input:focus,
     .form-group select:focus {
-      border-color: #2e7bb4;
+      border-color: white;
       background: rgba(46, 123, 180, 0.08);
     }
 
@@ -402,7 +402,7 @@
 
     .btn-confirm {
       background: linear-gradient(135deg, #2e7bb4, #5ba3d0);
-      color: #2e7bb4;
+      color: white;
     }
 
     .btn-confirm:hover {
@@ -445,7 +445,7 @@
     .stat-value {
       font-size: 24px;
       font-weight: 600;
-      color: #2e7bb4;
+      color: white;
     }
 
     .status-badge {
@@ -634,14 +634,14 @@
     }
 
     .view-btn:hover {
-      border-color: #2e7bb4;
+      border-color: white;
       background: rgba(46, 123, 180, 0.15);
     }
 
     .view-btn.active {
       background: #2e7bb4;
-      color: #2e7bb4;
-      border-color: #2e7bb4;
+      color: white;
+      border-color: white;
     }
 
     /* CALENDAR VIEW */
@@ -667,7 +667,7 @@
     }
 
     .calendar-day:hover {
-      border-color: #2e7bb4;
+      border-color: white;
       background: rgba(46, 123, 180, 0.05);
     }
 
@@ -707,7 +707,7 @@
     .calendar-header-day {
       text-align: center;
       font-weight: 600;
-      color: #2e7bb4;
+      color: white;
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -737,7 +737,7 @@
     }
 
     .calendar-nav button:hover {
-      border-color: #2e7bb4;
+      border-color: white;
       background: rgba(46, 123, 180, 0.15);
     }
 
@@ -768,7 +768,7 @@
   <div class="admin-hidden" id="adminPanel">
     <div class="container">
       <header>
-        <h1>Panel Administrativo — CEQ</h1>
+        <h1>Panel Administrativo - CEQ</h1>
         <button class="logout-btn" onclick="logout()">Cerrar sesión</button>
       </header>
 
@@ -1463,7 +1463,7 @@
           ${reservas.map(r => {
             const [celular, email] = r.contacto.split('|').map(c => c.trim());
             return `
-            <div style="background: rgba(200,168,75,0.1); border: 1px solid rgba(200,168,75,0.2); border-radius: 6px; padding: 12px;">
+            <div style="background: rgba(203, 227, 250, 0.6); border: 1px solid rgba(200,168,75,0.2); border-radius: 6px; padding: 12px;">
               <div style="display: grid; gap: 6px; font-size: 11px;">
                 <div><strong>Nombre:</strong> ${r.nombre_solicitante}</div>
                 <div><strong>Horario:</strong> ${r.hora_inicio.substring(0,5)} - ${r.hora_fin.substring(0,5)}</div>

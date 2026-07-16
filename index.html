@@ -113,7 +113,7 @@
 
     .space-btn.active {
       background: #2e7bb4;
-      color: #2e7bb4;
+      color: white;
       border-color: #2e7bb4;
     }
 
@@ -199,8 +199,8 @@
     }
 
     .calendar-day.partial {
-      background: rgba(255, 200, 80, 0.15);
-      border-color: rgba(255, 200, 80, 0.4);
+      background: rgba(91, 163, 208, 0.15);
+      border-color: rgba(91, 163, 208, 0.3);
     }
 
     .calendar-day.full {
@@ -270,8 +270,8 @@
     .form-group textarea {
       padding: 12px;
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.6);
+      border: 2px solid rgba(46, 123, 180, 0.3);
       color: #173874;
       font-family: inherit;
       font-size: 14px;
@@ -302,8 +302,8 @@
 
     .hour-btn {
       padding: 10px;
-      border: 1px solid rgba(46, 123, 180, 0.3);
-      background: rgba(46, 123, 180, 0.08);
+      border: 2px solid rgba(46, 123, 180, 0.4);
+      background: rgba(91, 163, 208, 0.15);
       color: #173874;
       border-radius: 6px;
       cursor: pointer;
@@ -334,7 +334,7 @@
 
     .hour-btn.selected {
       background: #2e7bb4;
-      color: #2e7bb4;
+      color: white;
       border-color: #2e7bb4;
     }
 
@@ -359,7 +359,7 @@
 
     .turno-btn.selected {
       background: #2e7bb4;
-      color: #2e7bb4;
+      color: white;
       border-color: #2e7bb4;
     }
 
@@ -596,8 +596,8 @@
 <body>
   <div class="container">
     <header>
-      <h1>Centro de Estudiantes de Química — Reservas de Espacios</h1>
-      <p style="text-align: center; color: #5ba3d0; font-size: 11px; margin-top: 5px;">PRUEBA PILOTO — VERSIÓN 1.5a</p>
+      <h1>Centro de Estudiantes de Química - Reservas de Espacios</h1>
+      <p style="text-align: center; color: #5ba3d0; font-size: 11px; margin-top: 5px;">PRUEBA PILOTO - VERSIÓN 1.5a</p>
       <div class="header-buttons">
         <div class="badge" id="stats">Cargando...</div>
         <a href="https://ceq-reservas-frontend-pink.vercel.app/admin.html" class="admin-link">🔐 Admin</a>
@@ -640,12 +640,12 @@
 
         <div class="form-group">
           <label>Espacio seleccionado</label>
-          <input type="text" id="espacioNombre" disabled style="background: rgba(200,168,75,0.1); border-color: #2e7bb4;">
+          <input type="text" id="espacioNombre" disabled style="background: rgba(203, 227, 250, 0.6); border-color: #2e7bb4;">
         </div>
 
         <div class="form-group">
           <label>Fecha <span class="required">*</span></label>
-          <input type="date" id="fecha" disabled style="background: rgba(200,168,75,0.1);">
+          <input type="date" id="fecha" disabled style="background: rgba(203, 227, 250, 0.6);">
         </div>
 
         <div class="form-group">
@@ -1099,7 +1099,7 @@
             const horaInicio = r.hora_inicio.substring(0, 5);
             const horaFin = r.hora_fin.substring(0, 5);
             return `
-            <div style="background: rgba(200,168,75,0.1); border: 1px solid rgba(200,168,75,0.2); border-radius: 6px; padding: 12px;">
+            <div style="background: rgba(203, 227, 250, 0.6); border: 1px solid rgba(200,168,75,0.2); border-radius: 6px; padding: 12px;">
               <div style="margin-bottom: 8px;">
                 <strong>${r.nombre_solicitante}</strong><br>
                 <span style="font-size: 11px; color: #5ba3d0;">${horaInicio} - ${horaFin}</span><br>
@@ -1245,17 +1245,17 @@
 
   <!-- MODAL REPORTAR ERRORES -->
   <div id="modalReporte" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); align-items: center; justify-content: center; z-index: 1000;">
-    <div style="background: #2e7bb4; border: 1px solid rgba(46, 123, 180, 0.3); border-radius: 12px; padding: 32px; max-width: 500px; width: 90%;">
+    <div style="background: #a8d5f7; border: 1px solid rgba(46, 123, 180, 0.3); border-radius: 12px; padding: 32px; max-width: 500px; width: 90%;">
       <h3 style="color: #173874; margin-bottom: 20px; font-size: 18px;">🐛 Reportar Error</h3>
       
       <div style="margin-bottom: 16px;">
         <label style="display: block; font-size: 11px; color: #5ba3d0; text-transform: uppercase; margin-bottom: 8px;">Describe el error que encontraste</label>
-        <textarea id="reporteTexto" placeholder="Sé específico: ¿qué hiciste? ¿qué pasó?" style="width: 100%; padding: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(46, 123, 180, 0.2); border-radius: 6px; color: #173874; font-family: inherit; min-height: 100px; resize: vertical;"></textarea>
+        <textarea id="reporteTexto" placeholder="Sé específico: ¿qué hiciste? ¿qué pasó?" style="width: 100%; padding: 12px; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(46, 123, 180, 0.2); border-radius: 6px; color: #173874; font-family: inherit; min-height: 100px; resize: vertical;"></textarea>
       </div>
 
       <div style="display: flex; gap: 12px;">
         <button onclick="cerrarModalReporte()" style="flex: 1; padding: 12px; background: rgba(46, 123, 180, 0.1); border: 1px solid rgba(46, 123, 180, 0.3); color: #173874; border-radius: 8px; cursor: pointer; font-weight: 600;">Cancelar</button>
-        <button onclick="enviarReporte()" style="flex: 1; padding: 12px; background: #2e7bb4; color: #2e7bb4; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Enviar Reporte</button>
+        <button onclick="enviarReporte()" style="flex: 1; padding: 12px; background: #2e7bb4; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Enviar Reporte</button>
       </div>
     </div>
   </div>
