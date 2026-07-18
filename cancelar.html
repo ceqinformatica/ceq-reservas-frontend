@@ -169,10 +169,14 @@
   <script>
     const API_BASE = 'https://ceq-reservas.onrender.com/api';
 
-    function mostrarMensaje(texto, tipo, persistente = false) {
+    function mostrarMensaje(texto, tipo, persistente = false, esHTML = false) {
       const div = document.getElementById('statusMessage');
       div.className = `status-message status-${tipo}`;
-      div.textContent = texto;
+      if (esHTML) {
+        div.innerHTML = texto;
+      } else {
+        div.textContent = texto;
+      }
       div.style.display = 'block';
       if (!persistente) {
         setTimeout(() => div.style.display = 'none', 5000);
@@ -207,7 +211,10 @@
         } else {
           // Mostrar error específico del servidor
           if (data.error && data.error.includes('PERIODO DE CANCELACION')) {
-            mostrarMensaje('❌ ' + data.error, 'error', true);
+            mostrarMensaje(
+              '❌ EL PERIODO DE CANCELACION GRATUITA HA FINALIZADO. SI DESEA REALIZAR LA CANCELACION, CONTACTESE POR <a href="https://wa.me/595981902697" target="_blank" style="color:#173874; text-decoration: underline; font-weight: 600;">WHATSAPP</a>',
+              'error', true, true
+            );
           } else {
             mostrarMensaje('❌ ' + (data.error || 'Error al cancelar'), 'error');
           }
