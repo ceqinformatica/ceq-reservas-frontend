@@ -162,19 +162,21 @@
     <button id="btnCancelar" onclick="cancelarReserva()">Cancelar Reserva</button>
 
     <div class="back-link">
-      <a href="https://ceq-reservas-frontend-pink.vercel.app">← Volver a reservas</a>
+      <a href="https://reservas.ceq-una.com">← Volver a reservas</a>
     </div>
   </div>
 
   <script>
     const API_BASE = 'https://ceq-reservas.onrender.com/api';
 
-    function mostrarMensaje(texto, tipo) {
+    function mostrarMensaje(texto, tipo, persistente = false) {
       const div = document.getElementById('statusMessage');
       div.className = `status-message status-${tipo}`;
       div.textContent = texto;
       div.style.display = 'block';
-      setTimeout(() => div.style.display = 'none', 5000);
+      if (!persistente) {
+        setTimeout(() => div.style.display = 'none', 5000);
+      }
     }
 
     async function cancelarReserva() {
@@ -200,12 +202,12 @@
           mostrarMensaje('✓ Reserva cancelada exitosamente', 'success');
           document.getElementById('codigo').value = '';
           setTimeout(() => {
-            window.location.href = 'https://ceq-reservas-frontend-pink.vercel.app';
+            window.location.href = 'https://reservas.ceq-una.com';
           }, 2000);
         } else {
           // Mostrar error específico del servidor
           if (data.error && data.error.includes('PERIODO DE CANCELACION')) {
-            mostrarMensaje('❌ ' + data.error, 'error');
+            mostrarMensaje('❌ ' + data.error, 'error', true);
           } else {
             mostrarMensaje('❌ ' + (data.error || 'Error al cancelar'), 'error');
           }
