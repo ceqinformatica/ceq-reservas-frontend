@@ -693,6 +693,21 @@
       configurarBotonespacios();
       configurarFormulario();
       actualizarCalendario();
+      iniciarActualizacionAutomatica();
+    }
+
+    function iniciarActualizacionAutomatica() {
+      // Refresca el calendario cada 20 segundos sin que el usuario recargue la página
+      setInterval(async () => {
+        await cargarReservas();
+        actualizarCalendario();
+        // Solo refrescar el detalle de horas si el usuario no está a mitad de una selección,
+        // para no borrarle lo que ya venía eligiendo
+        if (diaSeleccionado && horasSeleccionadas.length === 0) {
+          actualizarHorasDisponibles(diaSeleccionado);
+          mostrarReservasDelDia(diaSeleccionado);
+        }
+      }, 20000);
     }
 
     async function cargarReservas() {
@@ -850,7 +865,7 @@
           ${reservasDia.length > 0 ? `<div class="calendar-day-indicator">${reservasDia.length} reserva${reservasDia.length > 1 ? 's' : ''}</div>` : ''}
         `;
 
-        if (!esPasado && !esFinDeSemana) {
+        if (!esPasado && !esFinDeSemana && !esFueraDelRango && !hayBloqueCompleto) {
           dayEl.addEventListener('click', () => seleccionarDia(fecha));
         }
         grid.appendChild(dayEl);
