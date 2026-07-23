@@ -775,9 +775,9 @@
       const hoy = new Date();
       const hoyStr = hoy.toISOString().split('T')[0];
       
-      // Calcular fecha límite (hoy + 5 días)
+      // Calcular fecha límite (hoy + 31 días)
       const fechaLimite = new Date(hoy);
-      fechaLimite.setDate(fechaLimite.getDate() + 5);
+      fechaLimite.setDate(fechaLimite.getDate() + 31);
       const fechaLimiteStr = fechaLimite.toISOString().split('T')[0];
 
       for (let dia = 1; dia <= diasEnMes; dia++) {
@@ -801,7 +801,7 @@
         const dayEl = document.createElement('div');
         dayEl.className = 'calendar-day';
         
-        // Deshabilitar días pasados, fin de semana, más allá de 5 días, Y días con bloqueo completo
+        // Deshabilitar días pasados, fin de semana, más allá de 31 días, Y días con bloqueo completo
         const esPasado = fecha < hoyStr;
         const esFueraDelRango = fecha > fechaLimiteStr;
         
