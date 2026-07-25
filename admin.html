@@ -939,7 +939,7 @@
       </div>
 
       <!-- TAB: REPORTES -->
-      <div id="tab-reportes" class="tab-content" style="display: none;">
+      <div id="tab-reportes" class="tab-content">
         <h3 style="margin-bottom: 20px;">Reportes de Errores</h3>
         
         <div class="table-wrapper">
@@ -1106,7 +1106,6 @@
         actualizarEstadisticas();
         mostrarReservas(reservasActuales);
         await cargarBloqueos();
-        cargarBloqueos();
         cargarReportes();
       } catch (error) {
         console.error('Error:', error);
@@ -1134,26 +1133,56 @@
 
     function mostrarReservas(reservas) {
       const tbody = document.getElementById('reservasTableBody');
-      tbody.innerHTML = reservas.map(r => {
+      // Limpiar de forma segura
+      while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+      reservas.forEach(r => {
         const [celular, email] = r.contacto.split('|').map(c => c.trim());
         // Convertir fecha YYYY-MM-DD a DD/MM/YYYY
         const [año, mes, día] = r.fecha.split('-');
         const fechaFormato = `${día}/${mes}/${año}`;
-        return `
-        <tr>
-          <td>${fechaFormato}</td>
-          <td>${r.hora_inicio.substring(0, 5)} - ${r.hora_fin.substring(0, 5)}</td>
-          <td>${espacios[r.espacio_id]}</td>
-          <td>${r.nombre_solicitante}</td>
-          <td>${celular}</td>
-          <td>${email}</td>
-          <td>${r.motivo ? r.motivo.trim() : '-'}</td>
-          <td><span class="status-badge status-${r.estado}">${r.estado}</span></td>
-          <td>
-            ${r.estado === 'activa' ? `<button class="btn-small btn-cancel" onclick="abrirCancelacion(${r.id})">Cancelar</button>` : '-'}
-          </td>
-        </tr>
-      `}).join('');
+
+        const tr = document.createElement('tr');
+
+        const celdas = [
+          fechaFormato,
+          `${r.hora_inicio.substring(0, 5)} - ${r.hora_fin.substring(0, 5)}`,
+          espacios[r.espacio_id] || 'Desconocido',
+          r.nombre_solicitante,
+          celular || '-',
+          email || '-',
+          r.motivo ? r.motivo.trim() : '-'
+        ];
+
+        celdas.forEach(texto => {
+          const td = document.createElement('td');
+          td.textContent = texto; // textContent nunca interpreta HTML/JS (evita XSS)
+          tr.appendChild(td);
+        });
+
+        // Columna de estado (badge)
+        const tdEstado = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = `status-badge status-${r.estado === 'cancelada' ? 'cancelada' : 'activa'}`;
+        badge.textContent = r.estado;
+        tdEstado.appendChild(badge);
+        tr.appendChild(tdEstado);
+
+        // Columna de acción
+        const tdAccion = document.createElement('td');
+        if (r.estado === 'activa') {
+          const btn = document.createElement('button');
+          btn.className = 'btn-small btn-cancel';
+          btn.textContent = 'Cancelar';
+          btn.addEventListener('click', () => abrirCancelacion(r.id));
+          tdAccion.appendChild(btn);
+        } else {
+          tdAccion.textContent = '-';
+        }
+        tr.appendChild(tdAccion);
+
+        tbody.appendChild(tr);
+      });
     }
 
     function filtrarReservas() {
@@ -1247,20 +1276,48 @@
 
     async function cargarBloqueos() {
       try {
-        const res = await fetch(`${API_BASE}/bloqueos`);
+        const res = await fetchConJWT(`${API_BASE}/admin/bloqueos`);
         bloqueosCargados = await res.json();
         
         const bloqueosList = document.getElementById('bloquesList');
-        bloqueosList.innerHTML = bloqueosCargados.map(b => `
-          <div style="padding: 8px; background: rgba(200,168,75,0.05); border-radius: 4px; margin-bottom: 8px; font-size: 11px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <strong>${b.fecha} ${b.hora_inicio.substring(0, 5)} - ${b.hora_fin.substring(0, 5)}</strong><br>
-              ${espacios[b.espacio_id] || 'Desconocido'}<br>
-              <em style="color: #5ba3d0;">${b.motivo}</em>
-            </div>
-            <button onclick="eliminarBloqueo(${b.id})" style="padding: 4px 8px; background: rgba(220,100,100,0.2); border: 1px solid rgba(220,100,100,0.4); color: #c88; border-radius: 4px; cursor: pointer; font-size: 10px;">✕ Eliminar</button>
-          </div>
-        `).join('') || '<p style="color: #666;">Sin bloqueos</p>';
+        while (bloqueosList.firstChild) bloqueosList.removeChild(bloqueosList.firstChild);
+
+        if (bloqueosCargados.length === 0) {
+          const vacio = document.createElement('p');
+          vacio.style.color = '#666';
+          vacio.textContent = 'Sin bloqueos';
+          bloqueosList.appendChild(vacio);
+          return;
+        }
+
+        bloqueosCargados.forEach(b => {
+          const fila = document.createElement('div');
+          fila.style.cssText = 'padding: 8px; background: rgba(200,168,75,0.05); border-radius: 4px; margin-bottom: 8px; font-size: 11px; display: flex; justify-content: space-between; align-items: center;';
+
+          const info = document.createElement('div');
+
+          const linea1 = document.createElement('strong');
+          linea1.textContent = `${b.fecha} ${b.hora_inicio.substring(0, 5)} - ${b.hora_fin.substring(0, 5)}`;
+          info.appendChild(linea1);
+          info.appendChild(document.createElement('br'));
+
+          info.appendChild(document.createTextNode(espacios[b.espacio_id] || 'Desconocido'));
+          info.appendChild(document.createElement('br'));
+
+          const motivoEl = document.createElement('em');
+          motivoEl.style.color = '#5ba3d0';
+          motivoEl.textContent = b.motivo || '';
+          info.appendChild(motivoEl);
+
+          const btnEliminar = document.createElement('button');
+          btnEliminar.style.cssText = 'padding: 4px 8px; background: rgba(220,100,100,0.2); border: 1px solid rgba(220,100,100,0.4); color: #c88; border-radius: 4px; cursor: pointer; font-size: 10px;';
+          btnEliminar.textContent = '✕ Eliminar';
+          btnEliminar.addEventListener('click', () => eliminarBloqueo(b.id));
+
+          fila.appendChild(info);
+          fila.appendChild(btnEliminar);
+          bloqueosList.appendChild(fila);
+        });
       } catch (error) {
         console.error('Error al cargar bloqueos:', error);
       }
@@ -1445,41 +1502,83 @@
       });
 
       const div = document.getElementById('reservasDelDiaCalendario');
-      if (reservas.length === 0) {
-        // Convertir fecha YYYY-MM-DD a DD/MM/YYYY
-        const [año, mes, día] = fecha.split('-');
-        const fechaFormato = `${día}/${mes}/${año}`;
-        div.innerHTML = `<p style="color: #666; text-align: center;">Sin reservas para ${fechaFormato}</p>`;
-        return;
-      }
+      while (div.firstChild) div.removeChild(div.firstChild);
 
       // Convertir fecha YYYY-MM-DD a DD/MM/YYYY
       const [año, mes, día] = fecha.split('-');
       const fechaFormato = `${día}/${mes}/${año}`;
 
-      div.innerHTML = `
-        <h4 style="margin-bottom: 12px; color: #173874;">Reservas del ${fechaFormato}</h4>
-        <div style="display: grid; gap: 12px;">
-          ${reservas.map(r => {
-            const [celular, email] = r.contacto.split('|').map(c => c.trim());
-            return `
-            <div style="background: rgba(203, 227, 250, 0.6); border: 1px solid rgba(200,168,75,0.2); border-radius: 6px; padding: 12px;">
-              <div style="display: grid; gap: 6px; font-size: 11px;">
-                <div><strong>Nombre:</strong> ${r.nombre_solicitante}</div>
-                <div><strong>Horario:</strong> ${r.hora_inicio.substring(0,5)} - ${r.hora_fin.substring(0,5)}</div>
-                <div><strong>Espacio:</strong> ${espacios[r.espacio_id]}</div>
-                <div><strong>Celular:</strong> ${celular}</div>
-                <div><strong>Email:</strong> ${email}</div>
-                <div><strong>Motivo:</strong> ${r.motivo ? r.motivo.trim() : 'Sin especificar'}</div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                  <span><strong>Estado:</strong> <span class="status-badge status-${r.estado}">${r.estado}</span></span>
-                  ${r.estado === 'activa' ? `<button class="btn-small btn-cancel" onclick="abrirCancelacion(${r.id})">Cancelar</button>` : ''}
-                </div>
-              </div>
-            </div>
-          `}).join('')}
-        </div>
-      `;
+      if (reservas.length === 0) {
+        const vacio = document.createElement('p');
+        vacio.style.color = '#666';
+        vacio.style.textAlign = 'center';
+        vacio.textContent = `Sin reservas para ${fechaFormato}`;
+        div.appendChild(vacio);
+        return;
+      }
+
+      const titulo = document.createElement('h4');
+      titulo.style.marginBottom = '12px';
+      titulo.style.color = '#173874';
+      titulo.textContent = `Reservas del ${fechaFormato}`;
+      div.appendChild(titulo);
+
+      const contenedor = document.createElement('div');
+      contenedor.style.display = 'grid';
+      contenedor.style.gap = '12px';
+
+      function filaDato(etiqueta, valor) {
+        const linea = document.createElement('div');
+        const strong = document.createElement('strong');
+        strong.textContent = etiqueta + ': ';
+        linea.appendChild(strong);
+        linea.appendChild(document.createTextNode(valor));
+        return linea;
+      }
+
+      reservas.forEach(r => {
+        const [celular, email] = r.contacto.split('|').map(c => c.trim());
+
+        const tarjeta = document.createElement('div');
+        tarjeta.style.cssText = 'background: rgba(203, 227, 250, 0.6); border: 1px solid rgba(200,168,75,0.2); border-radius: 6px; padding: 12px;';
+
+        const grid = document.createElement('div');
+        grid.style.cssText = 'display: grid; gap: 6px; font-size: 11px;';
+
+        grid.appendChild(filaDato('Nombre', r.nombre_solicitante));
+        grid.appendChild(filaDato('Horario', `${r.hora_inicio.substring(0,5)} - ${r.hora_fin.substring(0,5)}`));
+        grid.appendChild(filaDato('Espacio', espacios[r.espacio_id] || 'Desconocido'));
+        grid.appendChild(filaDato('Celular', celular || '-'));
+        grid.appendChild(filaDato('Email', email || '-'));
+        grid.appendChild(filaDato('Motivo', r.motivo ? r.motivo.trim() : 'Sin especificar'));
+
+        const filaEstado = document.createElement('div');
+        filaEstado.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-top: 8px;';
+
+        const spanEstado = document.createElement('span');
+        const strongEstado = document.createElement('strong');
+        strongEstado.textContent = 'Estado: ';
+        const badge = document.createElement('span');
+        badge.className = `status-badge status-${r.estado === 'cancelada' ? 'cancelada' : 'activa'}`;
+        badge.textContent = r.estado;
+        spanEstado.appendChild(strongEstado);
+        spanEstado.appendChild(badge);
+        filaEstado.appendChild(spanEstado);
+
+        if (r.estado === 'activa') {
+          const btn = document.createElement('button');
+          btn.className = 'btn-small btn-cancel';
+          btn.textContent = 'Cancelar';
+          btn.addEventListener('click', () => abrirCancelacion(r.id));
+          filaEstado.appendChild(btn);
+        }
+
+        grid.appendChild(filaEstado);
+        tarjeta.appendChild(grid);
+        contenedor.appendChild(tarjeta);
+      });
+
+      div.appendChild(contenedor);
     }
 
     function mesAnterior() {
@@ -1513,20 +1612,57 @@
     function mostrarReportes(reportes) {
       const tbody = document.getElementById('reportesTableBody');
       if (!tbody) return;
-      
-      tbody.innerHTML = reportes.map(r => {
+
+      while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+      reportes.forEach(r => {
         const [año, mes, día] = r.created_at.split('T')[0].split('-');
         const fecha = `${día}/${mes}/${año}`;
         const hora = r.created_at.split('T')[1].substring(0, 5);
-        return `
-        <tr>
-          <td>${fecha} ${hora}</td>
-          <td style="max-width: 300px; word-break: break-word;">${r.mensaje}</td>
-          <td style="font-size: 10px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${r.url || '-'}</td>
-          <td><span class="status-badge ${r.leido ? 'status-cancelada' : 'status-activa'}">${r.leido ? 'Leído' : 'Nuevo'}</span></td>
-          <td>${!r.leido ? `<button class="btn-small" onclick="marcarLeido(${r.id})">Marcar leído</button>` : '-'}</td>
-        </tr>
-      `}).join('');
+
+        const tr = document.createElement('tr');
+
+        const tdFecha = document.createElement('td');
+        tdFecha.textContent = `${fecha} ${hora}`;
+        tr.appendChild(tdFecha);
+
+        // r.mensaje viene de un endpoint público sin autenticación (cualquiera puede
+        // mandar un "reporte de error"): usar textContent es obligatorio acá, nunca innerHTML.
+        const tdMensaje = document.createElement('td');
+        tdMensaje.style.maxWidth = '300px';
+        tdMensaje.style.wordBreak = 'break-word';
+        tdMensaje.textContent = r.mensaje;
+        tr.appendChild(tdMensaje);
+
+        const tdUrl = document.createElement('td');
+        tdUrl.style.fontSize = '10px';
+        tdUrl.style.maxWidth = '200px';
+        tdUrl.style.overflow = 'hidden';
+        tdUrl.style.textOverflow = 'ellipsis';
+        tdUrl.textContent = r.url || '-'; // texto plano, no se crea un <a> clickeable con esta URL sin validar
+        tr.appendChild(tdUrl);
+
+        const tdEstado = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = `status-badge ${r.leido ? 'status-cancelada' : 'status-activa'}`;
+        badge.textContent = r.leido ? 'Leído' : 'Nuevo';
+        tdEstado.appendChild(badge);
+        tr.appendChild(tdEstado);
+
+        const tdAccion = document.createElement('td');
+        if (!r.leido) {
+          const btn = document.createElement('button');
+          btn.className = 'btn-small';
+          btn.textContent = 'Marcar leído';
+          btn.addEventListener('click', () => marcarLeido(r.id));
+          tdAccion.appendChild(btn);
+        } else {
+          tdAccion.textContent = '-';
+        }
+        tr.appendChild(tdAccion);
+
+        tbody.appendChild(tr);
+      });
     }
 
     async function marcarLeido(id) {

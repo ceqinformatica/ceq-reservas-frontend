@@ -787,7 +787,7 @@
         const esFinDeSemana = fechaObj.getDay() === 0 || fechaObj.getDay() === 6;
 
         const reservasDia = reservasActuales.filter(r => 
-          r.fecha === fecha && r.espacio_id === espacioSeleccionado && r.estado === 'activa'
+          r.fecha === fecha && r.espacio_id === espacioSeleccionado
         );
 
         // Detectar si hay bloqueo completo en este día
@@ -908,7 +908,7 @@
         ];
 
         const reservasDelDia = reservasActuales.filter(r => 
-          r.espacio_id === 3 && r.fecha === fecha && r.estado === 'activa'
+          r.espacio_id === 3 && r.fecha === fecha
         );
 
         const bloqueosDelDia = bloqueosCargados.filter(b => 
@@ -960,7 +960,7 @@
         );
         
         const reservasDelDia = reservasActuales.filter(r => 
-          r.espacio_id === espacioSeleccionado && r.fecha === fecha && r.estado === 'activa'
+          r.espacio_id === espacioSeleccionado && r.fecha === fecha
         );
 
         const bloqueosDelDia = bloqueosCargados.filter(b => 
@@ -1020,19 +1020,18 @@
       // Mostrar rango seleccionado
       document.getElementById('selectedRange').style.display = 'block';
       document.getElementById('selectedRange').textContent = inicio + ' - ' + fin;
+      validarFormulario();
     }
 
     function toggleHora(btn, indice, todasHoras) {
-      // Si ya está seleccionada, deseleccionar solo esa hora
+      // Si ya está seleccionada, deseleccionar TODA la selección (no solo esa hora).
+      // Antes, quitar una hora del medio (ej. 08,09,10 -> quitar 09) dejaba [08,10]
+      // seleccionadas visualmente, pero al crear la reserva se enviaba 08-11 igual,
+      // un rango distinto al que el usuario veía en pantalla (BUG-002).
       if (horasSeleccionadas.includes(btn.textContent)) {
-        horasSeleccionadas = horasSeleccionadas.filter(h => h !== btn.textContent);
-        btn.classList.remove('selected');
-        
-        if (horasSeleccionadas.length === 0) {
-          document.getElementById('selectedRange').style.display = 'none';
-        } else {
-          mostrarRango();
-        }
+        document.querySelectorAll('#hoursGrid .hour-btn.selected').forEach(b => b.classList.remove('selected'));
+        horasSeleccionadas = [];
+        document.getElementById('selectedRange').style.display = 'none';
         validarFormulario();
         return;
       }
@@ -1093,12 +1092,14 @@
 
     function mostrarReservasDelDia(fecha) {
       let reservas = reservasActuales.filter(r =>
-        r.espacio_id === espacioSeleccionado && r.fecha === fecha && r.estado === 'activa'
+        r.espacio_id === espacioSeleccionado && r.fecha === fecha
       );
 
       const div = document.getElementById('reservasDelDia');
+      // Limpiar contenido anterior de forma segura
+      while (div.firstChild) div.removeChild(div.firstChild);
+
       if (reservas.length === 0) {
-        div.innerHTML = '';
         return;
       }
 
@@ -1106,23 +1107,42 @@
       const [año, mes, día] = fecha.split('-');
       const fechaFormato = `${día}/${mes}/${año}`;
 
-      div.innerHTML = `
-        <h4 style="margin-bottom: 12px; color: #173874;">Reservas del ${fechaFormato}</h4>
-        <div style="display: grid; gap: 12px;">
-          ${reservas.map(r => {
-            const horaInicio = r.hora_inicio.substring(0, 5);
-            const horaFin = r.hora_fin.substring(0, 5);
-            return `
-            <div style="background: rgba(203, 227, 250, 0.6); border: 1px solid rgba(200,168,75,0.2); border-radius: 6px; padding: 12px;">
-              <div style="margin-bottom: 8px;">
-                <strong>${r.nombre_solicitante}</strong><br>
-                <span style="font-size: 11px; color: #5ba3d0;">${horaInicio} - ${horaFin}</span><br>
-                <em style="font-size: 11px; color: #aaa;">${r.motivo || '-'}</em>
-              </div>
-            </div>
-          `}).join('')}
-        </div>
-      `;
+      const titulo = document.createElement('h4');
+      titulo.style.marginBottom = '12px';
+      titulo.style.color = '#173874';
+      titulo.textContent = `Reservas del ${fechaFormato}`;
+      div.appendChild(titulo);
+
+      const contenedor = document.createElement('div');
+      contenedor.style.display = 'grid';
+      contenedor.style.gap = '12px';
+
+      // Ordenar por hora de inicio para una lectura más clara
+      reservas
+        .slice()
+        .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio))
+        .forEach(r => {
+          const horaInicio = r.hora_inicio.substring(0, 5);
+          const horaFin = r.hora_fin.substring(0, 5);
+
+          const tarjeta = document.createElement('div');
+          tarjeta.style.background = 'rgba(203, 227, 250, 0.6)';
+          tarjeta.style.border = '1px solid rgba(200,168,75,0.2)';
+          tarjeta.style.borderRadius = '6px';
+          tarjeta.style.padding = '12px';
+
+          // No se muestran nombre ni motivo por privacidad: el backend público
+          // solo entrega espacio/fecha/horario, no datos personales (PRIV-001).
+          const linea = document.createElement('span');
+          linea.style.fontSize = '13px';
+          linea.style.color = '#173874';
+          linea.textContent = `Ocupado de ${horaInicio} a ${horaFin}`;
+
+          tarjeta.appendChild(linea);
+          contenedor.appendChild(tarjeta);
+        });
+
+      div.appendChild(contenedor);
     }
 
     function configurarFormulario() {
@@ -1158,6 +1178,11 @@
         mostrarError('Selecciona al menos 1 hora');
         return;
       }
+
+      const btnReservar = document.getElementById('btnReservar');
+      btnReservar.disabled = true;
+      const textoOriginalBtn = btnReservar.textContent;
+      btnReservar.textContent = 'Enviando...';
 
       try {
         let horaInicio, horaFin;
@@ -1212,6 +1237,9 @@
         actualizarCalendario();
       } catch (error) {
         mostrarError('Error al crear la reserva');
+      } finally {
+        btnReservar.textContent = textoOriginalBtn;
+        validarFormulario();
       }
     }
 
