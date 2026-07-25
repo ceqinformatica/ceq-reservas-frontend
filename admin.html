@@ -1272,7 +1272,13 @@
           document.getElementById('bloqueMotivoInput').value = '';
           await cargarBloqueos();
         } else {
-          alert('Error: ' + data.error);
+          let mensaje = 'Error: ' + data.error;
+          if (data.reservas_en_conflicto && data.reservas_en_conflicto.length > 0) {
+            mensaje += '\n\nReservas en conflicto:\n' + data.reservas_en_conflicto
+              .map(r => `- ${r.nombre} (${r.horario})`)
+              .join('\n');
+          }
+          alert(mensaje);
         }
       } catch (error) {
         console.error('Error:', error);
