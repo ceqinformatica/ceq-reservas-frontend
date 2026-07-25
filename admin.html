@@ -6,8 +6,8 @@
   <title>Admin - Sistema de Reservas CEQ</title>
   
   <!-- SheetJS para Excel -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-nPnkC29R0sikt0ieZaAkk28Ib7Y1Dz7IqePgELH30NnSi1DzG4x+envJAOHz8ZSAveLXAHTR3ai2E9DZUsT8pQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js" integrity="sha512-Qlv6VSKh1gDKGoJbnyA5RMXYcvnpIqhO++MhIM2fStMcGT9i2T//tSwYFlcyoRRDcDZ+TYHpH8azBBCyhpSeqw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   
   <style>
     * {
@@ -813,7 +813,6 @@
               <select id="filterEspacio" onchange="filtrarReservas()">
                 <option value="">Todos los espacios</option>
                 <option value="1">Altillo</option>
-                <option value="2">Sala de Reuniones</option>
                 <option value="3">Frente</option>
               </select>
               <select id="filterEstado" onchange="filtrarReservas()">
@@ -849,7 +848,6 @@
               <select id="filterEspacioCalendario" onchange="actualizarCalendario()">
                 <option value="">Todos los espacios</option>
                 <option value="1">Altillo</option>
-                <option value="2">Sala de Reuniones</option>
                 <option value="3">Frente</option>
               </select>
             </div>
@@ -893,8 +891,7 @@
                 <label>Espacio</label>
                 <select id="bloqueEspacio">
                   <option value="1">Altillo</option>
-                  <option value="2">Sala de Reuniones</option>
-                  <option value="3">Frente</option>
+                    <option value="3">Frente</option>
                 </select>
               </div>
 
@@ -928,7 +925,6 @@
             <select id="exportEspacio">
               <option value="">Todos los espacios</option>
               <option value="1">Altillo</option>
-              <option value="2">Sala de Reuniones</option>
               <option value="3">Frente</option>
             </select>
           </div>
