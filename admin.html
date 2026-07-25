@@ -978,30 +978,24 @@
   <script>
     const API_BASE = 'https://ceq-reservas.onrender.com/api';
     
-    // Helper para hacer fetch con JWT
+    // Helper para hacer fetch autenticado. El token viaja en una cookie httpOnly
+    // (AUTH-002): el navegador la manda solo automáticamente con credentials:'include',
+    // y este JavaScript nunca llega a verla ni a poder leerla.
     async function fetchConJWT(url, options = {}) {
-      const token = localStorage.getItem('adminToken');
-      
-      if (!token) {
-        throw new Error('No hay sesión activa');
-      }
-      
       const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
         ...options.headers
       };
       
       const response = await fetch(url, {
         ...options,
-        headers
+        headers,
+        credentials: 'include'
       });
       
-      // Si el token expiró
+      // Si la sesión expiró o no es válida
       if (response.status === 401) {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('tokenExpiry');
-        window.location.reload();
+        mostrarLogin();
         throw new Error('Sesión expirada');
       }
       
@@ -1013,7 +1007,17 @@
     let mesCalendario = new Date();
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
 
-    // LOGIN CON JWT
+    function mostrarLogin() {
+      document.getElementById('loginOverlay').style.display = 'flex';
+      document.getElementById('adminPanel').classList.add('admin-hidden');
+    }
+
+    function mostrarPanel() {
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('adminPanel').classList.remove('admin-hidden');
+    }
+
+    // LOGIN CON JWT (cookie httpOnly, AUTH-002)
     async function login() {
       const password = document.getElementById('passwordInput').value;
       
@@ -1026,6 +1030,7 @@
         const res = await fetch(`${ADMIN_API}/api/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ password })
         });
         
@@ -1036,13 +1041,8 @@
           return;
         }
         
-        // Guardar token JWT
-        localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('tokenExpiry', new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString());
-        
-        // Mostrar panel admin
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('adminPanel').classList.remove('admin-hidden');
+        // El backend ya seteó la cookie httpOnly con el token; acá no se guarda nada.
+        mostrarPanel();
         document.getElementById('passwordInput').value = '';
         document.getElementById('loginError').textContent = '';
         
@@ -1053,28 +1053,34 @@
       }
     }
 
-    function logout() {
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('tokenExpiry');
-      document.getElementById('loginOverlay').style.display = 'flex';
-      document.getElementById('adminPanel').classList.add('admin-hidden');
+    async function logout() {
+      try {
+        await fetch(`${ADMIN_API}/api/logout`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.error('Error al cerrar sesión:', error);
+      }
       document.getElementById('passwordInput').value = '';
       window.location.href = 'https://reservas.ceq-una.com/';
     }
 
-    // Verificar sesión y token
-    window.onload = function() {
-      const token = localStorage.getItem('adminToken');
-      const expiry = localStorage.getItem('tokenExpiry');
-      
-      if (token && expiry && new Date() < new Date(expiry)) {
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('adminPanel').classList.remove('admin-hidden');
-        cargarDatos();
-      } else {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('tokenExpiry');
-        document.getElementById('loginOverlay').style.display = 'flex';
+    // Verificar sesión activa consultando al backend (ya no se puede leer el
+    // token desde el JavaScript del cliente, así que se le pregunta al servidor)
+    window.onload = async function() {
+      try {
+        const res = await fetch(`${ADMIN_API}/api/admin/verificar-sesion`, {
+          credentials: 'include'
+        });
+        if (res.ok) {
+          mostrarPanel();
+          cargarDatos();
+        } else {
+          mostrarLogin();
+        }
+      } catch (error) {
+        mostrarLogin();
       }
     };
 
