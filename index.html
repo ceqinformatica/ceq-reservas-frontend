@@ -1131,14 +1131,32 @@
           tarjeta.style.borderRadius = '6px';
           tarjeta.style.padding = '12px';
 
-          // No se muestran nombre ni motivo por privacidad: el backend público
-          // solo entrega espacio/fecha/horario, no datos personales (PRIV-001).
-          const linea = document.createElement('span');
-          linea.style.fontSize = '13px';
-          linea.style.color = '#173874';
-          linea.textContent = `Ocupado de ${horaInicio} a ${horaFin}`;
+          // Se muestran nombre y motivo a pedido del cliente, para que los usuarios
+          // puedan corroborar visualmente sus propias reservas sin depender del email.
+          // Se usa textContent (no innerHTML) para que un motivo con código HTML/JS
+          // no pueda ejecutarse en el navegador de otros visitantes (SEC-002).
+          const nombreEl = document.createElement('strong');
+          nombreEl.textContent = r.nombre_solicitante || 'Sin nombre';
 
-          tarjeta.appendChild(linea);
+          const horarioEl = document.createElement('span');
+          horarioEl.style.fontSize = '11px';
+          horarioEl.style.color = '#5ba3d0';
+          horarioEl.textContent = `${horaInicio} - ${horaFin}`;
+
+          const motivoEl = document.createElement('em');
+          motivoEl.style.fontSize = '11px';
+          motivoEl.style.color = '#888';
+          motivoEl.textContent = r.motivo ? r.motivo.trim() : '-';
+
+          const infoDiv = document.createElement('div');
+          infoDiv.style.marginBottom = '4px';
+          infoDiv.appendChild(nombreEl);
+          infoDiv.appendChild(document.createElement('br'));
+          infoDiv.appendChild(horarioEl);
+          infoDiv.appendChild(document.createElement('br'));
+          infoDiv.appendChild(motivoEl);
+
+          tarjeta.appendChild(infoDiv);
           contenedor.appendChild(tarjeta);
         });
 
