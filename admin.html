@@ -976,7 +976,7 @@
   </div>
 
   <script>
-    const API_BASE = 'https://ceq-reservas.onrender.com/api';
+    const API_BASE = 'https://api.ceq-una.com/api';
     
     // Helper para hacer fetch autenticado. El token viaja en una cookie httpOnly
     // (AUTH-002): el navegador la manda solo automáticamente con credentials:'include',
@@ -1001,7 +1001,7 @@
       
       return response;
     }
-    const ADMIN_API = 'https://ceq-reservas.onrender.com';
+    const ADMIN_API = 'https://api.ceq-una.com';
     let reservasActuales = [];
     let reservaSeleccionada = null;
     let mesCalendario = new Date();
