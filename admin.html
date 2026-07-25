@@ -974,6 +974,13 @@
   <script>
     const API_BASE = 'https://api.ceq-una.com/api';
     
+    // Lee el valor de una cookie no-httpOnly por nombre (para el token CSRF,
+    // que a propósito SÍ puede leer el JS del propio sitio)
+    function leerCookie(nombre) {
+      const match = document.cookie.match('(^|;)\\s*' + nombre + '\\s*=\\s*([^;]+)');
+      return match ? match.pop() : '';
+    }
+
     // Helper para hacer fetch autenticado. El token viaja en una cookie httpOnly
     // (AUTH-002): el navegador la manda solo automáticamente con credentials:'include',
     // y este JavaScript nunca llega a verla ni a poder leerla.
@@ -982,6 +989,14 @@
         'Content-Type': 'application/json',
         ...options.headers
       };
+
+      // CSRF (doble-submit): en cualquier petición que no sea GET, se manda el
+      // valor de la cookie csrf_token también como header. El servidor exige que
+      // coincidan; un sitio malicioso no puede leer la cookie para copiarla acá.
+      const metodo = (options.method || 'GET').toUpperCase();
+      if (metodo !== 'GET') {
+        headers['X-CSRF-Token'] = leerCookie('csrf_token');
+      }
       
       const response = await fetch(url, {
         ...options,
@@ -1495,7 +1510,16 @@
           ${reservasDia.length > 0 ? `<div class="calendar-day-indicator">${reservasDia.length} reserva${reservasDia.length > 1 ? 's' : ''}</div>` : ''}
         `;
 
+        dayEl.setAttribute('role', 'button');
+        dayEl.setAttribute('tabindex', '0');
+        dayEl.setAttribute('aria-label', `Día ${dia}, ${reservasDia.length} reserva${reservasDia.length !== 1 ? 's' : ''}`);
         dayEl.addEventListener('click', () => mostrarReservasDelDia(fecha, espacioSeleccionado));
+        dayEl.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            mostrarReservasDelDia(fecha, espacioSeleccionado);
+          }
+        });
         grid.appendChild(dayEl);
       }
     }

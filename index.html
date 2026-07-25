@@ -188,6 +188,11 @@
       background: rgba(46, 123, 180, 0.05);
     }
 
+    .calendar-day:focus-visible {
+      outline: 2px solid #2e7bb4;
+      outline-offset: 2px;
+    }
+
     .calendar-day.today {
       background: rgba(70, 130, 180, 0.25);
       border: 2px solid rgba(70, 130, 180, 0.6);
@@ -876,13 +881,35 @@
           }
         }
 
+        // Determinar un texto descriptivo del estado, para lectores de pantalla
+        let estadoTexto = 'disponible';
+        if (dayEl.classList.contains('disabled')) estadoTexto = 'no disponible';
+        else if (dayEl.classList.contains('full')) estadoTexto = 'sin horarios libres';
+        else if (dayEl.classList.contains('partial')) estadoTexto = 'con horarios libres';
+
         dayEl.innerHTML = `
           <div class="calendar-day-number">${dia}</div>
           ${reservasDia.length > 0 ? `<div class="calendar-day-indicator">${reservasDia.length} reserva${reservasDia.length > 1 ? 's' : ''}</div>` : ''}
         `;
 
-        if (!esPasado && !esFinDeSemana && !esFueraDelRango && !hayBloqueCompleto) {
+        const esClickeable = !esPasado && !esFinDeSemana && !esFueraDelRango && !hayBloqueCompleto;
+
+        // Accesibilidad: los días son <div> por como está armado el grid, así que
+        // sin esto son invisibles para navegación por teclado y lectores de pantalla
+        // (un div con onclick no es focuseable ni responde a Enter/Espacio por defecto).
+        dayEl.setAttribute('aria-label', `Día ${dia}, ${estadoTexto}`);
+        if (esClickeable) {
+          dayEl.setAttribute('role', 'button');
+          dayEl.setAttribute('tabindex', '0');
           dayEl.addEventListener('click', () => seleccionarDia(fecha));
+          dayEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              seleccionarDia(fecha);
+            }
+          });
+        } else {
+          dayEl.setAttribute('aria-disabled', 'true');
         }
         grid.appendChild(dayEl);
       }
