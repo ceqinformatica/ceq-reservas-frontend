@@ -1104,13 +1104,16 @@
         const res = await fetchConJWT(`${API_BASE}/admin/reservas`);
         if (!res.ok) throw new Error('Error al cargar reservas');
         
-        reservasActuales = await res.json();
+        const data = await res.json();
+        reservasActuales = Array.isArray(data) ? data : [];
         actualizarEstadisticas();
         mostrarReservas(reservasActuales);
         await cargarBloqueos();
         cargarReportes();
       } catch (error) {
         console.error('Error:', error);
+        if (!Array.isArray(reservasActuales)) reservasActuales = [];
+        alert('No se pudo conectar con el servidor. Reintentá en unos segundos o recargá la página.');
       }
     }
 
@@ -1285,7 +1288,9 @@
     async function cargarBloqueos() {
       try {
         const res = await fetchConJWT(`${API_BASE}/admin/bloqueos`);
-        bloqueosCargados = await res.json();
+        if (!res.ok) throw new Error('Error al cargar bloqueos');
+        const data = await res.json();
+        bloqueosCargados = Array.isArray(data) ? data : [];
         
         const bloqueosList = document.getElementById('bloquesList');
         while (bloqueosList.firstChild) bloqueosList.removeChild(bloqueosList.firstChild);

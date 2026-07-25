@@ -713,23 +713,39 @@
     async function cargarReservas() {
       try {
         const res = await fetch(`${API_BASE}/reservas`);
-        reservasActuales = await res.json();
-        
+        if (!res.ok) throw new Error('No se pudo cargar la disponibilidad');
+        const data = await res.json();
+        // BUG-008: nunca asumir que la respuesta tiene la forma esperada. Si por algún
+        // motivo el backend devuelve otra cosa (un objeto de error, HTML de un proxy
+        // caído, etc.), reservasActuales queda como array vacío en vez de romper todo
+        // lo que después hace .filter()/.map() sobre esta variable.
+        reservasActuales = Array.isArray(data) ? data : [];
+
         const resBloqueos = await fetch(`${API_BASE}/bloqueos`);
-        bloqueosCargados = await resBloqueos.json() || [];
+        if (!resBloqueos.ok) throw new Error('No se pudieron cargar los bloqueos');
+        const dataBloqueos = await resBloqueos.json();
+        bloqueosCargados = Array.isArray(dataBloqueos) ? dataBloqueos : [];
         
         actualizarEstadisticas();
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error al cargar reservas/bloqueos:', error);
+        // Mantener arrays válidos aunque falle, para que el resto de la app
+        // (calendario, formulario) no se rompa con un error no controlado.
+        if (!Array.isArray(reservasActuales)) reservasActuales = [];
+        if (!Array.isArray(bloqueosCargados)) bloqueosCargados = [];
+        mostrarError('No se pudo conectar con el servidor. Los horarios mostrados podrían no estar actualizados.');
       }
     }
 
     async function actualizarEstadisticas() {
       try {
         const res = await fetch(`${API_BASE}/estadisticas`);
+        if (!res.ok) return; // no es crítico para el uso del sitio, se omite en silencio
         const stats = await res.json();
         document.getElementById('stats').textContent = `${stats.reservas_activas} reserva${stats.reservas_activas !== 1 ? 's' : ''}`;
-      } catch (error) {}
+      } catch (error) {
+        console.error('Error al cargar estadísticas:', error);
+      }
     }
 
     function configurarBotonespacios() {
