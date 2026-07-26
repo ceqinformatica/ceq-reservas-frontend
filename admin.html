@@ -973,7 +973,15 @@
 
   <script>
     const API_BASE = 'https://api.ceq-una.com/api';
-    
+
+    // Devuelve la fecha de "hoy" como string YYYY-MM-DD, anclada a la zona horaria de
+    // Asunción sin importar dónde esté ni cómo tenga configurado el reloj el visitante.
+    // Antes se usaba `new Date().toISOString()`, que siempre da la fecha en UTC: de noche
+    // en Paraguay, UTC ya había cruzado al día siguiente, así que "hoy" quedaba mal calculado.
+    function hoyEnAsuncionStr() {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Asuncion' }).format(new Date());
+    }
+
     // Lee el valor de una cookie no-httpOnly por nombre (para el token CSRF,
     // que a propósito SÍ puede leer el JS del propio sitio)
     function leerCookie(nombre) {
@@ -1103,7 +1111,7 @@
       event.target.classList.add('active');
 
       if (tab === 'exportar') {
-        const hoy = new Date().toISOString().split('T')[0];
+        const hoy = hoyEnAsuncionStr();
         document.getElementById('exportFechaInicio').value = hoy;
         document.getElementById('exportFechaFin').value = hoy;
       }
@@ -1133,7 +1141,7 @@
     }
 
     function actualizarEstadisticas() {
-      const hoy = new Date().toISOString().split('T')[0];
+      const hoy = hoyEnAsuncionStr();
       const inicioSemana = new Date();
       inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay() + 1);
 
@@ -1491,10 +1499,10 @@
 
       // Días del mes
       const espacioSeleccionado = document.getElementById('filterEspacioCalendario').value;
+      const hoy = hoyEnAsuncionStr(); // se calcula una sola vez, no en cada iteración
 
       for (let dia = 1; dia <= diasEnMes; dia++) {
         const fecha = `${año}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
-        const hoy = new Date().toISOString().split('T')[0];
 
         const reservasDia = reservasActuales.filter(r => 
           r.fecha === fecha && (!espacioSeleccionado || r.espacio_id == espacioSeleccionado) && r.estado === 'activa'

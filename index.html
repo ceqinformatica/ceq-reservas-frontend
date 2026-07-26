@@ -693,6 +693,16 @@
     let mesCalendario = new Date();
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
 
+    // Devuelve la fecha de "hoy" como string YYYY-MM-DD, anclada a la zona horaria de
+    // Asunción sin importar dónde esté ni cómo tenga configurado el reloj el visitante.
+    // Antes se usaba `new Date().toISOString()`, que siempre da la fecha en UTC: de noche
+    // en Paraguay, UTC ya había cruzado al día siguiente, así que el calendario marcaba
+    // como "hoy" un día que acá todavía no llegaba (y de paso deshabilitaba el día real
+    // como si ya hubiera pasado).
+    function hoyEnAsuncionStr() {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Asuncion' }).format(new Date());
+    }
+
     async function init() {
       await cargarReservas();
       configurarBotonespacios();
@@ -793,13 +803,14 @@
       }
 
       // Días del mes
-      const hoy = new Date();
-      const hoyStr = hoy.toISOString().split('T')[0];
-      
-      // Calcular fecha límite (hoy + 31 días)
-      const fechaLimite = new Date(hoy);
-      fechaLimite.setDate(fechaLimite.getDate() + 31);
-      const fechaLimiteStr = fechaLimite.toISOString().split('T')[0];
+      const hoyStr = hoyEnAsuncionStr();
+
+      // Calcular fecha límite (hoy + 31 días). Se ancla al mismo hoyStr (ya correcto
+      // en zona horaria de Asunción) y la aritmética se hace en UTC puro a partir de
+      // esa fecha, sin volver a tocar la hora real del visitante.
+      const fechaLimiteObj = new Date(hoyStr + 'T00:00:00Z');
+      fechaLimiteObj.setUTCDate(fechaLimiteObj.getUTCDate() + 31);
+      const fechaLimiteStr = fechaLimiteObj.toISOString().split('T')[0];
 
       for (let dia = 1; dia <= diasEnMes; dia++) {
         const fecha = `${año}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
