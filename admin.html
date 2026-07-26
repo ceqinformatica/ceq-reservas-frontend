@@ -776,6 +776,7 @@
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab('reservas')">📋 Reservas</button>
           <button class="tab-btn" onclick="switchTab('bloqueos')">🔒 Bloqueos</button>
+          <button class="tab-btn" onclick="switchTab('meses')">📅 Meses</button>
           <button class="tab-btn" onclick="switchTab('exportar')">📊 Exportar</button>
           <button class="tab-btn" onclick="switchTab('reportes')">🐛 Reportes</button>
         </div>
@@ -913,6 +914,17 @@
               <div id="bloquesList" style="max-height: 400px; overflow-y: auto;"></div>
             </div>
           </div>
+        </div>
+
+        <!-- TAB: MESES HABILITADOS -->
+        <div id="tab-meses" class="tab-content">
+          <h3 style="margin-bottom: 8px;">Meses Habilitados para Reservar</h3>
+          <p style="color: #5ba3d0; font-size: 12px; margin-bottom: 20px;">
+            Solo se pueden crear reservas en los meses que marques acá. Por ejemplo, a fin de mes
+            podés habilitar el mes actual + el siguiente, para que se puedan reservar los primeros
+            días del mes entrante.
+          </p>
+          <div id="mesesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;"></div>
         </div>
 
         <!-- TAB: EXPORTAR -->
@@ -1118,6 +1130,10 @@
 
       if (tab === 'reportes') {
         cargarReportes();
+      }
+
+      if (tab === 'meses') {
+        cargarMesesHabilitados();
       }
     }
 
@@ -1374,8 +1390,92 @@
       }
     }
 
+    // MESES HABILITADOS
+    const NOMBRES_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    async function cargarMesesHabilitados() {
+      const lista = document.getElementById('mesesList');
+      while (lista.firstChild) lista.removeChild(lista.firstChild);
+
+      try {
+        const res = await fetchConJWT(`${API_BASE}/admin/meses-habilitados`);
+        if (!res.ok) throw new Error('Error al cargar meses habilitados');
+        const data = await res.json();
+        const habilitadosGuardados = Array.isArray(data) ? data : [];
+
+        // Buscar el estado guardado de un (año, mes); si no hay fila, se considera deshabilitado
+        const estadoDe = (anio, mes) => {
+          const fila = habilitadosGuardados.find(m => m.anio === anio && m.mes === mes);
+          return fila ? !!fila.habilitado : false;
+        };
+
+        // Generar los próximos 12 meses a partir del mes actual (el rango de meses
+        // que un moderador puede llegar a querer habilitar/deshabilitar con antelación)
+        const base = new Date();
+        for (let i = 0; i < 12; i++) {
+          const fechaMes = new Date(base.getFullYear(), base.getMonth() + i, 1);
+          const anio = fechaMes.getFullYear();
+          const mes = fechaMes.getMonth() + 1; // 1-12
+          const esMesActual = i === 0;
+
+          const tarjeta = document.createElement('label');
+          tarjeta.style.cssText = 'display:flex; align-items:center; gap:10px; padding:12px; background:rgba(46,123,180,0.06); border:1px solid rgba(46,123,180,0.15); border-radius:6px; cursor:pointer; font-size:13px;';
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = estadoDe(anio, mes);
+          checkbox.style.cssText = 'width:18px; height:18px; cursor:pointer;';
+
+          const texto = document.createElement('span');
+          texto.textContent = `${NOMBRES_MESES[mes - 1]} ${anio}` + (esMesActual ? ' (mes actual)' : '');
+
+          checkbox.addEventListener('change', () => toggleMes(anio, mes, checkbox.checked, checkbox));
+
+          tarjeta.appendChild(checkbox);
+          tarjeta.appendChild(texto);
+          lista.appendChild(tarjeta);
+        }
+      } catch (error) {
+        console.error('Error al cargar meses habilitados:', error);
+        const errorEl = document.createElement('p');
+        errorEl.style.color = '#c88';
+        errorEl.textContent = 'No se pudieron cargar los meses habilitados.';
+        lista.appendChild(errorEl);
+      }
+    }
+
+    async function toggleMes(anio, mes, habilitado, checkbox) {
+      checkbox.disabled = true;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/admin/meses-habilitados`, {
+          method: 'POST',
+          body: JSON.stringify({ anio, mes, habilitado })
+        });
+        if (!res.ok) {
+          checkbox.checked = !habilitado; // revertir el toggle visual si falló
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || 'Error al actualizar el mes');
+        }
+      } catch (error) {
+        checkbox.checked = !habilitado;
+        alert('Error al actualizar el mes');
+      } finally {
+        checkbox.disabled = false;
+      }
+    }
+
     // EXPORTAR EXCEL
     function exportarExcel() {
+      // Evita inyección de fórmulas en el Excel exportado (nombre/motivo/celular/email
+      // vienen de un formulario público sin restricción de caracteres). Si el valor
+      // empieza con =, +, -, @, tab o retorno de carro, Excel podría intentar
+      // interpretarlo como fórmula al abrir el archivo en vez de mostrarlo como texto.
+      // Anteponer una comilla simple fuerza a que siempre se trate como texto literal.
+      function sanitizarParaExcel(valor) {
+        const texto = String(valor ?? '');
+        return /^[=+\-@\t\r]/.test(texto) ? "'" + texto : texto;
+      }
+
       const fechaInicio = document.getElementById('exportFechaInicio').value;
       const fechaFin = document.getElementById('exportFechaFin').value;
       const espacio = document.getElementById('exportEspacio').value;
@@ -1431,10 +1531,10 @@
               'Fecha': fechaFormato,
               'Hora Inicio': r.hora_inicio.substring(0, 5),
               'Hora Fin': r.hora_fin.substring(0, 5),
-              'Nombre': r.nombre_solicitante,
-              'Celular': celular,
-              'Email': email,
-              'Motivo': r.motivo ? r.motivo.trim() : 'Sin especificar',
+              'Nombre': sanitizarParaExcel(r.nombre_solicitante),
+              'Celular': sanitizarParaExcel(celular),
+              'Email': sanitizarParaExcel(email),
+              'Motivo': sanitizarParaExcel(r.motivo ? r.motivo.trim() : 'Sin especificar'),
               'Estado': r.estado
             };
           });

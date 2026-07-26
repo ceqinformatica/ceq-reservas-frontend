@@ -620,7 +620,11 @@
           <button onclick="mesAnterior()">← Anterior</button>
           <div class="calendar-month" id="calendarMonth"></div>
           <button onclick="hoy()">Hoy</button>
-          <button onclick="mesSiguiente()">Siguiente →</button>
+          <button id="btnMesSiguiente" onclick="mesSiguiente()">Siguiente →</button>
+        </div>
+
+        <div id="avisoMesDeshabilitado" style="display:none; text-align:center; padding:10px; margin-bottom:12px; background:rgba(200,168,75,0.12); border:1px solid rgba(200,168,75,0.3); border-radius:6px; color:#8a6d1a; font-size:13px;">
+          Este mes todavía no está habilitado para reservas. Probá con "Hoy" o consultá con un moderador.
         </div>
 
         <div class="calendar-header">
@@ -691,6 +695,7 @@
     let reservasActuales = [];
     let bloqueosCargados = [];
     let mesCalendario = new Date();
+    let mesesHabilitadosSet = new Set(); // claves "YYYY-M" (mes sin cero a la izquierda), ver cargarMesesHabilitados()
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
 
     // Devuelve la fecha de "hoy" como string YYYY-MM-DD, anclada a la zona horaria de
@@ -705,6 +710,7 @@
 
     async function init() {
       await cargarReservas();
+      await cargarMesesHabilitados();
       configurarBotonespacios();
       configurarFormulario();
       actualizarCalendario();
@@ -715,6 +721,7 @@
       // Refresca el calendario cada 20 segundos sin que el usuario recargue la página
       setInterval(async () => {
         await cargarReservas();
+        await cargarMesesHabilitados();
         actualizarCalendario();
         // Solo refrescar el detalle de horas si el usuario no está a mitad de una selección,
         // para no borrarle lo que ya venía eligiendo
@@ -723,6 +730,24 @@
           mostrarReservasDelDia(diaSeleccionado);
         }
       }, 20000);
+    }
+
+    // Trae qué meses habilitó manualmente un moderador desde el panel admin (reemplaza
+    // la vieja ventana fija de "hoy + 31 días"). Las claves se guardan como "YYYY-M"
+    // (mes SIN cero a la izquierda) para que matcheen directo con mesCalendario.getMonth()+1.
+    async function cargarMesesHabilitados() {
+      try {
+        const res = await fetch(`${API_BASE}/meses-habilitados`);
+        if (!res.ok) throw new Error('No se pudieron cargar los meses habilitados');
+        const data = await res.json();
+        mesesHabilitadosSet = new Set(
+          (Array.isArray(data) ? data : []).map(m => `${m.anio}-${m.mes}`)
+        );
+      } catch (error) {
+        console.error('Error al cargar meses habilitados:', error);
+        // Si falla, dejamos el set como estaba (probablemente vacío en la primera carga),
+        // el calendario va a mostrar todo deshabilitado en vez de romperse.
+      }
     }
 
     async function cargarReservas() {
@@ -805,12 +830,23 @@
       // Días del mes
       const hoyStr = hoyEnAsuncionStr();
 
-      // Calcular fecha límite (hoy + 31 días). Se ancla al mismo hoyStr (ya correcto
-      // en zona horaria de Asunción) y la aritmética se hace en UTC puro a partir de
-      // esa fecha, sin volver a tocar la hora real del visitante.
-      const fechaLimiteObj = new Date(hoyStr + 'T00:00:00Z');
-      fechaLimiteObj.setUTCDate(fechaLimiteObj.getUTCDate() + 31);
-      const fechaLimiteStr = fechaLimiteObj.toISOString().split('T')[0];
+      // El mes que se está mostrando tiene que estar habilitado por un moderador
+      // (reemplaza la vieja ventana fija de "hoy + 31 días").
+      const claveMesMostrado = `${año}-${mes + 1}`;
+      const mesMostradoHabilitado = mesesHabilitadosSet.has(claveMesMostrado);
+
+      // El botón "Siguiente" solo se habilita si el mes inmediatamente posterior al
+      // que se está mostrando también está habilitado — así se puede ir avanzando
+      // mes a mes, pero no "espiar" ni saltar a un mes que el moderador no habilitó.
+      const fechaMesSiguiente = new Date(año, mes + 1, 1);
+      const claveMesSiguiente = `${fechaMesSiguiente.getFullYear()}-${fechaMesSiguiente.getMonth() + 1}`;
+      document.getElementById('btnMesSiguiente').disabled = !mesesHabilitadosSet.has(claveMesSiguiente);
+
+      // Aviso si el mes que se está mostrando no tiene ningún día disponible para reservar
+      const avisoMesDeshabilitado = document.getElementById('avisoMesDeshabilitado');
+      if (avisoMesDeshabilitado) {
+        avisoMesDeshabilitado.style.display = mesMostradoHabilitado ? 'none' : 'block';
+      }
 
       for (let dia = 1; dia <= diasEnMes; dia++) {
         const fecha = `${año}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
@@ -833,11 +869,12 @@
         const dayEl = document.createElement('div');
         dayEl.className = 'calendar-day';
         
-        // Deshabilitar días pasados, fin de semana, más allá de 31 días, Y días con bloqueo completo
+        // Deshabilitar días pasados, fin de semana, de un mes no habilitado, y días con bloqueo completo
         const esPasado = fecha < hoyStr;
-        const esFueraDelRango = fecha > fechaLimiteStr;
+        const esFueraDelRango = !mesMostradoHabilitado;
         
         // Determinar estado del día
+
         if (fecha === hoyStr) {
           dayEl.classList.add('today'); // Gris - Hoy
         } else if (esPasado || esFinDeSemana || esFueraDelRango || hayBloqueCompleto) {
