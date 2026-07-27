@@ -994,6 +994,24 @@
       return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Asuncion' }).format(new Date());
     }
 
+    // Espejo de la función del mismo nombre en server.js e index.html: Frente reserva por
+    // turnos fijos con nombre propio (Desayuno/Almuerzo/Merienda), no por horario libre
+    // como Altillo. Recibe horaInicio/horaFin ya recortadas a "HH:MM".
+    const NOMBRES_TURNOS_FRENTE = {
+      '07:00-10:00': 'Desayuno',
+      '10:00-13:00': 'Almuerzo',
+      '14:00-18:00': 'Merienda'
+    };
+
+    function descripcionHorario(espacioId, horaInicioHHMM, horaFinHHMM) {
+      const rango = `${horaInicioHHMM} - ${horaFinHHMM}`;
+      if (Number(espacioId) === 3) {
+        const nombreTurno = NOMBRES_TURNOS_FRENTE[`${horaInicioHHMM}-${horaFinHHMM}`];
+        if (nombreTurno) return `${nombreTurno} (${rango})`;
+      }
+      return rango;
+    }
+
     // Lee el valor de una cookie no-httpOnly por nombre (para el token CSRF,
     // que a propósito SÍ puede leer el JS del propio sitio)
     function leerCookie(nombre) {
@@ -1147,6 +1165,7 @@
         reservasActuales = Array.isArray(data) ? data : [];
         actualizarEstadisticas();
         mostrarReservas(reservasActuales);
+        actualizarCalendario(); // sin esto, cancelar/crear una reserva no se reflejaba en la vista de calendario hasta recargar la página
         await cargarBloqueos();
         cargarReportes();
       } catch (error) {
@@ -1190,7 +1209,7 @@
 
         const celdas = [
           fechaFormato,
-          `${r.hora_inicio.substring(0, 5)} - ${r.hora_fin.substring(0, 5)}`,
+          descripcionHorario(r.espacio_id, r.hora_inicio.substring(0, 5), r.hora_fin.substring(0, 5)),
           espacios[r.espacio_id] || 'Desconocido',
           r.nombre_solicitante,
           celular || '-',
@@ -1410,12 +1429,15 @@
         };
 
         // Generar los próximos 12 meses a partir del mes actual (el rango de meses
-        // que un moderador puede llegar a querer habilitar/deshabilitar con antelación)
-        const base = new Date();
+        // que un moderador puede llegar a querer habilitar/deshabilitar con antelación).
+        // Se ancla a hoyEnAsuncionStr() en vez de `new Date()` crudo, por la misma razón
+        // que el resto del sistema: evita que un visitante en otro huso horario (o el
+        // servidor corriendo en UTC) vea un mes "actual" distinto al real en Paraguay.
+        const [anioBase, mesBase] = hoyEnAsuncionStr().split('-').map(Number); // mesBase: 1-12
         for (let i = 0; i < 12; i++) {
-          const fechaMes = new Date(base.getFullYear(), base.getMonth() + i, 1);
-          const anio = fechaMes.getFullYear();
-          const mes = fechaMes.getMonth() + 1; // 1-12
+          const valorMes = anioBase * 12 + mesBase + i; // unidad (año*12+mes), igual que en server.js
+          const anio = Math.floor((valorMes - 1) / 12);
+          const mes = valorMes - anio * 12; // 1-12
           const esMesActual = i === 0;
 
           const tarjeta = document.createElement('label');
@@ -1691,7 +1713,7 @@
         grid.style.cssText = 'display: grid; gap: 6px; font-size: 11px;';
 
         grid.appendChild(filaDato('Nombre', r.nombre_solicitante));
-        grid.appendChild(filaDato('Horario', `${r.hora_inicio.substring(0,5)} - ${r.hora_fin.substring(0,5)}`));
+        grid.appendChild(filaDato('Horario', descripcionHorario(r.espacio_id, r.hora_inicio.substring(0,5), r.hora_fin.substring(0,5))));
         grid.appendChild(filaDato('Espacio', espacios[r.espacio_id] || 'Desconocido'));
         grid.appendChild(filaDato('Celular', celular || '-'));
         grid.appendChild(filaDato('Email', email || '-'));

@@ -617,9 +617,9 @@
         </div>
 
         <div class="calendar-nav">
-          <button onclick="mesAnterior()">← Anterior</button>
+          <button id="btnMesAnterior" onclick="mesAnterior()">← Anterior</button>
           <div class="calendar-month" id="calendarMonth"></div>
-          <button onclick="hoy()">Hoy</button>
+          <button id="btnMesHoy" onclick="hoy()">Hoy</button>
           <button id="btnMesSiguiente" onclick="mesSiguiente()">Siguiente →</button>
         </div>
 
@@ -696,6 +696,7 @@
     let bloqueosCargados = [];
     let mesCalendario = new Date();
     let mesesHabilitadosSet = new Set(); // claves "YYYY-M" (mes sin cero a la izquierda), ver cargarMesesHabilitados()
+    let rangoMesesHabilitados = null; // { primerValor, ultimoValor, total } en unidades de (año*12+mes), o null si no hay ninguno
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
 
     // Devuelve la fecha de "hoy" como string YYYY-MM-DD, anclada a la zona horaria de
@@ -708,9 +709,41 @@
       return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Asuncion' }).format(new Date());
     }
 
+    // Espejo de la función del mismo nombre en server.js: Frente reserva por turnos fijos
+    // con nombre propio (Desayuno/Almuerzo/Merienda), no por horario libre como Altillo.
+    // Recibe horaInicio/horaFin ya recortadas a "HH:MM".
+    const NOMBRES_TURNOS_FRENTE = {
+      '07:00-10:00': 'Desayuno',
+      '10:00-13:00': 'Almuerzo',
+      '14:00-18:00': 'Merienda'
+    };
+
+    function descripcionHorario(espacioId, horaInicioHHMM, horaFinHHMM) {
+      const rango = `${horaInicioHHMM} - ${horaFinHHMM}`;
+      if (Number(espacioId) === 3) {
+        const nombreTurno = NOMBRES_TURNOS_FRENTE[`${horaInicioHHMM}-${horaFinHHMM}`];
+        if (nombreTurno) return `${nombreTurno} (${rango})`;
+      }
+      return rango;
+    }
+
     async function init() {
       await cargarReservas();
       await cargarMesesHabilitados();
+
+      // Caso borde: si el mes actual no está habilitado pero hay algún otro mes
+      // habilitado (ej. el moderador cerró julio pero dejó agosto abierto), arrancar
+      // mostrando el primer mes habilitado en vez de dejar al usuario en un mes
+      // "muerto" sin ningún botón de navegación para salir de ahí.
+      if (rangoMesesHabilitados) {
+        const valorMesActual = mesCalendario.getFullYear() * 12 + (mesCalendario.getMonth() + 1);
+        if (valorMesActual < rangoMesesHabilitados.primerValor || valorMesActual > rangoMesesHabilitados.ultimoValor) {
+          const anioSalto = Math.floor((rangoMesesHabilitados.primerValor - 1) / 12);
+          const mesSalto = (rangoMesesHabilitados.primerValor - 1) % 12; // 0-indexado, para new Date(anio, mes, 1)
+          mesCalendario = new Date(anioSalto, mesSalto, 1);
+        }
+      }
+
       configurarBotonespacios();
       configurarFormulario();
       actualizarCalendario();
@@ -740,12 +773,24 @@
         const res = await fetch(`${API_BASE}/meses-habilitados`);
         if (!res.ok) throw new Error('No se pudieron cargar los meses habilitados');
         const data = await res.json();
-        mesesHabilitadosSet = new Set(
-          (Array.isArray(data) ? data : []).map(m => `${m.anio}-${m.mes}`)
-        );
+        const lista = Array.isArray(data) ? data : [];
+        mesesHabilitadosSet = new Set(lista.map(m => `${m.anio}-${m.mes}`));
+
+        // El backend ya garantiza que esto sea un bloque consecutivo (VAL-004), así que
+        // acá solo hace falta el mínimo y el máximo para saber cuándo mostrar cada botón.
+        if (lista.length === 0) {
+          rangoMesesHabilitados = null;
+        } else {
+          const valores = lista.map(m => m.anio * 12 + m.mes);
+          rangoMesesHabilitados = {
+            primerValor: Math.min(...valores),
+            ultimoValor: Math.max(...valores),
+            total: lista.length
+          };
+        }
       } catch (error) {
         console.error('Error al cargar meses habilitados:', error);
-        // Si falla, dejamos el set como estaba (probablemente vacío en la primera carga),
+        // Si falla, dejamos todo como estaba (probablemente vacío en la primera carga),
         // el calendario va a mostrar todo deshabilitado en vez de romperse.
       }
     }
@@ -834,13 +879,19 @@
       // (reemplaza la vieja ventana fija de "hoy + 31 días").
       const claveMesMostrado = `${año}-${mes + 1}`;
       const mesMostradoHabilitado = mesesHabilitadosSet.has(claveMesMostrado);
+      const valorMesMostrado = año * 12 + (mes + 1);
 
-      // El botón "Siguiente" solo se habilita si el mes inmediatamente posterior al
-      // que se está mostrando también está habilitado — así se puede ir avanzando
-      // mes a mes, pero no "espiar" ni saltar a un mes que el moderador no habilitó.
-      const fechaMesSiguiente = new Date(año, mes + 1, 1);
-      const claveMesSiguiente = `${fechaMesSiguiente.getFullYear()}-${fechaMesSiguiente.getMonth() + 1}`;
-      document.getElementById('btnMesSiguiente').disabled = !mesesHabilitadosSet.has(claveMesSiguiente);
+      // Los botones de navegación (Anterior/Hoy/Siguiente) solo tienen sentido si hay
+      // más de un mes consecutivo habilitado — con uno solo no hay a dónde ir.
+      // Dentro de ese caso, "Anterior" aparece solo si hay un mes habilitado antes del
+      // que se está mostrando, y "Siguiente" solo si hay uno habilitado después.
+      const hayMasDeUnMes = !!rangoMesesHabilitados && rangoMesesHabilitados.total > 1;
+      const mostrarAnterior = hayMasDeUnMes && valorMesMostrado > rangoMesesHabilitados.primerValor;
+      const mostrarSiguiente = hayMasDeUnMes && valorMesMostrado < rangoMesesHabilitados.ultimoValor;
+
+      document.getElementById('btnMesAnterior').style.display = mostrarAnterior ? '' : 'none';
+      document.getElementById('btnMesHoy').style.display = hayMasDeUnMes ? '' : 'none';
+      document.getElementById('btnMesSiguiente').style.display = mostrarSiguiente ? '' : 'none';
 
       // Aviso si el mes que se está mostrando no tiene ningún día disponible para reservar
       const avisoMesDeshabilitado = document.getElementById('avisoMesDeshabilitado');
@@ -1232,7 +1283,7 @@
           const horarioEl = document.createElement('span');
           horarioEl.style.fontSize = '11px';
           horarioEl.style.color = '#5ba3d0';
-          horarioEl.textContent = `${horaInicio} - ${horaFin}`;
+          horarioEl.textContent = descripcionHorario(r.espacio_id, horaInicio, horaFin);
 
           const motivoEl = document.createElement('em');
           motivoEl.style.fontSize = '11px';
