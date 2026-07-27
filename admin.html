@@ -1052,6 +1052,7 @@
     }
     const ADMIN_API = 'https://api.ceq-una.com';
     let reservasActuales = [];
+    let diaSeleccionadoAdmin = null; // { fecha, espacio } — el último día clickeado en el calendario admin, para poder refrescar su panel de detalle tras cancelar/crear
     let reservaSeleccionada = null;
     let mesCalendario = new Date();
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
@@ -1166,6 +1167,11 @@
         actualizarEstadisticas();
         mostrarReservas(reservasActuales);
         actualizarCalendario(); // sin esto, cancelar/crear una reserva no se reflejaba en la vista de calendario hasta recargar la página
+        if (diaSeleccionadoAdmin) {
+          // Sin esto, el panel de detalle a la derecha quedaba mostrando el estado viejo
+          // (ej. "ACTIVA") después de cancelar una reserva desde ahí mismo, hasta recargar.
+          mostrarReservasDelDia(diaSeleccionadoAdmin.fecha, diaSeleccionadoAdmin.espacio);
+        }
         await cargarBloqueos();
         cargarReportes();
       } catch (error) {
@@ -1655,6 +1661,7 @@
     }
 
     function mostrarReservasDelDia(fecha, espacio) {
+      diaSeleccionadoAdmin = { fecha, espacio };
       let reservas = reservasActuales.filter(r => r.fecha === fecha);
       if (espacio) reservas = reservas.filter(r => r.espacio_id == espacio);
 

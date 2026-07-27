@@ -889,9 +889,11 @@
       const mostrarAnterior = hayMasDeUnMes && valorMesMostrado > rangoMesesHabilitados.primerValor;
       const mostrarSiguiente = hayMasDeUnMes && valorMesMostrado < rangoMesesHabilitados.ultimoValor;
 
-      document.getElementById('btnMesAnterior').style.display = mostrarAnterior ? '' : 'none';
-      document.getElementById('btnMesHoy').style.display = hayMasDeUnMes ? '' : 'none';
-      document.getElementById('btnMesSiguiente').style.display = mostrarSiguiente ? '' : 'none';
+      // visibility (no display): así el botón sigue ocupando su espacio en el flex
+      // y el mes/los demás botones no se corren de lugar cuando uno se oculta.
+      document.getElementById('btnMesAnterior').style.visibility = mostrarAnterior ? 'visible' : 'hidden';
+      document.getElementById('btnMesHoy').style.visibility = hayMasDeUnMes ? 'visible' : 'hidden';
+      document.getElementById('btnMesSiguiente').style.visibility = mostrarSiguiente ? 'visible' : 'hidden';
 
       // Aviso si el mes que se está mostrando no tiene ningún día disponible para reservar
       const avisoMesDeshabilitado = document.getElementById('avisoMesDeshabilitado');
