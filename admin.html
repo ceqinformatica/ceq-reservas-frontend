@@ -930,7 +930,7 @@
 
         <!-- TAB: RESERVA DE PRIORIDAD -->
         <div id="tab-prioridad" class="tab-content">
-          <h3 style="margin-bottom: 8px;">Reserva de Prioridad (Comisión Directiva)</h3>
+          <h3 style="margin-bottom: 8px;">Reserva de Prioridad — Frente (Comisión Directiva)</h3>
           <p style="color: #5ba3d0; font-size: 12px; margin-bottom: 20px; max-width: 600px;">
             A diferencia de un bloqueo, esto crea una reserva real: ocupa el turno de verdad.
             Sirve para que la Comisión Directiva se asegure un horario ANTES de habilitar
@@ -940,19 +940,11 @@
 
           <div style="max-width: 420px;">
             <div class="form-group">
-              <label>Espacio</label>
-              <select id="prioridadEspacio" onchange="actualizarFormPrioridad()">
-                <option value="3">Frente</option>
-                <option value="1">Altillo</option>
-              </select>
-            </div>
-
-            <div class="form-group">
               <label>Fecha</label>
               <input type="date" id="prioridadFecha">
             </div>
 
-            <div class="form-group" id="prioridadTurnoFrente">
+            <div class="form-group">
               <label>Turno</label>
               <select id="prioridadTurno">
                 <option value="07:00|10:00">Desayuno (07:00 - 10:00)</option>
@@ -961,26 +953,19 @@
               </select>
             </div>
 
-            <div id="prioridadHorasAltillo" style="display: none;">
-              <div class="form-group">
-                <label>Hora inicio</label>
-                <input type="time" id="prioridadHoraInicio" min="08:00" max="18:00">
-              </div>
-              <div class="form-group">
-                <label>Hora fin</label>
-                <input type="time" id="prioridadHoraFin" min="08:00" max="18:00">
-              </div>
-              <p style="color: #5ba3d0; font-size: 11px; margin-top: -8px; margin-bottom: 16px;">Duración entre 1 y 3 horas, dentro de 08:00-18:00.</p>
-            </div>
-
             <div class="form-group">
               <label>Nombre</label>
               <input type="text" id="prioridadNombre" placeholder="Ej: Comisión Directiva">
             </div>
 
             <div class="form-group">
-              <label>Contacto (celular | email)</label>
-              <input type="text" id="prioridadContacto" placeholder="0981123456 | correo@ejemplo.com">
+              <label>Celular</label>
+              <input type="text" id="prioridadCelular" placeholder="0981123456">
+            </div>
+
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="prioridadEmail" placeholder="correo@ejemplo.com">
             </div>
 
             <div class="form-group">
@@ -1218,10 +1203,6 @@
 
       if (tab === 'meses') {
         cargarMesesHabilitados();
-      }
-
-      if (tab === 'prioridad') {
-        actualizarFormPrioridad();
       }
     }
 
@@ -1561,32 +1542,25 @@
       }
     }
 
-    // RESERVA DE PRIORIDAD (Comisión Directiva)
-    function actualizarFormPrioridad() {
-      const esFrente = document.getElementById('prioridadEspacio').value === '3';
-      document.getElementById('prioridadTurnoFrente').style.display = esFrente ? '' : 'none';
-      document.getElementById('prioridadHorasAltillo').style.display = esFrente ? 'none' : '';
-    }
-
+    // RESERVA DE PRIORIDAD (Comisión Directiva) — solo Frente
     async function crearReservaPrioridad() {
-      const espacio_id = document.getElementById('prioridadEspacio').value;
+      const espacio_id = '3';
       const fecha = document.getElementById('prioridadFecha').value;
       const nombre_solicitante = document.getElementById('prioridadNombre').value.trim();
-      const contacto = document.getElementById('prioridadContacto').value.trim();
+      const celular = document.getElementById('prioridadCelular').value.trim();
+      const email = document.getElementById('prioridadEmail').value.trim();
       const motivo = document.getElementById('prioridadMotivo').value.trim();
+      const [hora_inicio, hora_fin] = document.getElementById('prioridadTurno').value.split('|');
 
-      let hora_inicio, hora_fin;
-      if (espacio_id === '3') {
-        [hora_inicio, hora_fin] = document.getElementById('prioridadTurno').value.split('|');
-      } else {
-        hora_inicio = document.getElementById('prioridadHoraInicio').value;
-        hora_fin = document.getElementById('prioridadHoraFin').value;
-      }
-
-      if (!fecha || !nombre_solicitante || !contacto || !motivo || !hora_inicio || !hora_fin) {
+      if (!fecha || !nombre_solicitante || !celular || !email || !motivo) {
         alert('Completá todos los campos');
         return;
       }
+
+      // El backend sigue esperando el formato "celular | email" en un solo campo
+      // (lo usa el resto del sistema: exportar, emails, etc.), así que se arma acá
+      // aunque en el formulario estén separados para que sea más cómodo de cargar.
+      const contacto = `${celular} | ${email}`;
 
       const boton = event.target;
       boton.disabled = true;
@@ -1604,7 +1578,8 @@
           alert('✓ Reserva de prioridad creada');
           document.getElementById('prioridadFecha').value = '';
           document.getElementById('prioridadNombre').value = '';
-          document.getElementById('prioridadContacto').value = '';
+          document.getElementById('prioridadCelular').value = '';
+          document.getElementById('prioridadEmail').value = '';
           document.getElementById('prioridadMotivo').value = '';
           await cargarDatos(); // refresca tabla, calendario y estadísticas con la nueva reserva
         } else {
