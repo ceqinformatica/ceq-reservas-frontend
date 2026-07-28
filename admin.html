@@ -777,6 +777,7 @@
           <button class="tab-btn active" onclick="switchTab('reservas')">📋 Reservas</button>
           <button class="tab-btn" onclick="switchTab('bloqueos')">🔒 Bloqueos</button>
           <button class="tab-btn" onclick="switchTab('meses')">📅 Meses</button>
+          <button class="tab-btn" onclick="switchTab('prioridad')">⭐ Prioridad</button>
           <button class="tab-btn" onclick="switchTab('exportar')">📊 Exportar</button>
           <button class="tab-btn" onclick="switchTab('reportes')">🐛 Reportes</button>
         </div>
@@ -925,6 +926,70 @@
             días del mes entrante.
           </p>
           <div id="mesesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;"></div>
+        </div>
+
+        <!-- TAB: RESERVA DE PRIORIDAD -->
+        <div id="tab-prioridad" class="tab-content">
+          <h3 style="margin-bottom: 8px;">Reserva de Prioridad (Comisión Directiva)</h3>
+          <p style="color: #5ba3d0; font-size: 12px; margin-bottom: 20px; max-width: 600px;">
+            A diferencia de un bloqueo, esto crea una reserva real: ocupa el turno de verdad.
+            Sirve para que la Comisión Directiva se asegure un horario ANTES de habilitar
+            ese mes al público — cuando lo habilites después, ese turno ya va a figurar
+            como ocupado, no libre.
+          </p>
+
+          <div style="max-width: 420px;">
+            <div class="form-group">
+              <label>Espacio</label>
+              <select id="prioridadEspacio" onchange="actualizarFormPrioridad()">
+                <option value="3">Frente</option>
+                <option value="1">Altillo</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Fecha</label>
+              <input type="date" id="prioridadFecha">
+            </div>
+
+            <div class="form-group" id="prioridadTurnoFrente">
+              <label>Turno</label>
+              <select id="prioridadTurno">
+                <option value="07:00|10:00">Desayuno (07:00 - 10:00)</option>
+                <option value="10:00|13:00">Almuerzo (10:00 - 13:00)</option>
+                <option value="14:00|18:00">Merienda (14:00 - 18:00)</option>
+              </select>
+            </div>
+
+            <div id="prioridadHorasAltillo" style="display: none;">
+              <div class="form-group">
+                <label>Hora inicio</label>
+                <input type="time" id="prioridadHoraInicio" min="08:00" max="18:00">
+              </div>
+              <div class="form-group">
+                <label>Hora fin</label>
+                <input type="time" id="prioridadHoraFin" min="08:00" max="18:00">
+              </div>
+              <p style="color: #5ba3d0; font-size: 11px; margin-top: -8px; margin-bottom: 16px;">Duración entre 1 y 3 horas, dentro de 08:00-18:00.</p>
+            </div>
+
+            <div class="form-group">
+              <label>Nombre</label>
+              <input type="text" id="prioridadNombre" placeholder="Ej: Comisión Directiva">
+            </div>
+
+            <div class="form-group">
+              <label>Contacto (celular | email)</label>
+              <input type="text" id="prioridadContacto" placeholder="0981123456 | correo@ejemplo.com">
+            </div>
+
+            <div class="form-group">
+              <label>Motivo</label>
+              <input type="text" id="prioridadMotivo" placeholder="Ej: Reunión de Comisión Directiva">
+            </div>
+
+            <button class="btn-block" style="width: 100%;" onclick="crearReservaPrioridad()">Crear Reserva de Prioridad</button>
+          </div>
         </div>
 
         <!-- TAB: EXPORTAR -->
@@ -1154,6 +1219,10 @@
       if (tab === 'meses') {
         cargarMesesHabilitados();
       }
+
+      if (tab === 'prioridad') {
+        actualizarFormPrioridad();
+      }
     }
 
     // CARGAR DATOS
@@ -1217,7 +1286,7 @@
           fechaFormato,
           descripcionHorario(r.espacio_id, r.hora_inicio.substring(0, 5), r.hora_fin.substring(0, 5)),
           espacios[r.espacio_id] || 'Desconocido',
-          r.nombre_solicitante,
+          (r.reservado_por_admin ? '⭐ ' : '') + r.nombre_solicitante,
           celular || '-',
           email || '-',
           r.motivo ? r.motivo.trim() : '-'
@@ -1489,6 +1558,63 @@
         alert('Error al actualizar el mes');
       } finally {
         checkbox.disabled = false;
+      }
+    }
+
+    // RESERVA DE PRIORIDAD (Comisión Directiva)
+    function actualizarFormPrioridad() {
+      const esFrente = document.getElementById('prioridadEspacio').value === '3';
+      document.getElementById('prioridadTurnoFrente').style.display = esFrente ? '' : 'none';
+      document.getElementById('prioridadHorasAltillo').style.display = esFrente ? 'none' : '';
+    }
+
+    async function crearReservaPrioridad() {
+      const espacio_id = document.getElementById('prioridadEspacio').value;
+      const fecha = document.getElementById('prioridadFecha').value;
+      const nombre_solicitante = document.getElementById('prioridadNombre').value.trim();
+      const contacto = document.getElementById('prioridadContacto').value.trim();
+      const motivo = document.getElementById('prioridadMotivo').value.trim();
+
+      let hora_inicio, hora_fin;
+      if (espacio_id === '3') {
+        [hora_inicio, hora_fin] = document.getElementById('prioridadTurno').value.split('|');
+      } else {
+        hora_inicio = document.getElementById('prioridadHoraInicio').value;
+        hora_fin = document.getElementById('prioridadHoraFin').value;
+      }
+
+      if (!fecha || !nombre_solicitante || !contacto || !motivo || !hora_inicio || !hora_fin) {
+        alert('Completá todos los campos');
+        return;
+      }
+
+      const boton = event.target;
+      boton.disabled = true;
+      const textoOriginal = boton.textContent;
+      boton.textContent = 'Creando...';
+
+      try {
+        const res = await fetchConJWT(`${API_BASE}/admin/reservas`, {
+          method: 'POST',
+          body: JSON.stringify({ espacio_id, nombre_solicitante, contacto, fecha, hora_inicio, hora_fin, motivo })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          alert('✓ Reserva de prioridad creada');
+          document.getElementById('prioridadFecha').value = '';
+          document.getElementById('prioridadNombre').value = '';
+          document.getElementById('prioridadContacto').value = '';
+          document.getElementById('prioridadMotivo').value = '';
+          await cargarDatos(); // refresca tabla, calendario y estadísticas con la nueva reserva
+        } else {
+          alert(data.error || 'Error al crear la reserva de prioridad');
+        }
+      } catch (error) {
+        alert('Error de conexión al crear la reserva');
+      } finally {
+        boton.disabled = false;
+        boton.textContent = textoOriginal;
       }
     }
 
