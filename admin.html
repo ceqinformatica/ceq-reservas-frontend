@@ -930,50 +930,57 @@
 
         <!-- TAB: RESERVA DE PRIORIDAD -->
         <div id="tab-prioridad" class="tab-content">
-          <h3 style="margin-bottom: 8px;">Reserva de Prioridad — Frente (Comisión Directiva)</h3>
+          <h3 style="margin-bottom: 8px;">Reserva de Prioridad - Frente (Comisión Directiva)</h3>
           <p style="color: #5ba3d0; font-size: 12px; margin-bottom: 20px; max-width: 600px;">
             A diferencia de un bloqueo, esto crea una reserva real: ocupa el turno de verdad.
             Sirve para que la Comisión Directiva se asegure un horario ANTES de habilitar
-            ese mes al público — cuando lo habilites después, ese turno ya va a figurar
+            ese mes al público - cuando lo habilites después, ese turno ya va a figurar
             como ocupado, no libre.
           </p>
 
-          <div style="max-width: 420px;">
-            <div class="form-group">
-              <label>Fecha</label>
-              <input type="date" id="prioridadFecha">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+            <div style="max-width: 420px;">
+              <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" id="prioridadFecha">
+              </div>
+
+              <div class="form-group">
+                <label>Turno</label>
+                <select id="prioridadTurno">
+                  <option value="07:00|10:00">Desayuno (07:00 - 10:00)</option>
+                  <option value="10:00|13:00">Almuerzo (10:00 - 13:00)</option>
+                  <option value="14:00|18:00">Merienda (14:00 - 18:00)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" id="prioridadNombre" placeholder="Ej: Comisión Directiva">
+              </div>
+
+              <div class="form-group">
+                <label>Celular</label>
+                <input type="text" id="prioridadCelular" placeholder="0981123456">
+              </div>
+
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="prioridadEmail" placeholder="correo@ejemplo.com">
+              </div>
+
+              <div class="form-group">
+                <label>Motivo</label>
+                <input type="text" id="prioridadMotivo" placeholder="Ej: Reunión de Comisión Directiva">
+              </div>
+
+              <button class="btn-block" style="width: 100%;" onclick="crearReservaPrioridad()">Crear Reserva de Prioridad</button>
             </div>
 
-            <div class="form-group">
-              <label>Turno</label>
-              <select id="prioridadTurno">
-                <option value="07:00|10:00">Desayuno (07:00 - 10:00)</option>
-                <option value="10:00|13:00">Almuerzo (10:00 - 13:00)</option>
-                <option value="14:00|18:00">Merienda (14:00 - 18:00)</option>
-              </select>
+            <div>
+              <h4 style="margin-bottom: 12px; color: #173874;">Reservas de Prioridad Realizadas</h4>
+              <div id="prioridadList" style="max-height: 500px; overflow-y: auto;"></div>
             </div>
-
-            <div class="form-group">
-              <label>Nombre</label>
-              <input type="text" id="prioridadNombre" placeholder="Ej: Comisión Directiva">
-            </div>
-
-            <div class="form-group">
-              <label>Celular</label>
-              <input type="text" id="prioridadCelular" placeholder="0981123456">
-            </div>
-
-            <div class="form-group">
-              <label>Email</label>
-              <input type="email" id="prioridadEmail" placeholder="correo@ejemplo.com">
-            </div>
-
-            <div class="form-group">
-              <label>Motivo</label>
-              <input type="text" id="prioridadMotivo" placeholder="Ej: Reunión de Comisión Directiva">
-            </div>
-
-            <button class="btn-block" style="width: 100%;" onclick="crearReservaPrioridad()">Crear Reserva de Prioridad</button>
           </div>
         </div>
 
@@ -1204,6 +1211,10 @@
       if (tab === 'meses') {
         cargarMesesHabilitados();
       }
+
+      if (tab === 'prioridad') {
+        cargarReservasPrioridad();
+      }
     }
 
     // CARGAR DATOS
@@ -1224,6 +1235,7 @@
         }
         await cargarBloqueos();
         cargarReportes();
+        cargarReservasPrioridad();
       } catch (error) {
         console.error('Error:', error);
         if (!Array.isArray(reservasActuales)) reservasActuales = [];
@@ -1590,6 +1602,75 @@
       } finally {
         boton.disabled = false;
         boton.textContent = textoOriginal;
+      }
+    }
+
+    // Pinta el resumen de reservas de prioridad (filtra reservasActuales, ya cargado
+    // por cargarDatos — no hace falta un fetch aparte). Muestra activas y canceladas,
+    // más recientes primero, para que sirva como historial.
+    function cargarReservasPrioridad() {
+      const lista = document.getElementById('prioridadList');
+      if (!lista) return; // por si se llama antes de que el DOM de la pestaña exista
+      while (lista.firstChild) lista.removeChild(lista.firstChild);
+
+      const prioridad = reservasActuales
+        .filter(r => r.reservado_por_admin)
+        .sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+
+      if (prioridad.length === 0) {
+        const vacio = document.createElement('p');
+        vacio.style.color = '#5ba3d0';
+        vacio.style.fontSize = '13px';
+        vacio.textContent = 'Todavía no hay reservas de prioridad.';
+        lista.appendChild(vacio);
+        return;
+      }
+
+      prioridad.forEach(r => {
+        const [año, mes, día] = r.fecha.split('-');
+        const card = document.createElement('div');
+        card.style.cssText = 'background: rgba(46,123,180,0.06); border: 1px solid rgba(46,123,180,0.15); border-radius: 6px; padding: 12px; margin-bottom: 10px;';
+
+        const linea1 = document.createElement('div');
+        linea1.style.cssText = 'font-weight: 600; color: #173874;';
+        linea1.textContent = `⭐ ${r.nombre_solicitante} - ${día}/${mes}/${año}`;
+
+        const linea2 = document.createElement('div');
+        linea2.style.cssText = 'font-size: 12px; color: #5ba3d0; margin-top: 4px;';
+        linea2.textContent = descripcionHorario(r.espacio_id, r.hora_inicio.substring(0, 5), r.hora_fin.substring(0, 5));
+
+        card.appendChild(linea1);
+        card.appendChild(linea2);
+
+        if (r.estado === 'activa') {
+          const btnCancelar = document.createElement('button');
+          btnCancelar.textContent = 'Cancelar';
+          btnCancelar.style.cssText = 'margin-top: 8px; padding: 4px 10px; font-size: 12px; background: rgba(200,80,80,0.15); border: 1px solid rgba(200,80,80,0.3); border-radius: 4px; cursor: pointer; color: #a83232;';
+          btnCancelar.onclick = () => cancelarReservaPrioridad(r.id);
+          card.appendChild(btnCancelar);
+        } else {
+          const estadoEl = document.createElement('span');
+          estadoEl.style.cssText = 'font-size: 11px; color: #a83232;';
+          estadoEl.textContent = 'CANCELADA';
+          card.appendChild(estadoEl);
+        }
+
+        lista.appendChild(card);
+      });
+    }
+
+    async function cancelarReservaPrioridad(id) {
+      if (!confirm('¿Cancelar esta reserva de prioridad?')) return;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/admin/cancelar/${id}`, { method: 'POST' });
+        if (res.ok) {
+          await cargarDatos();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || 'Error al cancelar');
+        }
+      } catch (error) {
+        alert('Error de conexión al cancelar');
       }
     }
 
