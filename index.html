@@ -751,7 +751,11 @@
     }
 
     function iniciarActualizacionAutomatica() {
-      // Refresca el calendario cada 20 segundos sin que el usuario recargue la página
+      // Refresca el calendario cada 45 segundos sin que el usuario recargue la página.
+      // Antes era cada 20s: con hasta 4 pedidos por ciclo (reservas, bloqueos, meses
+      // habilitados, estadísticas), eso agotaba rápido el límite de tasa de lectura
+      // del backend con poca gente conectada. 45s sigue sintiéndose "en vivo" pero
+      // reduce el volumen de pedidos a menos de la mitad.
       setInterval(async () => {
         await cargarReservas();
         await cargarMesesHabilitados();
@@ -762,7 +766,7 @@
           actualizarHorasDisponibles(diaSeleccionado);
           mostrarReservasDelDia(diaSeleccionado);
         }
-      }, 20000);
+      }, 45000);
     }
 
     // Trae qué meses habilitó manualmente un moderador desde el panel admin (reemplaza
