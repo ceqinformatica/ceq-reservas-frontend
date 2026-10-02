@@ -625,6 +625,10 @@
           <button id="btnMesSiguiente" onclick="mesSiguiente()">Siguiente →</button>
         </div>
 
+        <div id="avisoCargando" style="display:none; text-align:center; padding:10px; margin-bottom:12px; background:rgba(46,123,180,0.10); border:1px solid rgba(46,123,180,0.3); border-radius:6px; color:#173874; font-size:13px;">
+          ⏳ Cargando los horarios… si el sistema estuvo sin uso un rato, puede tardar hasta un minuto en responder. No hace falta recargar la página.
+        </div>
+
         <div id="avisoMesDeshabilitado" style="display:none; text-align:center; padding:10px; margin-bottom:12px; background:rgba(200,168,75,0.12); border:1px solid rgba(200,168,75,0.3); border-radius:6px; color:#8a6d1a; font-size:13px;">
           Este mes todavía no está habilitado para reservas. Probá con "Hoy" o consultá con un moderador.
         </div>
@@ -708,7 +712,12 @@
     // hasta este instante (ms) en vez de seguir insistiendo y empeorar el problema.
     let pausaHasta = 0;
     let ultimaActualizacion = 0;
-    const INTERVALO_REFRESCO_MS = 45000;
+    let ultimaCargaMeses = 0;
+    // Cada 20s (antes 45s): ahora que el rate limit cuenta por persona y no compartido
+    // entre todo el sitio, hay margen de sobra para refrescar más seguido.
+    const INTERVALO_REFRESCO_MS = 20000;
+    // Los meses habilitados casi nunca cambian: se piden cada 2 minutos, no en cada refresco
+    const INTERVALO_MESES_MS = 120000;
     const PAUSA_POR_429_MS = 60000;
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
 
@@ -755,8 +764,16 @@
     }
 
     async function init() {
+      // El servidor está en el plan gratuito de Render, que lo "duerme" tras 15 min sin
+      // visitas: el primer pedido después de eso puede tardar ~1 minuto. Si la carga
+      // demora más de 4s, se avisa en pantalla para que nadie piense que la página se cayó.
+      const timerAvisoCarga = setTimeout(() => {
+        document.getElementById('avisoCargando').style.display = 'block';
+      }, 4000);
       await cargarReservas();
       await cargarMesesHabilitados();
+      clearTimeout(timerAvisoCarga);
+      document.getElementById('avisoCargando').style.display = 'none';
       actualizarEstadisticas();
       ultimaActualizacion = Date.now();
 
@@ -782,7 +799,9 @@
     async function refrescarDatos() {
       ultimaActualizacion = Date.now();
       await cargarReservas();
-      await cargarMesesHabilitados();
+      if (Date.now() - ultimaCargaMeses > INTERVALO_MESES_MS) {
+        await cargarMesesHabilitados();
+      }
       actualizarCalendario();
       // Solo refrescar el detalle de horas si el usuario no está a mitad de una selección,
       // para no borrarle lo que ya venía eligiendo
@@ -819,6 +838,7 @@
         const data = await fetchLectura(`${API_BASE}/meses-habilitados`);
         const lista = Array.isArray(data) ? data : [];
         mesesCargadosOk = true;
+        ultimaCargaMeses = Date.now();
         mesesHabilitadosSet = new Set(lista.map(m => `${m.anio}-${m.mes}`));
 
         // El backend ya garantiza que esto sea un bloque consecutivo (VAL-004), así que
@@ -1065,6 +1085,9 @@
         } else {
           dayEl.setAttribute('aria-disabled', 'true');
         }
+        // Mantener marcado el día elegido cuando el calendario se redibuja en un refresco
+        // automático (antes se perdía el resaltado cada vez que se actualizaban los datos)
+        if (fecha === diaSeleccionado) dayEl.classList.add('selected');
         grid.appendChild(dayEl);
       }
     }
@@ -1089,6 +1112,21 @@
       document.getElementById('fecha').value = fecha;
       actualizarHorasDisponibles(fecha);
       mostrarReservasDelDia(fecha);
+      refrescarDiaElegido(fecha);
+    }
+
+    // Al elegir un día, se muestran al instante los datos que ya había y en paralelo se
+    // vuelven a pedir al servidor, para que el usuario vea los turnos REALES justo antes
+    // de reservar (y no un turno que alguien tomó hace unos segundos).
+    async function refrescarDiaElegido(fecha) {
+      if (Date.now() < pausaHasta || Date.now() - ultimaActualizacion < 5000) return;
+      ultimaActualizacion = Date.now();
+      await cargarReservas();
+      if (diaSeleccionado === fecha && horasSeleccionadas.length === 0) {
+        actualizarCalendario();
+        actualizarHorasDisponibles(fecha);
+        mostrarReservasDelDia(fecha);
+      }
     }
 
     function actualizarHorasDisponibles(fecha) {
@@ -1431,9 +1469,25 @@
         });
 
         const data = await res.json().catch(() => ({}));
+        btnReservar.textContent = textoOriginalBtn;
         if (!res.ok) {
           if (res.status === 429) {
             mostrarError('Hiciste demasiados intentos de reserva seguidos. Esperá unos minutos antes de volver a intentar.', true);
+          } else if (res.status === 409) {
+            // Alguien tomó ese turno mientras se completaba el formulario (pasa mucho el
+            // día que se habilita un mes). Se recarga el día al toque para que el turno
+            // aparezca como ocupado y la persona pueda elegir otro sin recargar la página.
+            // Los datos personales que ya escribió se conservan.
+            const fechaElegida = diaSeleccionado;
+            mostrarError((data.error || 'Ese horario ya no está disponible') + '. Se actualizaron los horarios: elegí otro turno.', true);
+            await cargarReservas();
+            ultimaActualizacion = Date.now();
+            actualizarCalendario();
+            if (fechaElegida) {
+              diaSeleccionado = fechaElegida;
+              actualizarHorasDisponibles(fechaElegida);
+              mostrarReservasDelDia(fechaElegida);
+            }
           } else {
             mostrarError(data.error || 'No se pudo crear la reserva. Revisá el calendario antes de reintentar: puede que ya haya quedado registrada.', true);
           }
@@ -1462,6 +1516,7 @@
         horasSeleccionadas = [];
 
         await cargarReservas();
+        ultimaActualizacion = Date.now();
         actualizarCalendario();
         actualizarEstadisticas();
       } catch (error) {

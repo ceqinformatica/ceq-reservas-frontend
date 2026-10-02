@@ -925,6 +925,10 @@
             podés habilitar el mes actual + el siguiente, para que se puedan reservar los primeros
             días del mes entrante.
           </p>
+          <p style="color: #5ba3d0; font-size: 12px; margin-top: -12px; margin-bottom: 20px;">
+            Los meses marcados "(ya pasó)" conviene deshabilitarlos, empezando por el más antiguo
+            (los meses habilitados tienen que quedar seguidos, sin huecos).
+          </p>
           <div id="mesesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;"></div>
         </div>
 
@@ -1496,20 +1500,30 @@
           return fila ? !!fila.habilitado : false;
         };
 
-        // Generar los próximos 12 meses a partir del mes actual (el rango de meses
-        // que un moderador puede llegar a querer habilitar/deshabilitar con antelación).
+        // Generar los meses a mostrar: los próximos 12 a partir del mes actual (el rango
+        // que un moderador puede llegar a querer habilitar con antelación) y, además, los
+        // meses que YA PASARON y tienen algo guardado (hasta 12 meses atrás), para poder
+        // deshabilitarlos: si un mes pasado quedaba habilitado, el calendario público
+        // seguía mostrando el botón "Anterior" hacia meses donde ya no se puede reservar.
         // Se ancla a hoyEnAsuncionStr() en vez de `new Date()` crudo, por la misma razón
         // que el resto del sistema: evita que un visitante en otro huso horario (o el
         // servidor corriendo en UTC) vea un mes "actual" distinto al real en Paraguay.
         const [anioBase, mesBase] = hoyEnAsuncionStr().split('-').map(Number); // mesBase: 1-12
-        for (let i = 0; i < 12; i++) {
-          const valorMes = anioBase * 12 + mesBase + i; // unidad (año*12+mes), igual que en server.js
+        const valorActual = anioBase * 12 + mesBase; // unidad (año*12+mes), igual que en server.js
+        const valoresPasadosGuardados = habilitadosGuardados
+          .map(m => m.anio * 12 + m.mes)
+          .filter(v => v < valorActual && v >= valorActual - 12);
+        const valorInicio = valoresPasadosGuardados.length > 0 ? Math.min(...valoresPasadosGuardados) : valorActual;
+
+        for (let valorMes = valorInicio; valorMes < valorActual + 12; valorMes++) {
           const anio = Math.floor((valorMes - 1) / 12);
           const mes = valorMes - anio * 12; // 1-12
-          const esMesActual = i === 0;
+          const esMesActual = valorMes === valorActual;
+          const esMesPasado = valorMes < valorActual;
 
           const tarjeta = document.createElement('label');
           tarjeta.style.cssText = 'display:flex; align-items:center; gap:10px; padding:12px; background:rgba(46,123,180,0.06); border:1px solid rgba(46,123,180,0.15); border-radius:6px; cursor:pointer; font-size:13px;';
+          if (esMesPasado) tarjeta.style.opacity = '0.7';
 
           const checkbox = document.createElement('input');
           checkbox.type = 'checkbox';
@@ -1517,7 +1531,8 @@
           checkbox.style.cssText = 'width:18px; height:18px; cursor:pointer;';
 
           const texto = document.createElement('span');
-          texto.textContent = `${NOMBRES_MESES[mes - 1]} ${anio}` + (esMesActual ? ' (mes actual)' : '');
+          texto.textContent = `${NOMBRES_MESES[mes - 1]} ${anio}` +
+            (esMesActual ? ' (mes actual)' : '') + (esMesPasado ? ' (ya pasó)' : '');
 
           checkbox.addEventListener('change', () => toggleMes(anio, mes, checkbox.checked, checkbox));
 
