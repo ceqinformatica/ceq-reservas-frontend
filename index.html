@@ -700,6 +700,16 @@
     let mesCalendario = new Date();
     let mesesHabilitadosSet = new Set(); // claves "YYYY-M" (mes sin cero a la izquierda), ver cargarMesesHabilitados()
     let rangoMesesHabilitados = null; // { primerValor, ultimoValor, total } en unidades de (año*12+mes), o null si no hay ninguno
+    // Si la carga de meses habilitados falló, el calendario no tiene que decir "este mes
+    // no está habilitado" (eso confundía a los usuarios: el mes SÍ estaba habilitado,
+    // solo que no se pudo consultar). Se muestra un aviso de error de conexión en su lugar.
+    let mesesCargadosOk = false;
+    // Si el servidor responde 429 (demasiadas solicitudes), se pausa el auto-refresco
+    // hasta este instante (ms) en vez de seguir insistiendo y empeorar el problema.
+    let pausaHasta = 0;
+    let ultimaActualizacion = 0;
+    const INTERVALO_REFRESCO_MS = 45000;
+    const PAUSA_POR_429_MS = 60000;
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
 
     // Devuelve la fecha de "hoy" como string YYYY-MM-DD, anclada a la zona horaria de
@@ -730,9 +740,25 @@
       return rango;
     }
 
+    // fetch para los endpoints de lectura: si el servidor responde 429, activa la pausa
+    // del auto-refresco y lanza un error con un mensaje claro para el usuario.
+    async function fetchLectura(url) {
+      const res = await fetch(url);
+      if (res.status === 429) {
+        pausaHasta = Date.now() + PAUSA_POR_429_MS;
+        const err = new Error('Hay mucha gente usando el sistema en este momento. Los datos se actualizan solos en un minuto, no hace falta recargar la página.');
+        err.esLimite = true;
+        throw err;
+      }
+      if (!res.ok) throw new Error('No se pudo conectar con el servidor');
+      return res.json();
+    }
+
     async function init() {
       await cargarReservas();
       await cargarMesesHabilitados();
+      actualizarEstadisticas();
+      ultimaActualizacion = Date.now();
 
       // Caso borde: si el mes actual no está habilitado pero hay algún otro mes
       // habilitado (ej. el moderador cerró julio pero dejó agosto abierto), arrancar
@@ -753,23 +779,36 @@
       iniciarActualizacionAutomatica();
     }
 
+    async function refrescarDatos() {
+      ultimaActualizacion = Date.now();
+      await cargarReservas();
+      await cargarMesesHabilitados();
+      actualizarCalendario();
+      // Solo refrescar el detalle de horas si el usuario no está a mitad de una selección,
+      // para no borrarle lo que ya venía eligiendo
+      if (diaSeleccionado && horasSeleccionadas.length === 0) {
+        actualizarHorasDisponibles(diaSeleccionado);
+        mostrarReservasDelDia(diaSeleccionado);
+      }
+    }
+
     function iniciarActualizacionAutomatica() {
       // Refresca el calendario cada 45 segundos sin que el usuario recargue la página.
-      // Antes era cada 20s: con hasta 4 pedidos por ciclo (reservas, bloqueos, meses
-      // habilitados, estadísticas), eso agotaba rápido el límite de tasa de lectura
-      // del backend con poca gente conectada. 45s sigue sintiéndose "en vivo" pero
-      // reduce el volumen de pedidos a menos de la mitad.
-      setInterval(async () => {
-        await cargarReservas();
-        await cargarMesesHabilitados();
-        actualizarCalendario();
-        // Solo refrescar el detalle de horas si el usuario no está a mitad de una selección,
-        // para no borrarle lo que ya venía eligiendo
-        if (diaSeleccionado && horasSeleccionadas.length === 0) {
-          actualizarHorasDisponibles(diaSeleccionado);
-          mostrarReservasDelDia(diaSeleccionado);
+      // No refresca si la pestaña está en segundo plano (nadie la está mirando, y
+      // cada pestaña olvidada abierta gastaba cupo del rate limit), ni durante la
+      // pausa posterior a un 429.
+      setInterval(() => {
+        if (document.hidden || Date.now() < pausaHasta) return;
+        refrescarDatos();
+      }, INTERVALO_REFRESCO_MS);
+
+      // Al volver a la pestaña, si los datos quedaron viejos, refrescar en el acto
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && Date.now() >= pausaHasta &&
+            Date.now() - ultimaActualizacion > INTERVALO_REFRESCO_MS) {
+          refrescarDatos();
         }
-      }, 45000);
+      });
     }
 
     // Trae qué meses habilitó manualmente un moderador desde el panel admin (reemplaza
@@ -777,10 +816,9 @@
     // (mes SIN cero a la izquierda) para que matcheen directo con mesCalendario.getMonth()+1.
     async function cargarMesesHabilitados() {
       try {
-        const res = await fetch(`${API_BASE}/meses-habilitados`);
-        if (!res.ok) throw new Error('No se pudieron cargar los meses habilitados');
-        const data = await res.json();
+        const data = await fetchLectura(`${API_BASE}/meses-habilitados`);
         const lista = Array.isArray(data) ? data : [];
+        mesesCargadosOk = true;
         mesesHabilitadosSet = new Set(lista.map(m => `${m.anio}-${m.mes}`));
 
         // El backend ya garantiza que esto sea un bloque consecutivo (VAL-004), así que
@@ -804,28 +842,28 @@
 
     async function cargarReservas() {
       try {
-        const res = await fetch(`${API_BASE}/reservas`);
-        if (!res.ok) throw new Error('No se pudo cargar la disponibilidad');
-        const data = await res.json();
+        // Reservas y bloqueos se piden en paralelo (antes uno esperaba al otro)
+        const [data, dataBloqueos] = await Promise.all([
+          fetchLectura(`${API_BASE}/reservas`),
+          fetchLectura(`${API_BASE}/bloqueos`)
+        ]);
         // BUG-008: nunca asumir que la respuesta tiene la forma esperada. Si por algún
         // motivo el backend devuelve otra cosa (un objeto de error, HTML de un proxy
         // caído, etc.), reservasActuales queda como array vacío en vez de romper todo
         // lo que después hace .filter()/.map() sobre esta variable.
         reservasActuales = Array.isArray(data) ? data : [];
-
-        const resBloqueos = await fetch(`${API_BASE}/bloqueos`);
-        if (!resBloqueos.ok) throw new Error('No se pudieron cargar los bloqueos');
-        const dataBloqueos = await resBloqueos.json();
         bloqueosCargados = Array.isArray(dataBloqueos) ? dataBloqueos : [];
-        
-        actualizarEstadisticas();
+        // Las estadísticas (contador del encabezado) ya no se piden en cada refresco
+        // automático: solo al cargar la página y después de crear una reserva.
       } catch (error) {
         console.error('Error al cargar reservas/bloqueos:', error);
         // Mantener arrays válidos aunque falle, para que el resto de la app
         // (calendario, formulario) no se rompa con un error no controlado.
         if (!Array.isArray(reservasActuales)) reservasActuales = [];
         if (!Array.isArray(bloqueosCargados)) bloqueosCargados = [];
-        mostrarError('No se pudo conectar con el servidor. Los horarios mostrados podrían no estar actualizados.');
+        mostrarError(error.esLimite
+          ? error.message
+          : 'No se pudo conectar con el servidor. Los horarios mostrados podrían no estar actualizados.');
       }
     }
 
@@ -905,7 +943,15 @@
       // Aviso si el mes que se está mostrando no tiene ningún día disponible para reservar
       const avisoMesDeshabilitado = document.getElementById('avisoMesDeshabilitado');
       if (avisoMesDeshabilitado) {
-        avisoMesDeshabilitado.style.display = mesMostradoHabilitado ? 'none' : 'block';
+        if (!mesesCargadosOk) {
+          // No se pudo consultar qué meses están habilitados: decirlo tal cual, en vez
+          // de afirmar que el mes "no está habilitado" (que puede ser falso).
+          avisoMesDeshabilitado.textContent = 'No se pudo cargar la disponibilidad en este momento. Se va a reintentar sola en un momento, no hace falta recargar la página.';
+          avisoMesDeshabilitado.style.display = 'block';
+        } else {
+          avisoMesDeshabilitado.textContent = 'Este mes todavía no está habilitado para reservas. Probá con "Hoy" o consultá con un moderador.';
+          avisoMesDeshabilitado.style.display = mesMostradoHabilitado ? 'none' : 'block';
+        }
       }
 
       for (let dia = 1; dia <= diasEnMes; dia++) {
@@ -1384,14 +1430,27 @@
           })
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          mostrarError(data.error);
+          if (res.status === 429) {
+            mostrarError('Hiciste demasiados intentos de reserva seguidos. Esperá unos minutos antes de volver a intentar.', true);
+          } else {
+            mostrarError(data.error || 'No se pudo crear la reserva. Revisá el calendario antes de reintentar: puede que ya haya quedado registrada.', true);
+          }
           return;
         }
 
-        mostrarExito(`Reserva creada: ${horaInicio} - ${horaFin}`);
-        
+        // Confirmación en una ventana que no desaparece sola: antes era un aviso de 5
+        // segundos arriba del formulario (fuera de la pantalla en el celular), y como el
+        // formulario se vaciaba, la gente creía que había fallado y volvía a reservar.
+        mostrarConfirmacionReserva({
+          espacio: espacios[espacioSeleccionado],
+          fecha: diaSeleccionado,
+          horario: descripcionHorario(espacioSeleccionado, horaInicio, horaFin),
+          codigo: data.codigo,
+          email
+        });
+
         document.getElementById('nombre').value = '';
         document.getElementById('celular').value = '';
         document.getElementById('email').value = '';
@@ -1404,26 +1463,48 @@
 
         await cargarReservas();
         actualizarCalendario();
+        actualizarEstadisticas();
       } catch (error) {
-        mostrarError('Error al crear la reserva');
+        mostrarError('Error de conexión al crear la reserva. Revisá el calendario antes de reintentar: puede que ya haya quedado registrada.', true);
       } finally {
         btnReservar.textContent = textoOriginalBtn;
         validarFormulario();
       }
     }
 
-    function mostrarError(msg) {
+    function mostrarConfirmacionReserva({ espacio, fecha, horario, codigo, email }) {
+      const [anio, mes, dia] = fecha.split('-');
+      document.getElementById('confEspacio').textContent = espacio;
+      document.getElementById('confFecha').textContent = `${dia}/${mes}/${anio}`;
+      document.getElementById('confHorario').textContent = horario;
+      document.getElementById('confCodigo').textContent = codigo || '(te llega por email)';
+      document.getElementById('confEmail').textContent = email;
+      document.getElementById('modalConfirmacion').style.display = 'flex';
+    }
+
+    function cerrarConfirmacionReserva() {
+      document.getElementById('modalConfirmacion').style.display = 'none';
+    }
+
+    let timeoutStatus = null;
+
+    // `importante`: el mensaje queda más tiempo y se lleva la pantalla hasta él, porque
+    // el cartel está arriba del formulario y en el celular el botón queda muy abajo.
+    function mostrarError(msg, importante = false) {
       const div = document.getElementById('statusMessage');
       div.className = 'status-message status-error';
       div.textContent = '⚠ ' + msg;
-      setTimeout(() => div.innerHTML = '', 5000);
+      if (importante) div.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      clearTimeout(timeoutStatus);
+      timeoutStatus = setTimeout(() => div.innerHTML = '', importante ? 12000 : 5000);
     }
 
     function mostrarExito(msg) {
       const div = document.getElementById('statusMessage');
       div.className = 'status-message status-success';
       div.textContent = '✓ ' + msg;
-      setTimeout(() => div.innerHTML = '', 5000);
+      clearTimeout(timeoutStatus);
+      timeoutStatus = setTimeout(() => div.innerHTML = '', 5000);
     }
 
     function mesAnterior() {
@@ -1465,6 +1546,25 @@
         Para reservar este espacio, le pedimos anotarse en la planilla correspondiente. En cuanto se restablezca el acceso, la reserva de Altillo volverá a estar disponible en esta plataforma.
       </p>
       <button id="btnCerrarAvisoAltillo" onclick="cerrarAvisoAltillo()" style="width: 100%; padding: 12px; background: #2e7bb4; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Entendido</button>
+    </div>
+  </div>
+
+  <!-- MODAL CONFIRMACIÓN DE RESERVA -->
+  <div id="modalConfirmacion" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); align-items: center; justify-content: center; z-index: 1200;">
+    <div style="background: #a8d5f7; border: 1px solid rgba(46, 123, 180, 0.3); border-radius: 12px; padding: 32px; max-width: 480px; width: 90%;">
+      <h3 style="color: #173874; margin-bottom: 16px; font-size: 18px;">✅ ¡Tu reserva quedó confirmada!</h3>
+      <p style="color: #173874; font-size: 14px; line-height: 1.8; margin-bottom: 12px;">
+        <strong>Espacio:</strong> <span id="confEspacio"></span><br>
+        <strong>Fecha:</strong> <span id="confFecha"></span><br>
+        <strong>Horario:</strong> <span id="confHorario"></span>
+      </p>
+      <p style="color: #173874; font-size: 14px; line-height: 1.6; margin-bottom: 8px;">Tu código de cancelación:</p>
+      <p id="confCodigo" style="color: #173874; font-size: 20px; font-weight: 700; letter-spacing: 2px; text-align: center; background: rgba(255, 255, 255, 0.6); border-radius: 8px; padding: 10px; margin-bottom: 12px; user-select: all;"></p>
+      <p style="color: #173874; font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
+        También te lo enviamos por email a <strong id="confEmail"></strong> (puede tardar unos minutos; revisá la carpeta de spam).
+        <strong>No hace falta volver a reservar.</strong>
+      </p>
+      <button onclick="cerrarConfirmacionReserva()" style="width: 100%; padding: 12px; background: #2e7bb4; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Entendido</button>
     </div>
   </div>
 
