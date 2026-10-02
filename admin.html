@@ -3,790 +3,309 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Sistema de Reservas CEQ</title>
-  
+  <title>Admin · Sistema de Reservas CEQ</title>
+
   <!-- SheetJS para Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-r22gChDnGvBylk90+2e/ycr3RVrDi8DIOkIGNhJlKfuyQM4tIRAI062MaV8sfjQKYVGjOBaZBOA87z+IhZE9DA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js" integrity="sha512-Qlv6VSKh1gDKGoJbnyA5RMXYcvnpIqhO++MhIM2fStMcGT9i2T//tSwYFlcyoRRDcDZ+TYHpH8azBBCyhpSeqw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #cbe3fa 0%, #a8d5f7 50%, #cbe3fa 100%);
-      color: #173874;
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    /* LOGIN */
-    .login-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .login-box {
-      background: rgba(203, 227, 250, 0.98);
-      border: 2px solid #2e7bb4;
-      border-radius: 16px;
-      padding: 40px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    }
-
-    .login-box h1 {
-      margin-bottom: 30px;
-      font-size: 24px;
-      text-align: center;
-      font-weight: 400;
-      letter-spacing: 1px;
-    }
-
-    .login-box .form-group {
-      margin-bottom: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .login-box label {
-      font-size: 12px;
-      letter-spacing: 2px;
-      color: #5ba3d0;
-      text-transform: uppercase;
-    }
-
-    .login-box input {
-      padding: 12px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.6);
-      border: 2px solid rgba(46, 123, 180, 0.3);
-      color: #173874;
-      font-size: 14px;
-      outline: none;
-      transition: all 0.2s;
-    }
-
-    .login-box input:focus {
-      border-color: white;
-      background: rgba(46, 123, 180, 0.08);
-    }
-
-    .login-box button {
-      width: 100%;
-      padding: 12px;
-      background: linear-gradient(135deg, #2e7bb4, #5ba3d0);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-      letter-spacing: 1px;
-      transition: all 0.3s;
-      margin-top: 10px;
-    }
-
-    .login-box button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(46, 123, 180, 0.3);
-    }
-
-    .login-error {
-      color: #e88;
-      font-size: 12px;
-      text-align: center;
-      margin-bottom: 15px;
-    }
-
-    /* ADMIN PANEL */
-    .admin-hidden {
-      display: none;
-    }
-
-    header {
-      background: linear-gradient(90deg, #2e7bb4 0%, #5ba3d0 100%);
-      border-bottom: 3px solid #2e7bb4;
-      padding: 24px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-radius: 16px 16px 0 0;
-      margin-bottom: 0;
-    }
-
-    header h1 {
-      font-size: 24px;
-      font-weight: 400;
-      letter-spacing: 1px;
-    }
-
-    .logout-btn {
-      padding: 8px 16px;
-      background: rgba(200, 80, 80, 0.2);
-      border: 1px solid rgba(200, 80, 80, 0.5);
-      color: #e88;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .logout-btn:hover {
-      background: rgba(200, 80, 80, 0.3);
-      border-color: rgba(200, 80, 80, 0.7);
-    }
-
-    .admin-content {
-      background: rgba(203, 227, 250, 0.98);
-      border: 1px solid rgba(46, 123, 180, 0.2);
-      border-radius: 0 0 16px 16px;
-      padding: 28px;
-      border-top: none;
-    }
-
-    .tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 24px;
-      border-bottom: 1px solid rgba(46, 123, 180, 0.15);
-      padding-bottom: 16px;
-    }
-
-    .tab-btn {
-      padding: 12px 24px;
-      background: rgba(46, 123, 180, 0.08);
-      border: 1px solid rgba(46, 123, 180, 0.3);
-      color: #173874;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      transition: all 0.2s;
-    }
-
-    .tab-btn:hover {
-      border-color: white;
-      background: rgba(46, 123, 180, 0.15);
-    }
-
-    .tab-btn.active {
-      background: #2e7bb4;
-      color: white;
-      border-color: white;
-    }
-
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block !important;
-    }
-
-    .filters {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-
-    .filters input,
-    .filters select {
-      padding: 10px 12px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.6);
-      border: 2px solid rgba(46, 123, 180, 0.3);
-      color: #173874;
-      font-size: 12px;
-      outline: none;
-      transition: all 0.2s;
-    }
-
-    .filters input:focus,
-    .filters select:focus {
-      border-color: white;
-      background: rgba(46, 123, 180, 0.08);
-    }
-
-    /* Mejorar contraste en dropdowns */
-    .filters select option {
-      background: #2e7bb4;
-      color: #173874;
-    }
-
-    .table-wrapper {
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-
-    table th {
-      background: rgba(46, 123, 180, 0.1);
-      border: 1px solid rgba(46, 123, 180, 0.2);
-      padding: 12px;
-      text-align: left;
-      font-size: 11px;
-      font-weight: 600;
-      color: #173874;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-
-    table td {
-      border: 1px solid rgba(46, 123, 180, 0.1);
-      padding: 12px;
-      font-size: 12px;
-    }
-
-    table tr:nth-child(even) {
-      background: rgba(255, 255, 255, 0.02);
-    }
-
-    table tr:hover {
-      background: rgba(46, 123, 180, 0.05);
-    }
-
-    .btn-small {
-      padding: 6px 12px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-      font-size: 11px;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .btn-cancel {
-      background: rgba(200, 80, 80, 0.2);
-      color: #e88;
-      border: 1px solid rgba(200, 80, 80, 0.3);
-    }
-
-    .btn-cancel:hover {
-      background: rgba(200, 80, 80, 0.3);
-      border-color: rgba(200, 80, 80, 0.5);
-    }
-
-    .btn-export {
-      background: rgba(80, 200, 80, 0.2);
-      color: #8c8;
-      border: 1px solid rgba(80, 200, 80, 0.3);
-      padding: 10px 20px;
-      font-size: 12px;
-    }
-
-    .btn-export:hover {
-      background: rgba(80, 200, 80, 0.3);
-      border-color: rgba(80, 200, 80, 0.5);
-    }
-
-    .btn-block {
-      background: rgba(46, 123, 180, 0.2);
-      color: #173874;
-      border: 1px solid rgba(46, 123, 180, 0.3);
-      padding: 10px 20px;
-      font-size: 12px;
-    }
-
-    .btn-block:hover {
-      background: rgba(46, 123, 180, 0.3);
-      border-color: rgba(200, 168, 75, 0.5);
-    }
-
-    .form-group {
-      margin-bottom: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .form-group label {
-      font-size: 11px;
-      letter-spacing: 2px;
-      color: #5ba3d0;
-      text-transform: uppercase;
-    }
-
-    .form-group input,
-    .form-group select {
-      padding: 10px 12px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.6);
-      border: 2px solid rgba(46, 123, 180, 0.3);
-      color: #173874;
-      font-size: 12px;
-      outline: none;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus {
-      border-color: white;
-      background: rgba(46, 123, 180, 0.08);
-    }
-
-    .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-    }
-
-    .modal.active {
-      display: flex;
-    }
-
-    .modal-content {
-      background: rgba(203, 227, 250, 0.98);
-      border: 1px solid rgba(46, 123, 180, 0.3);
-      border-radius: 12px;
-      padding: 28px;
-      width: 100%;
-      max-width: 500px;
-    }
-
-    .modal-content h3 {
-      margin-bottom: 20px;
-      font-size: 18px;
-      font-weight: 400;
-    }
-
-    .modal-buttons {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      margin-top: 20px;
-    }
-
-    .modal-buttons button {
-      padding: 10px 20px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 12px;
-      transition: all 0.2s;
-    }
-
-    .btn-confirm {
-      background: linear-gradient(135deg, #2e7bb4, #5ba3d0);
-      color: white;
-    }
-
-    .btn-confirm:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(46, 123, 180, 0.3);
-    }
-
-    .btn-cancel-modal {
-      background: rgba(255, 255, 255, 0.1);
-      color: #173874;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .btn-cancel-modal:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
-      background: rgba(46, 123, 180, 0.1);
-      border: 1px solid rgba(46, 123, 180, 0.2);
-      border-radius: 8px;
-      padding: 16px;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      color: #5ba3d0;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    .stat-value {
-      font-size: 24px;
-      font-weight: 600;
-      color: white;
-    }
-
-    .status-badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .status-activa {
-      background: rgba(80, 200, 80, 0.2);
-      color: #8c8;
-    }
-
-    .status-cancelada {
-      background: rgba(200, 80, 80, 0.2);
-      color: #e88;
-    }
-
-    .status-bloqueada {
-      background: rgba(46, 123, 180, 0.2);
-      color: #173874;
-    }
-
-    /* RESPONSIVE MOBILE */
-    @media (max-width: 768px) {
-      body {
-        padding: 10px;
-      }
-
-      header {
-        flex-direction: column;
-        gap: 12px;
-        text-align: center;
-        padding: 16px;
-      }
-
-      header h1 {
-        font-size: 18px;
-      }
-
-      .admin-content {
-        padding: 12px;
-      }
-
-      .tabs {
-        flex-direction: column;
-      }
-
-      .tab-btn {
-        width: 100%;
-        font-size: 10px;
-      }
-
-      .stats {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .filters {
-        flex-direction: column;
-      }
-
-      .filters input,
-      .filters select {
-        width: 100%;
-        font-size: 12px;
-      }
-
-      table {
-        font-size: 10px;
-      }
-
-      table th,
-      table td {
-        padding: 6px;
-      }
-
-      .calendar-nav {
-        flex-direction: column;
-      }
-
-      .calendar-nav button {
-        width: 100%;
-      }
-
-      .calendar-day {
-        min-height: 50px;
-        font-size: 9px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      body {
-        padding: 8px;
-      }
-
-      header h1 {
-        font-size: 14px;
-      }
-
-      .admin-content {
-        padding: 8px;
-      }
-
-      .stats {
-        grid-template-columns: 1fr;
-      }
-
-      table {
-        font-size: 8px;
-      }
-
-      table th,
-      table td {
-        padding: 4px;
-      }
-
-      .btn-small {
-        padding: 3px 6px;
-        font-size: 8px;
-      }
-
-      .login-box {
-        width: 95%;
-        padding: 20px;
-      }
-
-      .modal-content {
-        margin: 20px;
-        padding: 16px;
-      }
-
-      .calendar-grid {
-        gap: 4px;
-      }
-
-      .calendar-day {
-        min-height: 45px;
-        padding: 4px;
-        font-size: 8px;
-        aspect-ratio: 1;
-      }
-
-      .calendar-day-number {
-        font-size: 10px;
-        margin-bottom: 2px;
-      }
-
-      .calendar-day-indicator {
-        font-size: 7px;
-      }
-
-      .calendar-header-day {
-        font-size: 8px;
-      }
-
-      .calendar-month {
-        font-size: 12px;
-      }
-
-      .calendar-nav button {
-        padding: 6px;
-        font-size: 10px;
-      }
-    }
-
-    /* VIEW TOGGLE */
-    .view-toggle {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .view-btn {
-      padding: 8px 16px;
-      background: rgba(46, 123, 180, 0.08);
-      border: 1px solid rgba(46, 123, 180, 0.3);
-      color: #173874;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 11px;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .view-btn:hover {
-      border-color: white;
-      background: rgba(46, 123, 180, 0.15);
-    }
-
-    .view-btn.active {
-      background: #2e7bb4;
-      color: white;
-      border-color: white;
-    }
-
-    /* CALENDAR VIEW */
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-
-    .calendar-day {
-      aspect-ratio: 1;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(46, 123, 180, 0.1);
-      border-radius: 6px;
-      padding: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      flex-direction: column;
-      font-size: 11px;
-      min-height: 60px;
-    }
-
-    .calendar-day:hover {
-      border-color: white;
-      background: rgba(46, 123, 180, 0.05);
-    }
-
-    .calendar-day.has-reservas {
-      background: rgba(80, 200, 80, 0.15);
-      border-color: #5cc85c;
-    }
-
-    .calendar-day.today {
-      background: rgba(46, 123, 180, 0.2);
-      border: 2px solid #2e7bb4;
-    }
-
-    .calendar-day.selected-day {
-      background: rgba(220, 100, 100, 0.25);
-      border: 2px solid #d86060;
-    }
-
-    .calendar-day-number {
-      font-weight: 600;
-      color: #173874;
-      margin-bottom: 4px;
-    }
-
-    .calendar-day-indicator {
-      font-size: 10px;
-      color: #5ba3d0;
-    }
-
-    .calendar-header {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .calendar-header-day {
-      text-align: center;
-      font-weight: 600;
-      color: white;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 8px 0;
-    }
-
-    .calendar-nav {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .calendar-nav button {
-      padding: 10px 16px;
-      background: rgba(46, 123, 180, 0.1);
-      border: 1px solid rgba(46, 123, 180, 0.3);
-      color: #173874;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      flex: 1;
-      min-width: 100px;
-    }
-
-    .calendar-nav button:hover {
-      border-color: white;
-      background: rgba(46, 123, 180, 0.15);
-    }
-
-    .calendar-month {
-      text-align: center;
-      font-size: 16px;
-      font-weight: 600;
-      color: #173874;
-      flex: 1;
-    }
+    /* Mismo diseño que index.html (identidad de la web oficial del CEQ) */
+    :root {
+      --marino: #173874;
+      --azul: #3873CE;
+      --azul-hover: #2D62B5;
+      --cielo: #D6E6FA;
+      --tarjeta: #EFF7FE;
+      --blanco: #FFFFFF;
+      --texto: #1E1E1E;
+      --suave: #5A6B85;
+      --linea: #C9DBF3;
+      --lleno-bg: #FBE3E1;
+      --lleno: #B2392F;
+      --ok-bg: #E3F4EA;
+      --ok: #1D7A47;
+      --dorado-bg: #FFF5DE;
+      --dorado: #9A6700;
+      --radio: 18px;
+      --radio-chico: 8px;
+      --f: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { font-family: var(--f); background: var(--cielo); color: var(--texto); font-size: 15px; line-height: 1.5; min-height: 100vh; }
+    a { color: inherit; }
+    button, input, select, textarea { font-family: inherit; }
+    :focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+    /* ---------- Barra superior ---------- */
+    .topbar { background: var(--blanco); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 50; }
+    .topbar-in { max-width: 1400px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .marca { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--marino); min-width: 0; }
+    .marca img { width: 40px; height: 40px; display: block; flex: none; }
+    .marca b { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+    .marca .rol { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; background: var(--marino); color: var(--blanco); border-radius: 4px; padding: 3px 8px; white-space: nowrap; }
+    .menu { display: flex; align-items: center; gap: 18px; list-style: none; }
+    .menu a { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; color: var(--marino); text-decoration: none; padding: 6px 0; }
+    .menu a:hover { color: var(--azul); }
+    .logout-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--lleno); background: transparent; color: var(--lleno); border-radius: 5px; padding: 6px 12px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; cursor: pointer; }
+    .logout-btn:hover { background: var(--lleno-bg); }
+    .logout-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ---------- Login ---------- */
+    .login-overlay { position: fixed; inset: 0; background: var(--cielo); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 16px; }
+    .login-box { background: var(--blanco); border-radius: var(--radio); padding: 36px 32px; width: 100%; max-width: 400px; display: grid; gap: 16px; box-shadow: 0 20px 50px -24px rgba(23,56,116,.35); }
+    .login-marca { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+    .login-marca img { width: 64px; height: 64px; }
+    .login-box h1 { font-size: 22px; font-weight: 700; color: var(--marino); text-transform: uppercase; letter-spacing: -.01em; }
+    .login-box .sub { color: var(--suave); font-size: 14px; margin-top: -6px; }
+    .login-error { color: var(--lleno); font-size: 14px; font-weight: 500; text-align: center; }
+    .login-error:empty { display: none; }
+    .login-box button { width: 100%; padding: 14px; background: var(--azul); color: var(--blanco); border: 0; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 16px; }
+    .login-box button:hover { background: var(--azul-hover); }
+    .login-volver { text-align: center; font-size: 14px; }
+    .login-volver a { color: var(--marino); font-weight: 600; text-decoration: none; }
+    .login-volver a:hover { color: var(--azul); text-decoration: underline; }
+
+    /* ---------- Panel ---------- */
+    .admin-hidden { display: none; }
+    /* El pie queda siempre abajo aunque haya poco contenido */
+    #adminPanel:not(.admin-hidden) { display: flex; flex-direction: column; min-height: 100vh; }
+    .container { flex: 1; width: 100%; max-width: 1400px; margin: 0 auto; padding: 0 20px 48px; }
+    .titulo-pagina { padding: 28px 0 20px; }
+    .titulo-pagina h1 { font-size: clamp(22px, 4vw, 34px); line-height: 1.1; font-weight: 600; text-transform: uppercase; color: var(--marino); letter-spacing: -.01em; }
+
+    .admin-content { background: var(--tarjeta); border-radius: var(--radio); padding: 24px; min-width: 0; }
+
+    /* Pestañas */
+    .tabs { display: flex; gap: 4px; margin: -4px 0 24px; border-bottom: 2px solid var(--linea); overflow-x: auto; scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab-btn { flex: none; padding: 12px 16px; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; color: var(--suave); cursor: pointer; font-size: 15px; font-weight: 600; white-space: nowrap; }
+    .tab-btn:hover { color: var(--marino); }
+    .tab-btn.active { color: var(--azul); border-bottom-color: var(--azul); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block !important; }
+
+    .tab-content h3 { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--marino); line-height: 1.2; margin-bottom: 16px; }
+    .tab-content h3::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; flex: none; }
+    .tab-content h4 { font-size: 16px; font-weight: 700; color: var(--marino); margin-bottom: 12px; }
+    .nota { color: var(--suave); font-size: 14px; margin-bottom: 14px; max-width: 70ch; }
+
+    /* Estadísticas */
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat-card { background: var(--blanco); border-radius: 12px; padding: 14px 16px; }
+    .stat-label { font-size: 13px; font-weight: 600; color: var(--suave); }
+    .stat-value { font-size: 30px; font-weight: 500; color: var(--azul); line-height: 1.15; font-variant-numeric: tabular-nums; }
+
+    /* Lista / Calendario */
+    .view-toggle { display: inline-flex; gap: 2px; margin-bottom: 16px; background: var(--blanco); border-radius: 8px; padding: 3px; }
+    .view-btn { padding: 7px 16px; background: none; border: 0; color: var(--marino); border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+    .view-btn.active { background: var(--marino); color: var(--blanco); }
+
+    /* Filtros y formularios */
+    .filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filters input, .filters select, .form-group input, .form-group select {
+      padding: 10px 12px; border-radius: var(--radio-chico); background: var(--blanco); border: 1px solid var(--linea); color: var(--texto); font-size: 14px; min-height: 42px;
+    }
+    .filters input:focus, .filters select:focus, .form-group input:focus, .form-group select:focus, .login-box input:focus {
+      outline: none; border-color: var(--azul); box-shadow: 0 0 0 3px rgba(56,115,206,.18);
+    }
+    .form-group { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: var(--marino); }
+    .login-box .form-group { margin-bottom: 0; }
+    .login-box input { padding: 13px 14px; border-radius: var(--radio-chico); background: var(--blanco); border: 1px solid var(--linea); font-size: 16px; }
+
+    .dos-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; align-items: start; }
+    .form-col { max-width: 440px; }
+    .lista-scroll { max-height: 520px; overflow-y: auto; padding-right: 4px; }
+
+    /* Tablas */
+    .table-wrapper { overflow-x: auto; background: var(--blanco); border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    table th { background: var(--blanco); border-bottom: 2px solid var(--linea); padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: var(--marino); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+    table td { border-bottom: 1px solid #E7EEF8; padding: 11px 12px; font-size: 14px; vertical-align: middle; }
+    table tr:last-child td { border-bottom: 0; }
+    table tbody tr:hover { background: #F6FAFE; }
+    /* Fecha, horario, espacio y celular en una sola línea (la tabla se desliza si no entra) */
+    #reservasTable td:nth-child(-n+3), #reservasTable td:nth-child(5) { white-space: nowrap; }
+    #reservasTable td:nth-child(7) { min-width: 180px; }
+
+    /* Botones */
+    .btn-small { padding: 6px 12px; border-radius: 5px; border: 1px solid var(--linea); background: var(--blanco); color: var(--marino); cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .btn-small:hover { border-color: var(--azul); color: var(--azul); }
+    .btn-cancel { background: var(--blanco); color: var(--lleno); border: 1px solid #EBB7B2; }
+    .btn-cancel:hover { background: var(--lleno-bg); border-color: var(--lleno); color: var(--lleno); }
+    .btn-block, .btn-export { display: inline-flex; justify-content: center; align-items: center; gap: 8px; background: var(--azul); color: var(--blanco); border: 0; border-radius: 5px; padding: 12px 20px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .btn-block:hover, .btn-export:hover { background: var(--azul-hover); }
+    .btn-block:disabled { background: #A9C0E6; cursor: not-allowed; }
+
+    /* Estados */
+    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: capitalize; }
+    .status-activa { background: var(--ok-bg); color: var(--ok); }
+    .status-cancelada { background: var(--lleno-bg); color: var(--lleno); }
+    .status-bloqueada { background: #E4E9F1; color: var(--marino); }
+
+    /* Listas generadas por el código */
+    .vacio { color: var(--suave); font-size: 14px; background: var(--blanco); border: 1px dashed var(--linea); border-radius: 12px; padding: 14px; text-align: center; }
+    .item { background: var(--blanco); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .item strong { color: var(--marino); }
+    .item .detalle { color: var(--suave); font-size: 13px; }
+    .item em { color: var(--azul); font-style: normal; font-size: 13px; }
+    .mes-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--blanco); border: 1px solid transparent; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--marino); }
+    .mes-item:hover { border-color: var(--azul); }
+    .mes-item.pasado { opacity: .65; }
+    .mes-item input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--azul); flex: none; }
+    .meses-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+
+    /* Calendario del admin */
+    .cal-dos-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+    .calendar-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .calendar-month { flex: 1; order: -1; font-size: 24px; font-weight: 500; color: var(--azul); white-space: nowrap; }
+    .calendar-month::first-letter { text-transform: uppercase; }
+    .calendar-nav button { white-space: nowrap; border: 1px solid var(--linea); background: var(--blanco); color: var(--marino); border-radius: var(--radio-chico); padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .calendar-nav button:hover { border-color: var(--azul); color: var(--azul); }
+    .calendar-header, .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+    .calendar-header-day { font-size: 12px; font-weight: 700; color: var(--suave); text-transform: uppercase; letter-spacing: .06em; padding: 0 2px 6px; }
+    .calendar-day { background: var(--blanco); border-radius: 10px; padding: 8px; min-height: 64px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; border: 2px solid transparent; }
+    .calendar-day:hover { border-color: var(--azul); }
+    .calendar-day-number { font-size: 18px; font-weight: 500; color: var(--azul); line-height: 1; }
+    .calendar-day-indicator { font-size: 11px; font-weight: 600; color: var(--marino); }
+    .calendar-day.has-reservas { background: #DCEBFC; }
+    .calendar-day.today { border-color: var(--linea); }
+    .calendar-day.selected-day { background: var(--marino); border-color: var(--marino); }
+    .calendar-day.selected-day .calendar-day-number, .calendar-day.selected-day .calendar-day-indicator { color: var(--blanco); }
+
+    .dia-titulo { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; color: var(--marino); margin-bottom: 12px; }
+    .dia-titulo::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; }
+    .dia-lista { display: grid; gap: 10px; }
+    .dia-tarjeta { background: var(--blanco); border-radius: 12px; padding: 14px; }
+    .dia-datos { display: grid; gap: 4px; font-size: 14px; }
+    .dia-datos strong { color: var(--marino); }
+    .dia-estado { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 10px; }
+
+    /* Modal de cancelación */
+    .modal { position: fixed; inset: 0; background: rgba(23,56,116,.55); display: none; justify-content: center; align-items: center; z-index: 999; padding: 16px; }
+    .modal.active { display: flex; }
+    .modal-content { background: var(--blanco); border-radius: var(--radio); padding: 28px; width: 100%; max-width: 480px; }
+    .modal-content h3 { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--marino); margin-bottom: 16px; }
+    .modal-content h3::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; }
+    .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+    .modal-buttons button { padding: 11px 18px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .btn-confirm { background: var(--lleno); color: var(--blanco); border: 0; }
+    .btn-confirm:hover { background: #962C23; }
+    .btn-cancel-modal { background: transparent; color: var(--marino); border: 1px solid var(--marino); }
+    .btn-cancel-modal:hover { background: var(--tarjeta); }
+
+    /* ---------- Pie ---------- */
+    .pie { background: var(--marino); color: #DCE7F7; }
+    .pie-in { max-width: 1400px; margin: 0 auto; padding: 24px 20px; display: flex; align-items: center; gap: 14px; }
+    .pie-in img { width: 44px; height: 44px; background: var(--blanco); border-radius: 12px; padding: 4px; flex: none; }
+    .pie-version { font-size: 15px; font-weight: 600; color: var(--blanco); }
+    .pie-version b { font-weight: 600; font-size: 12px; background: rgba(255,255,255,.14); border-radius: 4px; padding: 2px 7px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; display: inline-block; }
+    .pie-copy { color: #A9BEDF; font-size: 13px; margin-top: 2px; }
+    .pie-copy .sep { opacity: .5; margin: 0 4px; }
+
+    /* ---------- Tablet ---------- */
+    @media (max-width: 1000px) {
+      .cal-dos-col { grid-template-columns: minmax(0, 1fr); }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    /* ---------- Teléfono ---------- */
+    @media (max-width: 640px) {
+      .topbar-in { padding: 8px 12px; gap: 8px; }
+      .marca img { width: 34px; height: 34px; }
+      .marca b { font-size: 18px; }
+      .marca .rol { display: none; }
+      .menu { gap: 10px; }
+      .menu .solo-pc { display: none; }
+      .logout-btn { font-size: 13px; padding: 6px 10px; }
+      .container { padding: 0 12px 32px; }
+      .titulo-pagina { padding: 20px 4px 14px; }
+      .admin-content { padding: 16px 12px; border-radius: 16px; }
+      .tab-btn { padding: 10px 12px; font-size: 14px; }
+      .stat-value { font-size: 26px; }
+      .filters { flex-direction: column; }
+      .filters input, .filters select { width: 100%; }
+      table th, table td { padding: 9px 10px; font-size: 13px; }
+      .calendar-header, .calendar-grid { gap: 4px; }
+      .calendar-day { min-height: 48px; padding: 5px; border-radius: 8px; }
+      .calendar-day-number { font-size: 15px; }
+      .calendar-day-indicator { font-size: 9px; }
+      .calendar-header-day { font-size: 10px; letter-spacing: 0; }
+      .calendar-month { font-size: 20px; flex-basis: 100%; }
+      .modal-content { padding: 20px; }
+      .modal-buttons { flex-direction: column-reverse; }
+      .modal-buttons button { width: 100%; }
+      .item { flex-direction: column; align-items: flex-start; }
+      .pie-in { padding: 22px 16px; flex-direction: column; text-align: center; gap: 10px; }
+      .pie-copy .sep { display: none; }
+      .pie-copy .resto { display: block; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
   </style>
 </head>
 <body>
   <!-- LOGIN -->
   <div class="login-overlay" id="loginOverlay">
     <div class="login-box">
-      <h1>Admin CEQ</h1>
+      <div class="login-marca">
+        <img src="https://cequna2.wordpress.com/wp-content/uploads/2026/07/diseno-sin-titulo-6-e1784006088603.png?w=128&h=128&allow_lossy=1" alt="Logo del CEQ">
+        <h1>Panel de administración</h1>
+      </div>
+      <p class="sub" style="text-align:center;">Sistema de Reservas del CEQ</p>
       <div id="loginError" class="login-error"></div>
       <div class="form-group">
-        <label>Contraseña</label>
-        <input type="password" id="passwordInput" placeholder="Ingresá la contraseña">
+        <label for="passwordInput">Contraseña</label>
+        <input type="password" id="passwordInput" placeholder="Ingresá la contraseña" autocomplete="current-password">
       </div>
       <button onclick="login()">Ingresar</button>
+      <p class="login-volver"><a href="https://reservas.ceq-una.com/">← Volver a reservas</a></p>
     </div>
   </div>
 
   <!-- ADMIN PANEL -->
   <div class="admin-hidden" id="adminPanel">
+    <header class="topbar">
+      <div class="topbar-in">
+        <a class="marca" href="https://reservas.ceq-una.com/" aria-label="Ir a la página de reservas">
+          <img src="https://cequna2.wordpress.com/wp-content/uploads/2026/07/diseno-sin-titulo-6-e1784006088603.png?w=96&h=96&allow_lossy=1" alt="">
+          <b>CEQ</b>
+          <span class="rol">Admin</span>
+        </a>
+        <nav aria-label="Principal">
+          <ul class="menu">
+            <li class="solo-pc"><a href="https://reservas.ceq-una.com/">Ver página pública</a></li>
+            <li><button class="logout-btn" onclick="logout()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg>Cerrar sesión</button></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
     <div class="container">
-      <header>
-        <h1>Panel Administrativo - CEQ</h1>
-        <button class="logout-btn" onclick="logout()">Cerrar sesión</button>
-      </header>
+      <div class="titulo-pagina">
+        <h1>Panel de administración</h1>
+      </div>
 
       <div class="admin-content">
-        <div class="tabs">
-          <button class="tab-btn active" onclick="switchTab('reservas')">📋 Reservas</button>
-          <button class="tab-btn" onclick="switchTab('bloqueos')">🔒 Bloqueos</button>
-          <button class="tab-btn" onclick="switchTab('meses')">📅 Meses</button>
-          <button class="tab-btn" onclick="switchTab('prioridad')">⭐ Prioridad</button>
-          <button class="tab-btn" onclick="switchTab('exportar')">📊 Exportar</button>
-          <button class="tab-btn" onclick="switchTab('reportes')">🐛 Reportes</button>
+        <div class="tabs" role="tablist">
+          <button class="tab-btn active" onclick="switchTab('reservas')">Reservas</button>
+          <button class="tab-btn" onclick="switchTab('bloqueos')">Bloqueos</button>
+          <button class="tab-btn" onclick="switchTab('meses')">Meses</button>
+          <button class="tab-btn" onclick="switchTab('prioridad')">Prioridad</button>
+          <button class="tab-btn" onclick="switchTab('exportar')">Exportar</button>
+          <button class="tab-btn" onclick="switchTab('reportes')">Reportes</button>
         </div>
 
         <!-- TAB: RESERVAS -->
         <div id="tab-reservas" class="tab-content active">
           <div class="stats">
             <div class="stat-card">
-              <div class="stat-label">Total Reservas</div>
+              <div class="stat-label">Reservas activas</div>
               <div class="stat-value" id="totalReservas">0</div>
             </div>
             <div class="stat-card">
@@ -794,7 +313,7 @@
               <div class="stat-value" id="reservasHoy">0</div>
             </div>
             <div class="stat-card">
-              <div class="stat-label">Esta Semana</div>
+              <div class="stat-label">Esta semana</div>
               <div class="stat-value" id="reservasSemana">0</div>
             </div>
             <div class="stat-card">
@@ -804,20 +323,20 @@
           </div>
 
           <div class="view-toggle">
-            <button class="view-btn active" onclick="cambiarVista('lista')">📋 Lista</button>
-            <button class="view-btn" onclick="cambiarVista('calendario')">📅 Calendario</button>
+            <button class="view-btn active" onclick="cambiarVista('lista')">Lista</button>
+            <button class="view-btn" onclick="cambiarVista('calendario')">Calendario</button>
           </div>
 
           <!-- VISTA LISTA -->
           <div id="vista-lista">
             <div class="filters">
-              <input type="date" id="filterFecha" onchange="filtrarReservas()">
-              <select id="filterEspacio" onchange="filtrarReservas()">
+              <input type="date" id="filterFecha" onchange="filtrarReservas()" aria-label="Filtrar por fecha">
+              <select id="filterEspacio" onchange="filtrarReservas()" aria-label="Filtrar por espacio">
                 <option value="">Todos los espacios</option>
                 <option value="1">Altillo</option>
                 <option value="3">Frente</option>
               </select>
-              <select id="filterEstado" onchange="filtrarReservas()">
+              <select id="filterEstado" onchange="filtrarReservas()" aria-label="Filtrar por estado">
                 <option value="">Todos los estados</option>
                 <option value="activa">Activas</option>
                 <option value="cancelada">Canceladas</option>
@@ -846,25 +365,25 @@
 
           <!-- VISTA CALENDARIO -->
           <div id="vista-calendario" style="display: none;">
-            <div class="filters" style="margin-bottom: 16px;">
-              <select id="filterEspacioCalendario" onchange="actualizarCalendario()">
+            <div class="filters">
+              <select id="filterEspacioCalendario" onchange="actualizarCalendario()" aria-label="Filtrar calendario por espacio">
                 <option value="">Todos los espacios</option>
                 <option value="1">Altillo</option>
                 <option value="3">Frente</option>
               </select>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="cal-dos-col">
               <!-- CALENDARIO -->
               <div>
                 <div class="calendar-nav">
-                  <button onclick="mesAnterior()">← Anterior</button>
+                  <button onclick="mesAnterior()">‹ Anterior</button>
                   <div class="calendar-month" id="calendarMonth"></div>
                   <button onclick="hoy()">Hoy</button>
-                  <button onclick="mesSiguiente()">Siguiente →</button>
+                  <button onclick="mesSiguiente()">Siguiente ›</button>
                 </div>
 
-                <div class="calendar-header">
+                <div class="calendar-header" aria-hidden="true">
                   <div class="calendar-header-day">Lun</div>
                   <div class="calendar-header-day">Mar</div>
                   <div class="calendar-header-day">Mié</div>
@@ -878,79 +397,79 @@
               </div>
 
               <!-- DETALLES DE RESERVAS -->
-              <div id="reservasDelDiaCalendario"></div>
+              <div id="reservasDelDiaCalendario"><p class="vacio">Tocá un día del calendario para ver sus reservas.</p></div>
             </div>
           </div>
         </div>
 
         <!-- TAB: BLOQUEOS -->
         <div id="tab-bloqueos" class="tab-content">
-          <h3 style="margin-bottom: 20px;">Bloquear Horarios</h3>
+          <h3>Bloquear un día</h3>
 
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
-            <div>
+          <div class="dos-col">
+            <div class="form-col">
               <div class="form-group">
-                <label>Espacio</label>
+                <label for="bloqueEspacio">Espacio</label>
                 <select id="bloqueEspacio">
                   <option value="1">Altillo</option>
-                    <option value="3">Frente</option>
+                  <option value="3">Frente</option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label>Fecha</label>
+                <label for="bloqueFecha">Fecha</label>
                 <input type="date" id="bloqueFecha">
               </div>
 
               <div class="form-group">
-                <label>Motivo</label>
+                <label for="bloqueMotivoInput">Motivo</label>
                 <input type="text" id="bloqueMotivoInput" placeholder="Ej: Mantenimiento, Feriado">
               </div>
 
-              <button class="btn-block" style="width: 100%;" onclick="bloquearTodoDia()">Bloquear Todo El Día</button>
+              <button class="btn-block" style="width: 100%;" onclick="bloquearTodoDia()">Bloquear todo el día</button>
             </div>
 
             <div>
-              <h4 style="margin-bottom: 12px; color: #173874;">Horarios Bloqueados</h4>
-              <div id="bloquesList" style="max-height: 400px; overflow-y: auto;"></div>
+              <h4>Días bloqueados</h4>
+              <div id="bloquesList" class="lista-scroll"></div>
             </div>
           </div>
         </div>
 
         <!-- TAB: MESES HABILITADOS -->
         <div id="tab-meses" class="tab-content">
-          <h3 style="margin-bottom: 8px;">Meses Habilitados para Reservar</h3>
-          <p style="color: #5ba3d0; font-size: 12px; margin-bottom: 20px;">
+          <h3>Meses habilitados para reservar</h3>
+          <p class="nota">
             Solo se pueden crear reservas en los meses que marques acá. Por ejemplo, a fin de mes
             podés habilitar el mes actual + el siguiente, para que se puedan reservar los primeros
             días del mes entrante.
           </p>
-          <p style="color: #5ba3d0; font-size: 12px; margin-top: -12px; margin-bottom: 20px;">
+          <p class="nota">
             Los meses marcados "(ya pasó)" conviene deshabilitarlos, empezando por el más antiguo
             (los meses habilitados tienen que quedar seguidos, sin huecos).
           </p>
-          <div id="mesesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;"></div>
+          <div id="mesesList" class="meses-grid"></div>
         </div>
 
         <!-- TAB: RESERVA DE PRIORIDAD -->
         <div id="tab-prioridad" class="tab-content">
-          <h3 style="margin-bottom: 8px;">Reserva de Prioridad - Frente (Comisión Directiva)</h3>
-          <p style="color: #5ba3d0; font-size: 12px; margin-bottom: 20px; max-width: 600px;">
+          <h3>Reserva de prioridad · Frente (Comisión Directiva)</h3>
+          <p class="nota">
             A diferencia de un bloqueo, esto crea una reserva real: ocupa el turno de verdad.
             Sirve para que la Comisión Directiva se asegure un horario ANTES de habilitar
-            ese mes al público - cuando lo habilites después, ese turno ya va a figurar
-            como ocupado, no libre.
+            ese mes al público. Cuando lo habilites después, ese turno ya va a figurar
+            como ocupado, no libre. Estas reservas no tienen límite por persona.
           </p>
 
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-            <div style="max-width: 420px;">
+          <div class="dos-col">
+            <div class="form-col">
               <div class="form-group">
-                <label>Fecha</label>
+                <label for="prioridadFecha">Fecha</label>
                 <input type="date" id="prioridadFecha">
               </div>
 
               <div class="form-group">
-                <label>Turno</label>
+                <label for="prioridadTurno">Turno</label>
                 <select id="prioridadTurno">
                   <option value="07:00|10:00">Desayuno (07:00 - 10:00)</option>
                   <option value="10:00|13:00">Almuerzo (10:00 - 13:00)</option>
@@ -959,87 +478,99 @@
               </div>
 
               <div class="form-group">
-                <label>Nombre</label>
+                <label for="prioridadNombre">Nombre</label>
                 <input type="text" id="prioridadNombre" placeholder="Ej: Comisión Directiva">
               </div>
 
               <div class="form-group">
-                <label>Celular</label>
+                <label for="prioridadCelular">Celular</label>
                 <input type="text" id="prioridadCelular" placeholder="0981123456">
               </div>
 
               <div class="form-group">
-                <label>Email</label>
+                <label for="prioridadEmail">Email</label>
                 <input type="email" id="prioridadEmail" placeholder="correo@ejemplo.com">
               </div>
 
               <div class="form-group">
-                <label>Motivo</label>
+                <label for="prioridadMotivo">Motivo</label>
                 <input type="text" id="prioridadMotivo" placeholder="Ej: Reunión de Comisión Directiva">
               </div>
 
-              <button class="btn-block" style="width: 100%;" onclick="crearReservaPrioridad()">Crear Reserva de Prioridad</button>
+              <button class="btn-block" style="width: 100%;" onclick="crearReservaPrioridad()">Crear reserva de prioridad</button>
             </div>
 
             <div>
-              <h4 style="margin-bottom: 12px; color: #173874;">Reservas de Prioridad Realizadas</h4>
-              <div id="prioridadList" style="max-height: 500px; overflow-y: auto;"></div>
+              <h4>Reservas de prioridad realizadas</h4>
+              <div id="prioridadList" class="lista-scroll"></div>
             </div>
           </div>
         </div>
 
         <!-- TAB: EXPORTAR -->
         <div id="tab-exportar" class="tab-content">
-          <h3 style="margin-bottom: 20px;">Exportar Reservas a Excel</h3>
+          <h3>Exportar reservas a Excel</h3>
 
           <div class="filters">
-            <input type="date" id="exportFechaInicio" placeholder="Fecha inicio">
-            <input type="date" id="exportFechaFin" placeholder="Fecha fin">
-            <select id="exportEspacio">
+            <input type="date" id="exportFechaInicio" aria-label="Fecha de inicio">
+            <input type="date" id="exportFechaFin" aria-label="Fecha de fin">
+            <select id="exportEspacio" aria-label="Espacio">
               <option value="">Todos los espacios</option>
               <option value="1">Altillo</option>
               <option value="3">Frente</option>
             </select>
           </div>
 
-          <button class="btn-export" onclick="exportarExcel()">📥 Descargar Excel</button>
-          <p style="margin-top: 16px; font-size: 12px; color: #5ba3d0;">Cada día será una hoja separada en el archivo Excel.</p>
+          <button class="btn-export" onclick="exportarExcel()">Descargar Excel</button>
+          <p class="nota" style="margin-top: 14px;">El archivo trae una hoja por cada espacio, con las reservas del rango elegido.</p>
         </div>
-      </div>
 
-      <!-- TAB: REPORTES -->
-      <div id="tab-reportes" class="tab-content">
-        <h3 style="margin-bottom: 20px;">Reportes de Errores</h3>
-        
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Mensaje</th>
-                <th>URL</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="reportesTableBody"></tbody>
-          </table>
+        <!-- TAB: REPORTES -->
+        <div id="tab-reportes" class="tab-content">
+          <h3>Reportes de errores</h3>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Mensaje</th>
+                  <th>URL</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="reportesTableBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- TAB: REPORTES -->
-  <div class="modal" id="modalCancelar">
-    <div class="modal-content">
-      <h3>Cancelar Reserva</h3>
-      <div class="form-group">
-        <label>Motivo de Cancelación</label>
-        <input type="text" id="motivoCancelacion" placeholder="Ej: Cancelación del cliente">
+    <footer class="pie">
+      <div class="pie-in">
+        <img src="https://cequna2.wordpress.com/wp-content/uploads/2026/07/diseno-sin-titulo-6-e1784006088603.png?w=96&h=96&allow_lossy=1" alt="Logo del CEQ">
+        <div>
+          <p class="pie-version">Sistema de Reservas del CEQ <b>v2.5a-34</b></p>
+          <p class="pie-copy">© <span id="anioCopy">2026</span> Centro de Estudiantes de Química <span class="sep">|</span> <span class="resto">Todos los derechos reservados</span></p>
+        </div>
       </div>
+    </footer>
+  </div>
+  <script>document.getElementById('anioCopy').textContent = new Date().getFullYear();</script>
+
+  <!-- MODAL CANCELAR -->
+  <div class="modal" id="modalCancelar">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="tituloModalCancelar">
+      <h3 id="tituloModalCancelar">Cancelar reserva</h3>
+      <div class="form-group">
+        <label for="motivoCancelacion">Motivo de la cancelación</label>
+        <input type="text" id="motivoCancelacion" placeholder="Ej: Cancelación pedida por el usuario">
+      </div>
+      <p class="nota" style="margin-bottom: 8px;">Se le avisa por email a la persona que reservó, con este motivo.</p>
       <div class="modal-buttons">
-        <button class="btn-cancel-modal" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn-confirm" onclick="confirmarCancelacion()">Confirmar Cancelación</button>
+        <button class="btn-cancel-modal" onclick="cerrarModal()">Volver</button>
+        <button class="btn-confirm" onclick="confirmarCancelacion()">Confirmar cancelación</button>
       </div>
     </div>
   </div>
@@ -1427,7 +958,7 @@
 
         if (bloqueosCargados.length === 0) {
           const vacio = document.createElement('p');
-          vacio.style.color = '#666';
+          vacio.className = 'vacio';
           vacio.textContent = 'Sin bloqueos';
           bloqueosList.appendChild(vacio);
           return;
@@ -1435,26 +966,31 @@
 
         bloqueosCargados.forEach(b => {
           const fila = document.createElement('div');
-          fila.style.cssText = 'padding: 8px; background: rgba(200,168,75,0.05); border-radius: 4px; margin-bottom: 8px; font-size: 11px; display: flex; justify-content: space-between; align-items: center;';
+          fila.className = 'item';
 
           const info = document.createElement('div');
 
+          // Fecha en formato dd/mm/aaaa y "Todo el día" para los bloqueos completos
+          const [bAnio, bMes, bDia] = b.fecha.split('-');
+          const esDiaCompleto = b.hora_inicio === '00:00:00' && b.hora_fin === '23:59:00';
           const linea1 = document.createElement('strong');
-          linea1.textContent = `${b.fecha} ${b.hora_inicio.substring(0, 5)} - ${b.hora_fin.substring(0, 5)}`;
+          linea1.textContent = `${bDia}/${bMes}/${bAnio} · ${esDiaCompleto ? 'Todo el día' : b.hora_inicio.substring(0, 5) + ' - ' + b.hora_fin.substring(0, 5)}`;
           info.appendChild(linea1);
           info.appendChild(document.createElement('br'));
 
-          info.appendChild(document.createTextNode(espacios[b.espacio_id] || 'Desconocido'));
+          const espacioEl = document.createElement('span');
+          espacioEl.className = 'detalle';
+          espacioEl.textContent = espacios[b.espacio_id] || 'Desconocido';
+          info.appendChild(espacioEl);
           info.appendChild(document.createElement('br'));
 
           const motivoEl = document.createElement('em');
-          motivoEl.style.color = '#5ba3d0';
           motivoEl.textContent = b.motivo || '';
           info.appendChild(motivoEl);
 
           const btnEliminar = document.createElement('button');
-          btnEliminar.style.cssText = 'padding: 4px 8px; background: rgba(220,100,100,0.2); border: 1px solid rgba(220,100,100,0.4); color: #c88; border-radius: 4px; cursor: pointer; font-size: 10px;';
-          btnEliminar.textContent = '✕ Eliminar';
+          btnEliminar.className = 'btn-small btn-cancel';
+          btnEliminar.textContent = 'Eliminar';
           btnEliminar.addEventListener('click', () => eliminarBloqueo(b.id));
 
           fila.appendChild(info);
@@ -1522,13 +1058,11 @@
           const esMesPasado = valorMes < valorActual;
 
           const tarjeta = document.createElement('label');
-          tarjeta.style.cssText = 'display:flex; align-items:center; gap:10px; padding:12px; background:rgba(46,123,180,0.06); border:1px solid rgba(46,123,180,0.15); border-radius:6px; cursor:pointer; font-size:13px;';
-          if (esMesPasado) tarjeta.style.opacity = '0.7';
+          tarjeta.className = 'mes-item' + (esMesPasado ? ' pasado' : '');
 
           const checkbox = document.createElement('input');
           checkbox.type = 'checkbox';
           checkbox.checked = estadoDe(anio, mes);
-          checkbox.style.cssText = 'width:18px; height:18px; cursor:pointer;';
 
           const texto = document.createElement('span');
           texto.textContent = `${NOMBRES_MESES[mes - 1]} ${anio}` +
@@ -1543,7 +1077,7 @@
       } catch (error) {
         console.error('Error al cargar meses habilitados:', error);
         const errorEl = document.createElement('p');
-        errorEl.style.color = '#c88';
+        errorEl.className = 'vacio';
         errorEl.textContent = 'No se pudieron cargar los meses habilitados.';
         lista.appendChild(errorEl);
       }
@@ -1634,8 +1168,7 @@
 
       if (prioridad.length === 0) {
         const vacio = document.createElement('p');
-        vacio.style.color = '#5ba3d0';
-        vacio.style.fontSize = '13px';
+        vacio.className = 'vacio';
         vacio.textContent = 'Todavía no hay reservas de prioridad.';
         lista.appendChild(vacio);
         return;
@@ -1644,29 +1177,30 @@
       prioridad.forEach(r => {
         const [año, mes, día] = r.fecha.split('-');
         const card = document.createElement('div');
-        card.style.cssText = 'background: rgba(46,123,180,0.06); border: 1px solid rgba(46,123,180,0.15); border-radius: 6px; padding: 12px; margin-bottom: 10px;';
+        card.className = 'item';
 
-        const linea1 = document.createElement('div');
-        linea1.style.cssText = 'font-weight: 600; color: #173874;';
-        linea1.textContent = `⭐ ${r.nombre_solicitante} - ${día}/${mes}/${año}`;
+        const info = document.createElement('div');
+        const linea1 = document.createElement('strong');
+        linea1.textContent = `⭐ ${r.nombre_solicitante} · ${día}/${mes}/${año}`;
 
         const linea2 = document.createElement('div');
-        linea2.style.cssText = 'font-size: 12px; color: #5ba3d0; margin-top: 4px;';
+        linea2.className = 'detalle';
         linea2.textContent = descripcionHorario(r.espacio_id, r.hora_inicio.substring(0, 5), r.hora_fin.substring(0, 5));
 
-        card.appendChild(linea1);
-        card.appendChild(linea2);
+        info.appendChild(linea1);
+        info.appendChild(linea2);
+        card.appendChild(info);
 
         if (r.estado === 'activa') {
           const btnCancelar = document.createElement('button');
           btnCancelar.textContent = 'Cancelar';
-          btnCancelar.style.cssText = 'margin-top: 8px; padding: 4px 10px; font-size: 12px; background: rgba(200,80,80,0.15); border: 1px solid rgba(200,80,80,0.3); border-radius: 4px; cursor: pointer; color: #a83232;';
+          btnCancelar.className = 'btn-small btn-cancel';
           btnCancelar.onclick = () => cancelarReservaPrioridad(r.id);
           card.appendChild(btnCancelar);
         } else {
           const estadoEl = document.createElement('span');
-          estadoEl.style.cssText = 'font-size: 11px; color: #a83232;';
-          estadoEl.textContent = 'CANCELADA';
+          estadoEl.className = 'status-badge status-cancelada';
+          estadoEl.textContent = 'cancelada';
           card.appendChild(estadoEl);
         }
 
@@ -1867,7 +1401,9 @@
       const dias = document.querySelectorAll('.calendar-day');
       dias.forEach(d => {
         const diaNum = d.querySelector('.calendar-day-number').textContent.trim();
-        if (diaNum === fecha.split('-')[2]) {
+        // Comparar como número: el día del calendario es "5" y el de la fecha "05"
+        // (antes los días 1 al 9 nunca quedaban marcados como seleccionados)
+        if (Number(diaNum) === Number(fecha.split('-')[2])) {
           d.classList.add('selected-day');
         }
       });
@@ -1881,22 +1417,19 @@
 
       if (reservas.length === 0) {
         const vacio = document.createElement('p');
-        vacio.style.color = '#666';
-        vacio.style.textAlign = 'center';
+        vacio.className = 'vacio';
         vacio.textContent = `Sin reservas para ${fechaFormato}`;
         div.appendChild(vacio);
         return;
       }
 
       const titulo = document.createElement('h4');
-      titulo.style.marginBottom = '12px';
-      titulo.style.color = '#173874';
+      titulo.className = 'dia-titulo';
       titulo.textContent = `Reservas del ${fechaFormato}`;
       div.appendChild(titulo);
 
       const contenedor = document.createElement('div');
-      contenedor.style.display = 'grid';
-      contenedor.style.gap = '12px';
+      contenedor.className = 'dia-lista';
 
       function filaDato(etiqueta, valor) {
         const linea = document.createElement('div');
@@ -1911,10 +1444,10 @@
         const [celular, email] = r.contacto.split('|').map(c => c.trim());
 
         const tarjeta = document.createElement('div');
-        tarjeta.style.cssText = 'background: rgba(203, 227, 250, 0.6); border: 1px solid rgba(200,168,75,0.2); border-radius: 6px; padding: 12px;';
+        tarjeta.className = 'dia-tarjeta';
 
         const grid = document.createElement('div');
-        grid.style.cssText = 'display: grid; gap: 6px; font-size: 11px;';
+        grid.className = 'dia-datos';
 
         grid.appendChild(filaDato('Nombre', r.nombre_solicitante));
         grid.appendChild(filaDato('Horario', descripcionHorario(r.espacio_id, r.hora_inicio.substring(0,5), r.hora_fin.substring(0,5))));
@@ -1924,7 +1457,7 @@
         grid.appendChild(filaDato('Motivo', r.motivo ? r.motivo.trim() : 'Sin especificar'));
 
         const filaEstado = document.createElement('div');
-        filaEstado.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-top: 8px;';
+        filaEstado.className = 'dia-estado';
 
         const spanEstado = document.createElement('span');
         const strongEstado = document.createElement('strong');
