@@ -97,7 +97,7 @@
     .aviso { padding: 12px 14px; border-radius: var(--radio-chico); font-size: 14px; margin-bottom: 12px; background: var(--blanco); color: var(--marino); border-left: 4px solid var(--azul); }
     #avisoMesDeshabilitado { border-left-color: var(--parcial); }
     .aviso-apertura { border-left-color: var(--marino); font-weight: 600; }
-    .lista-espera { margin: 0 0 14px; background: var(--blanco); border: 1px solid var(--linea); border-left: 4px solid var(--parcial); border-radius: var(--radio-chico); padding: 14px; display: grid; gap: 10px; }
+    .lista-espera { margin: 0 0 14px; background: var(--blanco); border: 1px solid var(--linea); border-left: 4px solid var(--azul); border-radius: var(--radio-chico); padding: 14px; display: grid; gap: 10px; }
     .lista-espera h3 { font-size: 16px; color: var(--marino); }
     .lista-espera p { font-size: 14px; color: var(--suave); }
     .lista-espera .le-turnos { display: flex; flex-wrap: wrap; gap: 8px 16px; }
@@ -903,15 +903,16 @@
       }
     }
 
-    async function actualizarEstadisticas() {
-      try {
-        const res = await fetch(`${API_BASE}/estadisticas`);
-        if (!res.ok) return; // no es crítico para el uso del sitio, se omite en silencio
-        const stats = await res.json();
-        document.getElementById('stats').textContent = `${stats.reservas_activas} reserva${stats.reservas_activas !== 1 ? 's' : ''}`;
-      } catch (error) {
-        console.error('Error al cargar estadísticas:', error);
-      }
+    // Contador de arriba: reservas activas del espacio elegido en el mes que se está mostrando
+    // (cambia al pasar de mes o de espacio). Se calcula con las reservas ya cargadas, sin pedir nada.
+    function actualizarEstadisticas() {
+      const mes = `${mesCalendario.getFullYear()}-${String(mesCalendario.getMonth() + 1).padStart(2, '0')}`;
+      const cantidad = reservasActuales.filter(r => r.espacio_id === espacioSeleccionado && r.fecha.startsWith(mes)).length;
+      const nombreMes = new Intl.DateTimeFormat('es-PY', { month: 'long' }).format(mesCalendario);
+      const pastilla = document.getElementById('stats');
+      pastilla.textContent = `${cantidad} reserva${cantidad !== 1 ? 's' : ''}`;
+      pastilla.title = `Reservas en el ${espacios[espacioSeleccionado]} en ${nombreMes}`;
+      pastilla.setAttribute('aria-label', `${pastilla.textContent} en el ${espacios[espacioSeleccionado]} en ${nombreMes}`);
     }
 
     // Qué espacios se pueden reservar desde la página y el aviso de los que no. Si falla, o si
@@ -1026,6 +1027,7 @@
 
     function actualizarCalendario() {
       actualizarListaEspera();
+      actualizarEstadisticas();
       const mes = mesCalendario.getMonth();
       const año = mesCalendario.getFullYear();
       
