@@ -201,6 +201,7 @@
     .modal-caja h3 { color: var(--marino); font-size: 20px; display: flex; align-items: center; gap: 10px; }
     .modal-caja h3::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; }
     .modal-caja p { color: var(--texto); font-size: 15px; }
+    #textoAvisoEspacio { display: grid; gap: 14px; }
     .modal-caja .datos-reserva { background: var(--tarjeta); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; color: var(--marino); }
     .codigo { font-size: 24px; font-weight: 700; letter-spacing: .12em; text-align: center; color: var(--marino); background: var(--tarjeta); border: 2px dashed var(--azul); border-radius: 12px; padding: 12px; user-select: all; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
     .modal-botones { display: flex; gap: 10px; }
@@ -290,11 +291,12 @@
       <h2 class="titulo-seccion" id="tituloCalendario">Elegí el día</h2>
 
       <div class="space-buttons">
+        <!-- Qué espacios se pueden reservar se maneja desde el panel (admin supremo > Avanzado >
+             Espacios): al cargar, aplicarEspacios() habilita o deshabilita estos botones según
+             la base. El estado inicial de acá (Frente sí, Altillo no) es el que se usa si no se
+             pudo consultar. -->
         <button class="space-btn active" data-espacio="3">Frente</button>
-        <!-- Altillo visible pero deshabilitado: por ahora se reserva a mano con
-             planilla (ver modalAvisoAltillo). Para reactivarlo, quitar `disabled`
-             y la clase `no-disponible` (y agregar el 1 a ESPACIOS_PUBLICOS en server.js). -->
-        <button class="space-btn no-disponible" data-espacio="1" disabled aria-disabled="true" title="El Altillo se reserva por ahora con planilla">
+        <button class="space-btn no-disponible" data-espacio="1" disabled aria-disabled="true" title="Altillo: no disponible por el momento">
           Altillo <span>No disponible</span>
         </button>
       </div>
@@ -380,8 +382,14 @@
 
   <script>
     const API_BASE = 'https://api.ceq-una.com/api';
-    // Frente por defecto mientras Altillo está oculto (ver modalAvisoAltillo)
+    // Frente por defecto; si está deshabilitado y el Altillo no, aplicarEspacios() cambia al Altillo
     let espacioSeleccionado = 3;
+    // Qué espacios se pueden reservar y el aviso de los que no (vienen de /api/espacios, ver
+    // cargarEspacios). Estos valores son los de respaldo si no se pudo consultar: el estado de hoy.
+    let espaciosPublicos = { 3: true, 1: false };
+    let avisosEspacios = {
+      1: 'Por el momento, las reservas del Altillo se gestionan de forma manual, ya que la persona encargada actualmente no cuenta con una computadora para administrarlas a través de este sistema.\n\nPara reservar este espacio, anotate en la planilla correspondiente. Cuando se restablezca el acceso, el Altillo va a volver a estar disponible acá.'
+    };
     let diaSeleccionado = null;
     let horasSeleccionadas = [];
     let reservasActuales = [];
@@ -493,7 +501,7 @@
       const timerAvisoCarga = setTimeout(() => {
         document.getElementById('avisoCargando').style.display = 'block';
       }, 4000);
-      await cargarReservas();
+      await Promise.all([cargarReservas(), cargarEspacios()]);
       await cargarMesesHabilitados();
       clearTimeout(timerAvisoCarga);
       document.getElementById('avisoCargando').style.display = 'none';
@@ -514,16 +522,21 @@
       }
 
       configurarBotonespacios();
+      aplicarEspacios();
       configurarFormulario();
       actualizarCalendario();
+      mostrarAvisosEspacios();
       iniciarActualizacionAutomatica();
     }
 
     async function refrescarDatos() {
       ultimaActualizacion = Date.now();
       await cargarReservas();
+      // Meses y espacios casi nunca cambian: se piden juntos cada 2 minutos
       if (Date.now() - ultimaCargaMeses > INTERVALO_MESES_MS) {
         await cargarMesesHabilitados();
+        await cargarEspacios();
+        aplicarEspacios();
       }
       actualizarCalendario();
       // Solo refrescar el detalle de horas si el usuario no está a mitad de una selección,
@@ -621,22 +634,112 @@
       }
     }
 
+    // Qué espacios se pueden reservar desde la página y el aviso de los que no. Si falla, o si
+    // el servidor todavía es la versión anterior (sin `publico`), quedan los valores de respaldo.
+    async function cargarEspacios() {
+      try {
+        const lista = await fetchLectura(`${API_BASE}/espacios`);
+        if (!Array.isArray(lista)) return;
+        lista.forEach(e => {
+          if (typeof e.publico !== 'boolean') return;
+          espaciosPublicos[e.id] = e.publico;
+          avisosEspacios[e.id] = e.aviso || '';
+        });
+      } catch (error) {
+        console.error('Error al cargar los espacios:', error);
+      }
+    }
+
+    // Habilita o deshabilita los botones de espacio según espaciosPublicos
+    function aplicarEspacios() {
+      document.querySelectorAll('.space-btn').forEach(btn => {
+        const id = parseInt(btn.dataset.espacio);
+        const abierto = espaciosPublicos[id] === true;
+        btn.disabled = !abierto;
+        btn.classList.toggle('no-disponible', !abierto);
+        btn.textContent = espacios[id];
+        if (abierto) {
+          btn.removeAttribute('aria-disabled');
+          btn.removeAttribute('title');
+        } else {
+          const etiqueta = document.createElement('span');
+          etiqueta.textContent = 'No disponible';
+          btn.append(' ', etiqueta);
+          btn.setAttribute('aria-disabled', 'true');
+          btn.title = `${espacios[id]}: no disponible por el momento`;
+        }
+      });
+      // Si el espacio elegido quedó deshabilitado, pasar al otro (si ese sí está habilitado)
+      if (espaciosPublicos[espacioSeleccionado] !== true) {
+        const otro = [3, 1].find(id => espaciosPublicos[id] === true);
+        if (otro) seleccionarEspacio(otro);
+      }
+    }
+
+    function seleccionarEspacio(id) {
+      document.querySelectorAll('.space-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.espacio) === id);
+      });
+      espacioSeleccionado = id;
+      document.getElementById('espacioNombre').value = espacios[espacioSeleccionado];
+      document.getElementById('fecha').value = '';
+      document.getElementById('hoursGrid').innerHTML = '';
+      document.getElementById('selectedRange').style.display = 'none';
+      document.getElementById('reservasDelDia').innerHTML = '';
+      diaSeleccionado = null;
+      horasSeleccionadas = [];
+      actualizarCalendario();
+    }
+
     function configurarBotonespacios() {
       document.querySelectorAll('.space-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          document.querySelectorAll('.space-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          espacioSeleccionado = parseInt(btn.dataset.espacio);
-          document.getElementById('espacioNombre').value = espacios[espacioSeleccionado];
-          document.getElementById('fecha').value = '';
-          document.getElementById('hoursGrid').innerHTML = '';
-          document.getElementById('selectedRange').style.display = 'none';
-          document.getElementById('reservasDelDia').innerHTML = '';
-          diaSeleccionado = null;
-          horasSeleccionadas = [];
-          actualizarCalendario();
+          if (btn.disabled) return;
+          seleccionarEspacio(parseInt(btn.dataset.espacio));
         });
       });
+    }
+
+    // Al entrar, muestra (una vez por sesión) el aviso de cada espacio deshabilitado que tenga
+    // aviso cargado. Antes era un aviso fijo del Altillo escrito en esta página.
+    function mostrarAvisosEspacios() {
+      // Las ventanas están escritas después de este script: esperar a que la página termine de cargar
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mostrarAvisosEspacios, { once: true });
+        return;
+      }
+      const abierta = id => document.getElementById(id).style.display === 'flex';
+      if (abierta('modalConfirmacion') || abierta('modalReporte')) return;
+
+      const yaVisto = id => {
+        try { return sessionStorage.getItem(`avisoEspacioVisto${id}`) === '1'; } catch (e) { return false; }
+      };
+      const pendientes = [3, 1].filter(id => espaciosPublicos[id] !== true && avisosEspacios[id] && !yaVisto(id));
+      if (pendientes.length === 0) return;
+
+      document.getElementById('tituloAvisoEspacio').textContent = pendientes.length === 1
+        ? `Reservas del ${espacios[pendientes[0]]}`
+        : 'Espacios no disponibles';
+      const cuerpo = document.getElementById('textoAvisoEspacio');
+      cuerpo.replaceChildren();
+      pendientes.forEach(id => {
+        if (pendientes.length > 1) {
+          const nombre = document.createElement('p');
+          const strong = document.createElement('strong');
+          strong.textContent = espacios[id];
+          nombre.appendChild(strong);
+          cuerpo.appendChild(nombre);
+        }
+        // Cada párrafo del aviso (separados por una línea en blanco) va en su propio <p>
+        avisosEspacios[id].split(/\n\s*\n/).forEach(parrafo => {
+          if (!parrafo.trim()) return;
+          const p = document.createElement('p');
+          p.textContent = parrafo.trim(); // textContent: el aviso nunca se interpreta como HTML
+          cuerpo.appendChild(p);
+        });
+      });
+      document.getElementById('modalAvisoEspacio').dataset.espacios = pendientes.join(',');
+      document.getElementById('modalAvisoEspacio').style.display = 'flex';
     }
 
     function actualizarCalendario() {
@@ -686,10 +789,16 @@
       document.getElementById('btnMesHoy').style.visibility = hayMasDeUnMes ? 'visible' : 'hidden';
       document.getElementById('btnMesSiguiente').style.visibility = mostrarSiguiente ? 'visible' : 'hidden';
 
+      // Solo pasa si ningún espacio está habilitado (si uno lo está, aplicarEspacios ya lo eligió)
+      const espacioAbierto = espaciosPublicos[espacioSeleccionado] === true;
+
       // Aviso si el mes que se está mostrando no tiene ningún día disponible para reservar
       const avisoMesDeshabilitado = document.getElementById('avisoMesDeshabilitado');
       if (avisoMesDeshabilitado) {
-        if (!mesesCargadosOk) {
+        if (!espacioAbierto) {
+          avisoMesDeshabilitado.textContent = `Por el momento no se puede reservar el ${espacios[espacioSeleccionado]} desde esta página. Consultá con un moderador.`;
+          avisoMesDeshabilitado.style.display = 'block';
+        } else if (!mesesCargadosOk) {
           // No se pudo consultar qué meses están habilitados: decirlo tal cual, en vez
           // de afirmar que el mes "no está habilitado" (que puede ser falso).
           avisoMesDeshabilitado.textContent = 'No se pudo cargar la disponibilidad en este momento. Se va a reintentar sola en un momento, no hace falta recargar la página.';
@@ -724,7 +833,7 @@
         
         // Deshabilitar días pasados, fin de semana, de un mes no habilitado, y días con bloqueo completo
         const esPasado = fecha < hoyStr;
-        const esFueraDelRango = !mesMostradoHabilitado;
+        const esFueraDelRango = !mesMostradoHabilitado || !espacioAbierto;
         
         // Determinar estado del día
 
@@ -1381,13 +1490,13 @@
   </footer>
   <script>document.getElementById('anioCopy').textContent = new Date().getFullYear();</script>
 
-  <!-- MODAL AVISO ALTILLO -->
-  <div id="modalAvisoAltillo" class="modal" style="z-index: 1100;">
-    <div class="modal-caja" role="dialog" aria-modal="true" aria-labelledby="tituloAltillo">
-      <h3 id="tituloAltillo">Reservas del Altillo</h3>
-      <p>Por el momento, las reservas del <strong>Altillo</strong> se gestionan de forma manual, ya que la persona encargada actualmente no cuenta con una computadora para administrarlas a través de este sistema.</p>
-      <p>Para reservar este espacio, anotate en la planilla correspondiente. Cuando se restablezca el acceso, el Altillo va a volver a estar disponible acá.</p>
-      <button id="btnCerrarAvisoAltillo" class="btn-primary" onclick="cerrarAvisoAltillo()">Entendido</button>
+  <!-- MODAL AVISO DE ESPACIOS NO DISPONIBLES (el texto lo carga mostrarAvisosEspacios(); se
+       escribe en el panel: admin supremo > Avanzado > Espacios) -->
+  <div id="modalAvisoEspacio" class="modal" style="z-index: 1100;">
+    <div class="modal-caja" role="dialog" aria-modal="true" aria-labelledby="tituloAvisoEspacio">
+      <h3 id="tituloAvisoEspacio">Espacio no disponible</h3>
+      <div id="textoAvisoEspacio"></div>
+      <button id="btnCerrarAvisoEspacio" class="btn-primary" onclick="cerrarAvisoEspacio()">Entendido</button>
     </div>
   </div>
 
@@ -1521,14 +1630,13 @@
       abrirModalReporte();
     }
 
-    function cerrarAvisoAltillo() {
-      document.getElementById('modalAvisoAltillo').style.display = 'none';
-      sessionStorage.setItem('avisoAltilloVisto', '1');
-    }
-
-    // Mostrar el aviso de Altillo una vez por sesión
-    if (!sessionStorage.getItem('avisoAltilloVisto')) {
-      document.getElementById('modalAvisoAltillo').style.display = 'flex';
+    // Cierra el aviso de espacios no disponibles y lo marca como visto en esta sesión
+    function cerrarAvisoEspacio() {
+      const modal = document.getElementById('modalAvisoEspacio');
+      modal.style.display = 'none';
+      (modal.dataset.espacios || '').split(',').filter(Boolean).forEach(id => {
+        try { sessionStorage.setItem(`avisoEspacioVisto${id}`, '1'); } catch (e) { /* sin almacenamiento: se vuelve a mostrar */ }
+      });
     }
 
     // Tecla Escape: cierra la ventana que esté abierta más arriba, igual que su botón
@@ -1537,7 +1645,7 @@
       if (e.key !== 'Escape') return;
       const abierta = id => document.getElementById(id).style.display === 'flex';
       if (abierta('modalConfirmacion')) cerrarConfirmacionReserva();
-      else if (abierta('modalAvisoAltillo')) cerrarAvisoAltillo();
+      else if (abierta('modalAvisoEspacio')) cerrarAvisoEspacio();
       else if (abierta('modalReporte') && !document.getElementById('btnCancelarReporte').disabled) cerrarModalReporte();
     });
 

@@ -206,6 +206,30 @@
     .btn-cancel-modal { background: transparent; color: var(--marino); border: 1px solid var(--marino); }
     .btn-cancel-modal:hover { background: var(--tarjeta); }
 
+    /* ---------- Admin supremo ---------- */
+    [hidden] { display: none !important; }
+    .tab-content h3.mt { margin-top: 36px; }
+    .vacio-celda { text-align: center; color: var(--suave); padding: 18px 12px; }
+    .espacio-card button { justify-self: start; }
+    .registro-celda { font-size: 12px; color: var(--suave); line-height: 1.4; min-width: 170px; }
+    .registro-celda b { color: var(--marino); font-weight: 600; }
+    .espacios-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    .espacio-card { background: var(--blanco); border-radius: 12px; padding: 16px; display: grid; gap: 10px; }
+    .espacio-cab { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .espacio-cab strong { font-size: 17px; color: var(--marino); }
+    .espacio-cab .status-badge { text-transform: none; }
+    .espacio-card label.check { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--marino); cursor: pointer; }
+    .espacio-card label.check input { width: 18px; height: 18px; accent-color: var(--azul); }
+    .espacio-card textarea { width: 100%; min-height: 96px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font-size: 14px; resize: vertical; }
+    .espacio-card .etiqueta { font-size: 13px; font-weight: 600; color: var(--marino); }
+    .acciones-lista { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; font-size: 14px; }
+    .acciones-lista label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--marino); font-weight: 600; }
+    .acciones-lista input, .tabla-seleccion input { width: 17px; height: 17px; accent-color: var(--azul); cursor: pointer; }
+    .tabla-seleccion { max-height: 460px; overflow: auto; }
+    .tabla-seleccion td { font-size: 13px; }
+    .btn-peligro { display: inline-flex; align-items: center; gap: 8px; background: var(--lleno); color: var(--blanco); border: 0; border-radius: 5px; padding: 10px 18px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-peligro:hover { background: #962C23; }
+
     /* ---------- Pie ---------- */
     .pie { background: var(--marino); color: #DCE7F7; }
     .pie-in { max-width: 1400px; margin: 0 auto; padding: 24px 20px; display: flex; align-items: center; gap: 14px; }
@@ -280,7 +304,7 @@
         <a class="marca" href="https://reservas.ceq-una.com/" aria-label="Ir a la página de reservas">
           <img src="logo-ceq.png" alt="">
           <b>CEQ</b>
-          <span class="rol">Admin</span>
+          <span class="rol" id="rolEtiqueta">Admin</span>
         </a>
         <nav aria-label="Principal">
           <ul class="menu">
@@ -304,6 +328,8 @@
           <button class="tab-btn" onclick="switchTab('prioridad')">Prioridad</button>
           <button class="tab-btn" onclick="switchTab('exportar')">Exportar</button>
           <button class="tab-btn" onclick="switchTab('reportes')">Reportes</button>
+          <!-- Solo con la contraseña del admin supremo (el servidor igual rechaza estas acciones al admin normal) -->
+          <button class="tab-btn solo-super" hidden onclick="switchTab('avanzado')">Avanzado</button>
         </div>
 
         <!-- TAB: RESERVAS -->
@@ -361,6 +387,7 @@
                     <th>Motivo</th>
                     <th>Estado</th>
                     <th>Acciones</th>
+                    <th class="solo-super" hidden>Registro</th>
                   </tr>
                 </thead>
                 <tbody id="reservasTableBody"></tbody>
@@ -549,6 +576,70 @@
             </table>
           </div>
         </div>
+
+        <!-- TAB: AVANZADO (admin supremo) -->
+        <div id="tab-avanzado" class="tab-content">
+          <h3>Espacios</h3>
+          <p class="nota">
+            Elegí qué espacios se pueden reservar desde la página. Cuando uno no está disponible,
+            su botón aparece como "No disponible" y, al entrar a la página, se muestra el aviso que escribas acá.
+          </p>
+          <div id="espaciosAdmin" class="espacios-grid"></div>
+
+          <h3 class="mt">Eliminar reservas canceladas</h3>
+          <p class="nota">
+            Borra reservas de la base de forma definitiva (por ejemplo, las de prueba). Solo se pueden
+            eliminar las canceladas: una activa primero se cancela en la pestaña Reservas, así la persona
+            recibe el aviso. No se puede deshacer; si hace falta, exportá antes a Excel.
+          </p>
+          <div class="filters">
+            <input type="search" id="filtroCanceladas" placeholder="Buscar por nombre, email o motivo" oninput="mostrarCanceladas()" aria-label="Buscar reservas canceladas">
+          </div>
+          <div class="acciones-lista">
+            <label><input type="checkbox" id="selTodasCanceladas" onchange="seleccionarTodas('canceladasBody', this.checked)"> Seleccionar todas las que se muestran</label>
+            <button class="btn-peligro" onclick="eliminarReservasSeleccionadas()">Eliminar seleccionadas</button>
+          </div>
+          <div class="table-wrapper tabla-seleccion">
+            <table>
+              <thead><tr><th></th><th>#</th><th>Fecha</th><th>Horario</th><th>Espacio</th><th>Nombre</th><th>Email</th><th>Motivo</th><th>Registro</th></tr></thead>
+              <tbody id="canceladasBody"></tbody>
+            </table>
+          </div>
+
+          <h3 class="mt">Eliminar reportes de errores</h3>
+          <p class="nota">Borra reportes de forma definitiva, por ejemplo los de prueba.</p>
+          <div class="acciones-lista">
+            <label><input type="checkbox" id="selTodosReportes" onchange="seleccionarTodas('reportesSuperBody', this.checked)"> Seleccionar todos</label>
+            <button class="btn-peligro" onclick="eliminarReportesSeleccionados()">Eliminar seleccionados</button>
+          </div>
+          <div class="table-wrapper tabla-seleccion">
+            <table>
+              <thead><tr><th></th><th>#</th><th>Fecha</th><th>Mensaje</th><th>Estado</th></tr></thead>
+              <tbody id="reportesSuperBody"></tbody>
+            </table>
+          </div>
+
+          <h3 class="mt">Registro de actividad</h3>
+          <p class="nota">Lo que se hizo desde el panel y cuándo (los últimos 300 movimientos).</p>
+          <div class="acciones-lista">
+            <span></span>
+            <button class="btn-small" onclick="cargarActividad()">Actualizar</button>
+          </div>
+          <div class="table-wrapper tabla-seleccion">
+            <table>
+              <thead><tr><th>Fecha y hora</th><th>Quién</th><th>Acción</th><th>Detalle</th></tr></thead>
+              <tbody id="actividadBody"></tbody>
+            </table>
+          </div>
+
+          <h3 class="mt">Seguridad</h3>
+          <p class="nota">
+            Cierra la sesión de todas las personas que estén en el panel, incluida la tuya. Usalo si la
+            contraseña se filtró o alguien dejó la sesión abierta en una computadora ajena; en ese caso,
+            cambiá también la contraseña en Render.
+          </p>
+          <button class="btn-peligro" onclick="cerrarTodasLasSesiones()">Cerrar todas las sesiones</button>
+        </div>
       </div>
     </div>
 
@@ -639,9 +730,10 @@
         credentials: 'include'
       });
       
-      // Si la sesión expiró o no es válida
+      // Si la sesión expiró o no es válida (o el admin supremo cerró todas las sesiones)
       if (response.status === 401) {
         mostrarLogin();
+        document.getElementById('loginError').textContent = 'La sesión se cerró. Volvé a ingresar la contraseña.';
         throw new Error('Sesión expirada');
       }
       
@@ -653,6 +745,45 @@
     let reservaSeleccionada = null;
     let mesCalendario = new Date();
     const espacios = { 1: 'Altillo', 2: 'Sala de Reuniones', 3: 'Frente' };
+
+    // ADMIN SUPREMO: el servidor dice el rol al iniciar sesión y al verificar la sesión.
+    // Acá solo cambia qué se muestra; la protección real está en el servidor, que rechaza
+    // las acciones avanzadas (/api/superadmin/*) a cualquier sesión de admin normal.
+    let rolAdmin = 'admin';
+
+    function aplicarRol(rol) {
+      rolAdmin = rol === 'superadmin' ? 'superadmin' : 'admin';
+      const esSuper = rolAdmin === 'superadmin';
+      document.querySelectorAll('.solo-super').forEach(el => { el.hidden = !esSuper; });
+      document.getElementById('rolEtiqueta').textContent = esSuper ? 'Admin supremo' : 'Admin';
+      // Si quedó abierta la pestaña Avanzado y ahora entró un admin normal, volver a Reservas
+      if (!esSuper && document.getElementById('tab-avanzado').classList.contains('active')) {
+        switchTab('reservas');
+      }
+    }
+
+    // Fecha y hora guardadas por la base -> "DD/MM/AAAA HH:MM" en hora de Asunción.
+    // La base guarda en UTC: created_at llega sin zona ("2026-10-11T08:41:05.123456") y se
+    // toma como UTC; cancelada_en y creado_en ya traen la zona ("...+00:00").
+    function fechaHoraAsuncion(valor) {
+      if (!valor) return '-';
+      let texto = String(valor).replace(' ', 'T').replace(/(\.\d{3})\d+/, '$1');
+      if (!/(Z|[+-]\d{2}:?\d{2})$/.test(texto)) texto += 'Z';
+      const fecha = new Date(texto);
+      if (isNaN(fecha)) return String(valor);
+      const partes = new Intl.DateTimeFormat('es-PY', {
+        timeZone: 'America/Asuncion', day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+      }).formatToParts(fecha);
+      const p = Object.fromEntries(partes.map(x => [x.type, x.value]));
+      return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
+    }
+
+    // Cuándo y quién canceló una reserva (las canceladas antes del 11/10/2026 no tienen ese dato)
+    function textoCancelacion(r) {
+      if (!r.cancelada_en) return 'sin datos (cancelada antes del 11/10/2026)';
+      return fechaHoraAsuncion(r.cancelada_en) + (r.cancelada_por ? ` por ${r.cancelada_por}` : '');
+    }
 
     function mostrarLogin() {
       document.getElementById('loginOverlay').style.display = 'flex';
@@ -689,6 +820,7 @@
         }
         
         // El backend ya seteó la cookie httpOnly con el token; acá no se guarda nada.
+        aplicarRol(data.rol);
         mostrarPanel();
         document.getElementById('passwordInput').value = '';
         document.getElementById('loginError').textContent = '';
@@ -721,6 +853,8 @@
           credentials: 'include'
         });
         if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          aplicarRol(data.rol);
           mostrarPanel();
           cargarDatos();
         } else {
@@ -736,7 +870,9 @@
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(`tab-${tab}`).classList.add('active');
-      event.target.classList.add('active');
+      // Se busca el botón por su pestaña (y no con event.target) para poder cambiar de pestaña desde el código
+      const boton = document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`);
+      if (boton) boton.classList.add('active');
 
       if (tab === 'exportar') {
         const hoy = hoyEnAsuncionStr();
@@ -755,6 +891,10 @@
       if (tab === 'prioridad') {
         cargarReservasPrioridad();
       }
+
+      if (tab === 'avanzado') {
+        cargarAvanzado();
+      }
     }
 
     // CARGAR DATOS
@@ -767,6 +907,7 @@
         reservasActuales = Array.isArray(data) ? data : [];
         actualizarEstadisticas();
         mostrarReservas(reservasActuales);
+        if (rolAdmin === 'superadmin') mostrarCanceladas();
         actualizarCalendario(); // sin esto, cancelar/crear una reserva no se reflejaba en la vista de calendario hasta recargar la página
         if (diaSeleccionadoAdmin) {
           // Sin esto, el panel de detalle a la derecha quedaba mostrando el estado viejo
@@ -779,7 +920,9 @@
       } catch (error) {
         console.error('Error:', error);
         if (!Array.isArray(reservasActuales)) reservasActuales = [];
-        alert('No se pudo conectar con el servidor. Reintentá en unos segundos o recargá la página.');
+        if (error.message !== 'Sesión expirada') {
+          alert('No se pudo conectar con el servidor. Reintentá en unos segundos o recargá la página.');
+        }
       }
     }
 
@@ -852,8 +995,30 @@
         }
         tr.appendChild(tdAccion);
 
+        // Columna "Registro" (solo admin supremo): cuándo se hizo y, si se canceló, cuándo, quién y por qué
+        if (rolAdmin === 'superadmin') tr.appendChild(celdaRegistro(r));
+
         tbody.appendChild(tr);
       });
+    }
+
+    function celdaRegistro(r) {
+      const td = document.createElement('td');
+      td.className = 'registro-celda';
+      const linea = (etiqueta, texto) => {
+        const div = document.createElement('div');
+        const b = document.createElement('b');
+        b.textContent = etiqueta + ': ';
+        div.appendChild(b);
+        div.appendChild(document.createTextNode(texto));
+        td.appendChild(div);
+      };
+      linea('Creada', fechaHoraAsuncion(r.created_at));
+      if (r.estado === 'cancelada') {
+        linea('Cancelada', textoCancelacion(r));
+        if (r.motivo_cancelacion) linea('Motivo', r.motivo_cancelacion);
+      }
+      return td;
     }
 
     function filtrarReservas() {
@@ -1473,6 +1638,13 @@
         grid.appendChild(filaDato('Celular', celular || '-'));
         grid.appendChild(filaDato('Email', email || '-'));
         grid.appendChild(filaDato('Motivo', r.motivo ? r.motivo.trim() : 'Sin especificar'));
+        if (rolAdmin === 'superadmin') {
+          grid.appendChild(filaDato('Creada', fechaHoraAsuncion(r.created_at)));
+          if (r.estado === 'cancelada') {
+            grid.appendChild(filaDato('Cancelada', textoCancelacion(r)));
+            if (r.motivo_cancelacion) grid.appendChild(filaDato('Motivo de cancelación', r.motivo_cancelacion));
+          }
+        }
 
         const filaEstado = document.createElement('div');
         filaEstado.className = 'dia-estado';
@@ -1525,7 +1697,9 @@
         if (!res.ok) throw new Error('Error al cargar reportes');
         
         const reportes = await res.json();
-        mostrarReportes(reportes);
+        reportesActuales = Array.isArray(reportes) ? reportes : [];
+        mostrarReportes(reportesActuales);
+        mostrarReportesSuper();
       } catch (error) {
         console.error('Error cargando reportes:', error);
       }
@@ -1538,14 +1712,11 @@
       while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
 
       reportes.forEach(r => {
-        const [año, mes, día] = r.created_at.split('T')[0].split('-');
-        const fecha = `${día}/${mes}/${año}`;
-        const hora = r.created_at.split('T')[1].substring(0, 5);
-
         const tr = document.createElement('tr');
 
+        // Antes se mostraba la hora tal como la guarda la base (UTC): salía 3 horas adelantada
         const tdFecha = document.createElement('td');
-        tdFecha.textContent = `${fecha} ${hora}`;
+        tdFecha.textContent = fechaHoraAsuncion(r.created_at);
         tr.appendChild(tdFecha);
 
         // r.mensaje viene de un endpoint público sin autenticación (cualquiera puede
@@ -1597,6 +1768,342 @@
         console.error('Error:', error);
       }
     }
+
+    // ========== ADMIN SUPREMO: pestaña Avanzado ==========
+    let reportesActuales = [];
+
+    function cargarAvanzado() {
+      cargarEspaciosAdmin();
+      mostrarCanceladas();
+      mostrarReportesSuper();
+      cargarActividad();
+    }
+
+    // Mensaje de error que manda el servidor (por ejemplo, 403 "Solo el admin supremo puede hacer esto")
+    async function leerError(res) {
+      const data = await res.json().catch(() => ({}));
+      return data.error || `Error del servidor (${res.status})`;
+    }
+
+    function avisarErrorConexion(error) {
+      console.error('Error:', error);
+      if (error.message !== 'Sesión expirada') alert('No se pudo conectar con el servidor. Reintentá en unos segundos.');
+    }
+
+    function plural(n, singular, pluralTexto) {
+      return `${n} ${n === 1 ? singular : pluralTexto}`;
+    }
+
+    function filaVacia(tbody, columnas, texto) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = columnas;
+      td.className = 'vacio-celda';
+      td.textContent = texto;
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
+
+    function agregarCeldas(tr, textos) {
+      textos.forEach(texto => {
+        const td = document.createElement('td');
+        td.textContent = texto; // textContent: nunca interpreta HTML
+        tr.appendChild(td);
+      });
+    }
+
+    function celdaCheckbox(id, descripcion) {
+      const td = document.createElement('td');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = id;
+      cb.setAttribute('aria-label', descripcion);
+      td.appendChild(cb);
+      return td;
+    }
+
+    function seleccionarTodas(tbodyId, marcado) {
+      document.querySelectorAll(`#${tbodyId} input[type="checkbox"]`).forEach(cb => { cb.checked = marcado; });
+    }
+
+    function idsSeleccionados(tbodyId) {
+      return [...document.querySelectorAll(`#${tbodyId} input[type="checkbox"]:checked`)].map(cb => Number(cb.value));
+    }
+
+    // --- Espacios: habilitar/deshabilitar el Frente y el Altillo, y su aviso ---
+    async function cargarEspaciosAdmin() {
+      const cont = document.getElementById('espaciosAdmin');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/espacios`);
+        if (!res.ok) throw new Error(await leerError(res));
+        const lista = await res.json();
+        cont.replaceChildren();
+
+        [3, 1].forEach(id => { // primero el Frente, después el Altillo
+          const e = (Array.isArray(lista) ? lista : []).find(x => Number(x.id) === id);
+          if (!e) return;
+
+          const card = document.createElement('div');
+          card.className = 'espacio-card';
+
+          const cab = document.createElement('div');
+          cab.className = 'espacio-cab';
+          const nombre = document.createElement('strong');
+          nombre.textContent = e.nombre;
+          const badge = document.createElement('span');
+          badge.className = `status-badge ${e.publico ? 'status-activa' : 'status-cancelada'}`;
+          badge.textContent = e.publico ? 'Disponible' : 'No disponible';
+          cab.append(nombre, badge);
+
+          const check = document.createElement('label');
+          check.className = 'check';
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.id = `espacioPublico${id}`;
+          input.checked = e.publico === true;
+          check.append(input, document.createTextNode('Se puede reservar desde la página'));
+
+          const etiqueta = document.createElement('label');
+          etiqueta.className = 'etiqueta';
+          etiqueta.htmlFor = `espacioAviso${id}`;
+          etiqueta.textContent = 'Aviso que se muestra cuando no está disponible';
+          const area = document.createElement('textarea');
+          area.id = `espacioAviso${id}`;
+          area.maxLength = 1000;
+          area.value = e.aviso || '';
+          area.placeholder = 'Ej: Por el momento, este espacio se reserva con planilla.';
+
+          const btn = document.createElement('button');
+          btn.className = 'btn-small';
+          btn.textContent = 'Guardar';
+          btn.addEventListener('click', () => guardarEspacio(id, e.nombre, e.publico === true, btn));
+
+          card.append(cab, check, etiqueta, area, btn);
+          cont.appendChild(card);
+        });
+      } catch (error) {
+        console.error('Error cargando espacios:', error);
+        cont.replaceChildren();
+        const p = document.createElement('p');
+        p.className = 'vacio';
+        p.textContent = 'No se pudieron cargar los espacios.';
+        cont.appendChild(p);
+      }
+    }
+
+    async function guardarEspacio(id, nombre, estabaPublico, boton) {
+      const publico = document.getElementById(`espacioPublico${id}`).checked;
+      const aviso = document.getElementById(`espacioAviso${id}`).value.trim();
+
+      if (publico !== estabaPublico) {
+        const pregunta = publico
+          ? `¿Habilitar el ${nombre}? Desde ya se va a poder reservar desde la página.`
+          : `¿Deshabilitar el ${nombre}? Nadie va a poder reservarlo desde la página hasta que lo vuelvas a habilitar. Las reservas que ya existen no se tocan (si hace falta, cancelalas en la pestaña Reservas).`;
+        if (!confirm(pregunta)) return;
+      }
+
+      boton.disabled = true;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/espacios/${id}`, {
+          method: 'POST',
+          body: JSON.stringify({ publico, aviso })
+        });
+        if (!res.ok) {
+          alert(await leerError(res));
+          return;
+        }
+        alert(`Listo: el ${nombre} ${publico ? 'ya se puede reservar desde la página' : 'quedó como "No disponible" en la página'}.`);
+        cargarEspaciosAdmin();
+        cargarActividad();
+      } catch (error) {
+        avisarErrorConexion(error);
+      } finally {
+        boton.disabled = false;
+      }
+    }
+
+    // --- Eliminar reservas canceladas ---
+    function mostrarCanceladas() {
+      const tbody = document.getElementById('canceladasBody');
+      const busqueda = document.getElementById('filtroCanceladas').value.trim().toLowerCase();
+      const canceladas = reservasActuales.filter(r => r.estado === 'cancelada' && (!busqueda ||
+        [`#${r.id}`, r.nombre_solicitante, r.contacto, r.motivo, r.motivo_cancelacion]
+          .some(t => String(t || '').toLowerCase().includes(busqueda))));
+
+      tbody.replaceChildren();
+      document.getElementById('selTodasCanceladas').checked = false;
+      if (canceladas.length === 0) {
+        filaVacia(tbody, 9, busqueda ? 'Ninguna reserva cancelada coincide con la búsqueda.' : 'No hay reservas canceladas.');
+        return;
+      }
+
+      canceladas.forEach(r => {
+        const email = r.contacto.includes('|') ? r.contacto.split('|')[1].trim() : '';
+        const tr = document.createElement('tr');
+        tr.appendChild(celdaCheckbox(r.id, `Seleccionar la reserva #${r.id}`));
+        agregarCeldas(tr, [
+          `#${r.id}`,
+          r.fecha.split('-').reverse().join('/'),
+          descripcionHorario(r.espacio_id, r.hora_inicio.substring(0, 5), r.hora_fin.substring(0, 5)),
+          espacios[r.espacio_id] || 'Desconocido',
+          (r.reservado_por_admin ? '⭐ ' : '') + r.nombre_solicitante,
+          email || '-',
+          r.motivo ? r.motivo.trim() : '-'
+        ]);
+        tr.appendChild(celdaRegistro(r));
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function eliminarReservasSeleccionadas() {
+      const ids = idsSeleccionados('canceladasBody');
+      if (ids.length === 0) {
+        alert('Marcá al menos una reserva cancelada.');
+        return;
+      }
+      if (ids.length > 500) {
+        alert('Se pueden eliminar hasta 500 reservas por vez.');
+        return;
+      }
+      const texto = prompt(`Vas a eliminar ${plural(ids.length, 'reserva cancelada', 'reservas canceladas')} de forma definitiva. No se puede deshacer.\n\nPara confirmar, escribí ELIMINAR:`);
+      if (texto === null) return;
+      if (texto.trim().toUpperCase() !== 'ELIMINAR') {
+        alert('No se eliminó nada (no se escribió ELIMINAR).');
+        return;
+      }
+
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/reservas/eliminar`, {
+          method: 'POST',
+          body: JSON.stringify({ ids })
+        });
+        if (!res.ok) {
+          alert(await leerError(res));
+          return;
+        }
+        const data = await res.json();
+        let mensaje = `Se ${data.eliminadas === 1 ? 'eliminó' : 'eliminaron'} ${plural(data.eliminadas, 'reserva', 'reservas')}.`;
+        if (data.ignoradas > 0) {
+          mensaje += ` ${plural(data.ignoradas, 'no se eliminó porque', 'no se eliminaron porque')} ya no ${data.ignoradas === 1 ? 'existía o no estaba cancelada' : 'existían o no estaban canceladas'}.`;
+        }
+        alert(mensaje);
+        await cargarDatos();
+        cargarActividad();
+      } catch (error) {
+        avisarErrorConexion(error);
+      }
+    }
+
+    // --- Eliminar reportes de errores ---
+    function mostrarReportesSuper() {
+      const tbody = document.getElementById('reportesSuperBody');
+      if (rolAdmin !== 'superadmin') return;
+
+      tbody.replaceChildren();
+      document.getElementById('selTodosReportes').checked = false;
+      if (reportesActuales.length === 0) {
+        filaVacia(tbody, 5, 'No hay reportes.');
+        return;
+      }
+
+      reportesActuales.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.appendChild(celdaCheckbox(r.id, `Seleccionar el reporte #${r.id}`));
+        const mensaje = String(r.mensaje || '');
+        agregarCeldas(tr, [
+          `#${r.id}`,
+          fechaHoraAsuncion(r.created_at),
+          mensaje.length > 160 ? mensaje.slice(0, 160) + '…' : mensaje
+        ]);
+        tr.lastChild.style.wordBreak = 'break-word';
+        tr.lastChild.style.maxWidth = '420px';
+
+        const tdEstado = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = `status-badge ${r.leido ? 'status-cancelada' : 'status-activa'}`;
+        badge.textContent = r.leido ? 'Leído' : 'Nuevo';
+        tdEstado.appendChild(badge);
+        tr.appendChild(tdEstado);
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function eliminarReportesSeleccionados() {
+      const ids = idsSeleccionados('reportesSuperBody');
+      if (ids.length === 0) {
+        alert('Marcá al menos un reporte.');
+        return;
+      }
+      if (ids.length > 500) {
+        alert('Se pueden eliminar hasta 500 reportes por vez.');
+        return;
+      }
+      if (!confirm(`¿Eliminar ${plural(ids.length, 'reporte', 'reportes')} de forma definitiva? No se puede deshacer.`)) return;
+
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/reportes/eliminar`, {
+          method: 'POST',
+          body: JSON.stringify({ ids })
+        });
+        if (!res.ok) {
+          alert(await leerError(res));
+          return;
+        }
+        const data = await res.json();
+        alert(`Se ${data.eliminados === 1 ? 'eliminó' : 'eliminaron'} ${plural(data.eliminados, 'reporte', 'reportes')}.`);
+        await cargarReportes();
+        cargarActividad();
+      } catch (error) {
+        avisarErrorConexion(error);
+      }
+    }
+
+    // --- Registro de actividad ---
+    async function cargarActividad() {
+      const tbody = document.getElementById('actividadBody');
+      if (rolAdmin !== 'superadmin') return;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/actividad`);
+        if (!res.ok) {
+          const mensaje = await leerError(res);
+          tbody.replaceChildren();
+          filaVacia(tbody, 4, mensaje);
+          return;
+        }
+        const lista = await res.json();
+        tbody.replaceChildren();
+        if (!Array.isArray(lista) || lista.length === 0) {
+          filaVacia(tbody, 4, 'Todavía no hay movimientos registrados.');
+          return;
+        }
+        lista.forEach(a => {
+          const tr = document.createElement('tr');
+          agregarCeldas(tr, [fechaHoraAsuncion(a.creado_en), a.rol, a.accion, a.detalle || '-']);
+          tr.firstChild.style.whiteSpace = 'nowrap';
+          tbody.appendChild(tr);
+        });
+      } catch (error) {
+        console.error('Error cargando la actividad:', error);
+      }
+    }
+
+    // --- Seguridad ---
+    async function cerrarTodasLasSesiones() {
+      if (!confirm('¿Cerrar todas las sesiones del panel? Todas las personas que estén en el panel, incluida tu sesión, van a tener que volver a ingresar la contraseña.')) return;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/cerrar-sesiones`, { method: 'POST' });
+        if (!res.ok) {
+          alert(await leerError(res));
+          return;
+        }
+        aplicarRol('admin');
+        mostrarLogin();
+        document.getElementById('loginError').textContent = 'Se cerraron todas las sesiones. Volvé a ingresar la contraseña.';
+      } catch (error) {
+        avisarErrorConexion(error);
+      }
+    }
+
     document.addEventListener('keypress', function(e) {
       if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') {
         login();
