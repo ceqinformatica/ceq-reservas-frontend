@@ -11,9 +11,8 @@
 <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-  <!-- SheetJS para Excel -->
+  <!-- SheetJS para Excel (XLSX.writeFile ya descarga el archivo por sí solo; FileSaver no hacía falta, SUPPLY-001) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-r22gChDnGvBylk90+2e/ycr3RVrDi8DIOkIGNhJlKfuyQM4tIRAI062MaV8sfjQKYVGjOBaZBOA87z+IhZE9DA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js" integrity="sha512-Qlv6VSKh1gDKGoJbnyA5RMXYcvnpIqhO++MhIM2fStMcGT9i2T//tSwYFlcyoRRDcDZ+TYHpH8azBBCyhpSeqw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -878,6 +877,19 @@
 
     function cerrarModal() {
       document.getElementById('modalCancelar').classList.remove('active');
+    }
+
+    // Tecla Escape: cierra la ventana de cancelación, igual que el botón "Volver" (A11Y-001)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.getElementById('modalCancelar').classList.contains('active')) cerrarModal();
+    });
+
+    // El calendario de bloqueos y de reservas de prioridad no ofrece fechas pasadas
+    // (el servidor igual las rechaza, VAL-003)
+    {
+      const h = new Date();
+      const hoyLocal = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+      ['bloqueFecha', 'prioridadFecha'].forEach(id => { document.getElementById(id).min = hoyLocal; });
     }
 
     async function confirmarCancelacion() {

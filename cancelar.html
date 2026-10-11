@@ -71,6 +71,8 @@
     .btn-primary { background: var(--azul); color: var(--blanco); border: 0; border-radius: 5px; padding: 14px 18px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; }
     .btn-primary:hover:not(:disabled) { background: var(--azul-hover); }
     .btn-primary:disabled { background: #A9C0E6; cursor: not-allowed; }
+    .perdido { text-align: center; }
+    .perdido a { color: var(--marino); font-weight: 600; }
     .volver { text-align: center; font-size: 14px; }
     .volver a { color: var(--marino); font-weight: 600; text-decoration: none; }
     .volver a:hover { color: var(--azul); text-decoration: underline; text-underline-offset: 3px; }
@@ -156,6 +158,8 @@
       </div>
 
       <button class="btn-primary" id="btnCancelar" onclick="cancelarReserva()">Cancelar reserva</button>
+
+      <p class="ayuda perdido">¿Perdiste el código y no encontrás el email? Revisá la carpeta de spam o escribinos por <a href="https://wa.me/595972753471" target="_blank" rel="noopener">WhatsApp</a> y te ayudamos a cancelar.</p>
 
       <p class="volver"><a href="https://reservas.ceq-una.com">← Volver a reservas</a></p>
     </section>

@@ -1474,6 +1474,16 @@
       document.getElementById('modalAvisoAltillo').style.display = 'flex';
     }
 
+    // Tecla Escape: cierra la ventana que esté abierta más arriba, igual que su botón
+    // (A11Y-001). El reporte no se cierra mientras se está enviando.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const abierta = id => document.getElementById(id).style.display === 'flex';
+      if (abierta('modalConfirmacion')) cerrarConfirmacionReserva();
+      else if (abierta('modalAvisoAltillo')) cerrarAvisoAltillo();
+      else if (abierta('modalReporte') && !document.getElementById('btnCancelarReporte').disabled) cerrarModalReporte();
+    });
+
   </script>
 </body>
 </html>
