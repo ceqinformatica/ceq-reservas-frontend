@@ -206,6 +206,9 @@
     .modal-botones { display: flex; gap: 10px; }
     .modal-botones button { flex: 1; }
     .btn-secundario { background: transparent; color: var(--marino); border: 1px solid var(--marino); border-radius: 5px; padding: 13px 16px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .btn-calendario { display: block; text-align: center; text-decoration: none; }
+    .regla-cancelacion { font-size: 14px; background: var(--tarjeta); border-radius: 12px; padding: 10px 14px; }
+    .regla-cancelacion a { color: var(--marino); font-weight: 600; }
     .modal textarea { width: 100%; padding: 12px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font: 15px var(--f); min-height: 110px; resize: vertical; }
 
     /* ---------- Tablet ---------- */
@@ -371,7 +374,7 @@
       </div>
 
       <button class="btn-primary" id="btnReservar" disabled>Crear reserva</button>
-      <p class="ayuda">Te llega un email con tu código para cancelar. Máximo 2 reservas por persona por mes.</p>
+      <p class="ayuda">Te llega un email con tu código para cancelar. En el Frente, la cancelación es gratis hasta 2 días antes de la fecha; después, solo por WhatsApp. Máximo 2 reservas por persona por mes.</p>
     </section>
   </main>
 
@@ -413,6 +416,22 @@
       return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Asuncion' }).format(new Date());
     }
 
+    // Minutos transcurridos del día en Asunción (ej. 11:30 -> 690)
+    function minutosAhoraEnAsuncion() {
+      const [h, m] = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Asuncion', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+        .format(new Date()).split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    // Un turno u hora de HOY cuyo inicio ya llegó no se puede reservar (el servidor lo
+    // rechaza con "No se puede reservar un horario que ya pasó"). Antes se mostraba como
+    // libre y la persona se enteraba recién después de completar todo el formulario.
+    function horarioYaPaso(fecha, horaInicioHHMM) {
+      if (fecha !== hoyEnAsuncionStr()) return false;
+      const [h, m] = horaInicioHHMM.split(':').map(Number);
+      return h * 60 + m <= minutosAhoraEnAsuncion();
+    }
+
     // Espejo de la función del mismo nombre en server.js: Frente reserva por turnos fijos
     // con nombre propio (Desayuno/Almuerzo/Merienda), no por horario libre como Altillo.
     // Recibe horaInicio/horaFin ya recortadas a "HH:MM".
@@ -429,13 +448,13 @@
     ];
 
     // Para un día de Frente, devuelve [desayunoOcupado, almuerzoOcupado, meriendaOcupado]
-    // considerando reservas activas y bloqueos de administración.
+    // considerando reservas activas, bloqueos de administración y turnos de hoy que ya empezaron.
     function turnosOcupadosFrente(fecha) {
       const ocupaciones = [
         ...reservasActuales.filter(r => r.espacio_id === 3 && r.fecha === fecha),
         ...bloqueosCargados.filter(b => b.espacio_id === 3 && b.fecha === fecha)
       ];
-      return TURNOS_FRENTE.map(t => ocupaciones.some(o => {
+      return TURNOS_FRENTE.map(t => horarioYaPaso(fecha, t.inicio) || ocupaciones.some(o => {
         const oIni = parseInt(o.hora_inicio.split(':')[0]);
         const oFin = parseInt(o.hora_fin.split(':')[0]);
         const tIni = parseInt(t.inicio.split(':')[0]);
@@ -900,11 +919,13 @@
             return !(bFin <= tInicio || bInicio >= tFin);
           });
 
-          if (tieneConflictoReserva || tieneConflictoBloqueo) {
+          const yaPaso = horarioYaPaso(fecha, turno.inicio);
+
+          if (tieneConflictoReserva || tieneConflictoBloqueo || yaPaso) {
             btn.classList.add('disabled');
             btn.classList.add('full');
             btn.disabled = true;
-            estado.textContent = tieneConflictoBloqueo && !tieneConflictoReserva ? 'No disponible' : 'Ocupado';
+            estado.textContent = tieneConflictoReserva ? 'Ocupado' : 'No disponible';
           } else {
             btn.classList.add('available');
             estado.textContent = 'Libre';
@@ -960,7 +981,7 @@
           btn.textContent = hora;
           btn.dataset.indice = indice;
 
-          if (horasOcupadas.has(hora)) {
+          if (horasOcupadas.has(hora) || horarioYaPaso(fecha, hora)) {
             btn.classList.add('disabled');
             btn.classList.add('full');
             btn.disabled = true;
@@ -1221,9 +1242,10 @@
         // segundos arriba del formulario (fuera de la pantalla en el celular), y como el
         // formulario se vaciaba, la gente creía que había fallado y volvía a reservar.
         mostrarConfirmacionReserva({
-          espacio: espacios[espacioSeleccionado],
+          espacioId: espacioSeleccionado,
           fecha: diaSeleccionado,
-          horario: descripcionHorario(espacioSeleccionado, horaInicio, horaFin),
+          horaInicio,
+          horaFin,
           codigo: data.codigo,
           email
         });
@@ -1250,14 +1272,47 @@
       }
     }
 
-    function mostrarConfirmacionReserva({ espacio, fecha, horario, codigo, email }) {
+    function mostrarConfirmacionReserva({ espacioId, fecha, horaInicio, horaFin, codigo, email }) {
       const [anio, mes, dia] = fecha.split('-');
-      document.getElementById('confEspacio').textContent = espacio;
+      document.getElementById('confEspacio').textContent = espacios[espacioId];
       document.getElementById('confFecha').textContent = `${dia}/${mes}/${anio}`;
-      document.getElementById('confHorario').textContent = horario;
+      document.getElementById('confHorario').textContent = descripcionHorario(espacioId, horaInicio, horaFin);
       document.getElementById('confCodigo').textContent = codigo || '(te llega por email)';
       document.getElementById('confEmail').textContent = email;
+      const regla = document.getElementById('confReglaCancelacion');
+      regla.innerHTML = espacioId === 3 ? reglaCancelacionFrente(fecha) : '';
+      regla.style.display = espacioId === 3 ? 'block' : 'none';
+      document.getElementById('confCalendario').href = enlaceGoogleCalendar(espacioId, fecha, horaInicio, horaFin);
       document.getElementById('modalConfirmacion').style.display = 'flex';
+    }
+
+    // Regla de cancelación del Frente, la misma que aplica el servidor: gratis con el código
+    // hasta 2 días antes de la fecha; después, solo por WhatsApp. Antes la gente se enteraba
+    // recién al intentar cancelar. Solo arma texto fijo y fechas (nada escrito por el usuario).
+    function reglaCancelacionFrente(fecha) {
+      const whatsapp = '<a href="https://wa.me/595972753471" target="_blank" rel="noopener">WhatsApp</a>';
+      const dias = Math.round((new Date(fecha + 'T00:00:00Z') - new Date(hoyEnAsuncionStr() + 'T00:00:00Z')) / 86400000);
+      if (dias < 2) {
+        return `Como faltan menos de 2 días, esta reserva ya no se puede cancelar con el código. Si necesitás cancelarla, escribinos por ${whatsapp}.`;
+      }
+      const limite = new Date(fecha + 'T00:00:00Z');
+      limite.setUTCDate(limite.getUTCDate() - 2);
+      const fechaLimite = `${String(limite.getUTCDate()).padStart(2, '0')}/${String(limite.getUTCMonth() + 1).padStart(2, '0')}/${limite.getUTCFullYear()}`;
+      return `Podés cancelarla gratis con tu código hasta el <strong>${fechaLimite}</strong> (2 días antes). Después, la cancelación solo se gestiona por ${whatsapp}.`;
+    }
+
+    // Enlace que abre Google Calendar con el evento de la reserva ya cargado (en hora de Paraguay)
+    function enlaceGoogleCalendar(espacioId, fecha, horaInicio, horaFin) {
+      const dia = fecha.replace(/-/g, '');
+      const params = new URLSearchParams({
+        action: 'TEMPLATE',
+        text: `Reserva del ${espacios[espacioId]} - CEQ`,
+        dates: `${dia}T${horaInicio.replace(':', '')}00/${dia}T${horaFin.replace(':', '')}00`,
+        ctz: 'America/Asuncion',
+        details: `Horario: ${descripcionHorario(espacioId, horaInicio, horaFin)}\nPara cancelar, usá el código de tu email de confirmación en https://reservas.ceq-una.com/cancelar.html`,
+        location: 'Centro de Estudiantes de Química - Facultad de Ciencias Químicas (UNA)'
+      });
+      return 'https://calendar.google.com/calendar/render?' + params.toString();
     }
 
     function cerrarConfirmacionReserva() {
@@ -1348,6 +1403,8 @@
       <p>Tu código de cancelación:</p>
       <p id="confCodigo" class="codigo"></p>
       <p style="font-size:14px;">También te lo enviamos por email a <strong id="confEmail"></strong>. Puede tardar unos minutos; revisá la carpeta de spam. <strong>No hace falta volver a reservar.</strong></p>
+      <p id="confReglaCancelacion" class="regla-cancelacion" style="display:none;"></p>
+      <a id="confCalendario" class="btn-secundario btn-calendario" href="#" target="_blank" rel="noopener">Agregar a Google Calendar</a>
       <button class="btn-primary" onclick="cerrarConfirmacionReserva()">Entendido</button>
     </div>
   </div>
