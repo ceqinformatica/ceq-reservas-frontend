@@ -236,6 +236,8 @@
     .espacio-card button { justify-self: start; }
     .registro-celda { font-size: 12px; color: var(--suave); line-height: 1.4; min-width: 170px; }
     .registro-celda b { color: var(--marino); font-weight: 600; }
+    .acomp-celda { display: block; margin-top: 4px; font-size: 12px; color: var(--suave); line-height: 1.4; }
+    .acomp-celda b { color: var(--marino); font-weight: 600; }
     .espacios-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
     .espacio-card { background: var(--blanco); border-radius: 12px; padding: 16px; display: grid; gap: 10px; }
     .espacio-cab { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
@@ -1086,6 +1088,17 @@
           tr.appendChild(td);
         });
 
+        // Acompañantes: debajo del motivo, para no agregar otra columna a la tabla
+        const acompanantes = textoAcompanantes(r);
+        if (acompanantes) {
+          const extra = document.createElement('small');
+          extra.className = 'acomp-celda';
+          const b = document.createElement('b');
+          b.textContent = 'Acompañantes: ';
+          extra.append(b, document.createTextNode(acompanantes));
+          tr.lastChild.appendChild(extra);
+        }
+
         // Columna de estado (badge)
         const tdEstado = document.createElement('td');
         const badge = document.createElement('span');
@@ -1179,22 +1192,36 @@
       }
     }
 
+    // Acompañantes de la reserva (hasta 4) como "Ana Pérez (0981 111 222), Luis Gómez (0982 333 444)"
+    function listaAcompanantes(r) {
+      return (Array.isArray(r.acompanantes) ? r.acompanantes : []).filter(a => a && a.nombre);
+    }
+
+    function textoAcompanantes(r) {
+      return listaAcompanantes(r).map(a => `${a.nombre} (${a.celular || '-'})`).join(', ');
+    }
+
     // Texto sin mayúsculas ni tildes, para buscar "Lucia" y encontrar "Lucía"
     function normalizarTexto(texto) {
       return String(texto || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     }
 
-    // Buscador por persona: busca en el nombre, el email y el celular. Con 4 o más números,
-    // compara solo los dígitos del celular (0981 123 456 = 0981123456 = +595 981123456).
+    // Buscador por persona: busca en el nombre, el email y el celular, también de los
+    // acompañantes. Con 4 o más números, compara solo los dígitos del celular
+    // (0981 123 456 = 0981123456 = +595 981123456).
     function coincidePersona(r, busqueda) {
       const [celular = '', email = ''] = String(r.contacto || '').split('|').map(p => p.trim());
+      const acompanantes = listaAcompanantes(r);
       const texto = normalizarTexto(busqueda);
       if (normalizarTexto(r.nombre_solicitante).includes(texto) || normalizarTexto(email).includes(texto)) return true;
+      if (acompanantes.some(a => normalizarTexto(a.nombre).includes(texto))) return true;
       const digitos = busqueda.replace(/\D/g, '');
       if (digitos.length >= 4) {
-        const digitosCelular = celular.replace(/\D/g, '');
-        return digitosCelular.includes(digitos) || digitosCelular.includes(digitos.replace(/^0+/, '')) ||
-          (digitos.startsWith('595') && digitosCelular.includes(digitos.slice(3)));
+        return [celular, ...acompanantes.map(a => a.celular)].some(c => {
+          const digitosCelular = String(c || '').replace(/\D/g, '');
+          return digitosCelular.includes(digitos) || digitosCelular.includes(digitos.replace(/^0+/, '')) ||
+            (digitos.startsWith('595') && digitosCelular.includes(digitos.slice(3)));
+        });
       }
       return false;
     }
@@ -1765,7 +1792,7 @@
     // [título, ancho, formato de número (solo las columnas de fecha)]
     const COLUMNAS_EXCEL = [
       ['N°', 7], ['Fecha', 11, 'dd/mm/yyyy'], ['Día', 10], ['Turno', 10], ['Inicio', 7], ['Fin', 7],
-      ['Nombre', 24], ['Celular', 14], ['Email', 28], ['Motivo', 30], ['Estado', 10], ['Prioridad', 9], ['Asistencia', 10],
+      ['Nombre', 24], ['Celular', 14], ['Email', 28], ['Motivo', 30], ['Acompañantes', 40], ['Estado', 10], ['Prioridad', 9], ['Asistencia', 10],
       ['Creada', 16, 'dd/mm/yyyy hh:mm'], ['Cancelada', 16, 'dd/mm/yyyy hh:mm'], ['Cancelada por', 14], ['Motivo de cancelación', 30]
     ];
 
@@ -1787,6 +1814,7 @@
           sanitizarParaExcel(celular),
           sanitizarParaExcel(email),
           sanitizarParaExcel(r.motivo ? r.motivo.trim() : ''),
+          sanitizarParaExcel(textoAcompanantes(r)),
           r.estado === 'cancelada' ? 'Cancelada' : 'Activa',
           r.reservado_por_admin ? 'Sí' : 'No',
           r.asistencia === 'vino' ? 'Vino' : r.asistencia === 'no_vino' ? 'No vino' : '',
@@ -2056,6 +2084,7 @@
         grid.appendChild(filaDato('Celular', celular || '-'));
         grid.appendChild(filaDato('Email', email || '-'));
         grid.appendChild(filaDato('Motivo', r.motivo ? r.motivo.trim() : 'Sin especificar'));
+        if (textoAcompanantes(r)) grid.appendChild(filaDato('Acompañantes', textoAcompanantes(r)));
         if (rolAdmin === 'superadmin') {
           grid.appendChild(filaDato('Creada', fechaHoraAsuncion(r.created_at)));
           if (r.estado === 'cancelada') {

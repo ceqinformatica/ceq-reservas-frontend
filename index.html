@@ -97,7 +97,7 @@
     .aviso { padding: 12px 14px; border-radius: var(--radio-chico); font-size: 14px; margin-bottom: 12px; background: var(--blanco); color: var(--marino); border-left: 4px solid var(--azul); }
     #avisoMesDeshabilitado { border-left-color: var(--parcial); }
     .aviso-apertura { border-left-color: var(--marino); font-weight: 600; }
-    .lista-espera { margin-top: 14px; background: var(--blanco); border: 1px solid var(--linea); border-left: 4px solid var(--parcial); border-radius: var(--radio-chico); padding: 14px; display: grid; gap: 10px; }
+    .lista-espera { margin: 0 0 14px; background: var(--blanco); border: 1px solid var(--linea); border-left: 4px solid var(--parcial); border-radius: var(--radio-chico); padding: 14px; display: grid; gap: 10px; }
     .lista-espera h3 { font-size: 16px; color: var(--marino); }
     .lista-espera p { font-size: 14px; color: var(--suave); }
     .lista-espera .le-turnos { display: flex; flex-wrap: wrap; gap: 8px 16px; }
@@ -156,10 +156,26 @@
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     .form-group label { font-size: 13px; font-weight: 600; color: var(--marino); }
     .required { color: var(--lleno); }
-    .form-group input, .form-group textarea { width: 100%; padding: 12px 14px; border-radius: var(--radio-chico); border: 1px solid var(--linea); background: var(--blanco); color: var(--texto); font: 15px var(--f); }
-    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--azul); box-shadow: 0 0 0 3px rgba(56,115,206,.18); }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px 14px; border-radius: var(--radio-chico); border: 1px solid var(--linea); background: var(--blanco); color: var(--texto); font: 15px var(--f); }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--azul); box-shadow: 0 0 0 3px rgba(56,115,206,.18); }
     .form-group input:disabled { background: transparent; border-style: dashed; color: var(--marino); font-weight: 600; -webkit-text-fill-color: var(--marino); opacity: 1; }
     .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-group select { cursor: pointer; }
+
+    /* Acompañantes: filas de nombre + celular */
+    .form-group[hidden] { display: none; }
+    .acomp-ayuda { font-size: 12px; color: var(--suave); }
+    .acomp-lista { display: grid; gap: 8px; }
+    .acomp-lista:empty { display: none; }
+    .acomp-fila { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+    .form-group .acomp-fila input { padding: 10px 12px; font-size: 14px; }
+    .acomp-quitar { border: 1px solid var(--linea); background: var(--blanco); color: var(--suave); border-radius: 10px; width: 38px; height: 38px; font-size: 18px; line-height: 1; cursor: pointer; }
+    .acomp-quitar:hover { border-color: var(--lleno); color: var(--lleno); }
+    .acomp-agregar { justify-self: start; border: 1px dashed var(--azul); background: transparent; color: var(--azul); border-radius: 10px; padding: 8px 14px; font: 600 14px var(--f); cursor: pointer; }
+    .acomp-agregar:hover { background: var(--blanco); }
+    .acomp-agregar[hidden] { display: none; }
+    .acomp-aviso { font-size: 13px; color: var(--lleno); font-weight: 500; }
+    .acomp-aviso:empty { display: none; }
 
     .hours-grid { display: grid; gap: 8px; }
     .hour-btn { border: 1px solid var(--linea); background: var(--blanco); border-radius: 12px; padding: 10px 12px; cursor: pointer; color: var(--marino); text-align: left; font-size: 14px; font-weight: 600; }
@@ -326,6 +342,7 @@
       <div id="avisoCargando" class="aviso" style="display:none;">
         Cargando los horarios… si el sistema estuvo sin uso un rato, puede tardar hasta un minuto en responder. No hace falta recargar la página.
       </div>
+      <div id="listaEspera" class="lista-espera" style="display:none;" role="region" aria-label="Lista de espera"></div>
       <div id="avisoMesDeshabilitado" class="aviso" style="display:none;">
         Este mes todavía no está habilitado para reservas. Probá con "Hoy" o consultá con un moderador.
       </div>
@@ -369,7 +386,6 @@
         <div class="hours-grid" id="hoursGrid"></div>
         <div class="vacio-turnos">Primero elegí un día en el calendario.</div>
         <div class="selected-range" id="selectedRange" style="display:none;"></div>
-        <div id="listaEspera" class="lista-espera" style="display:none;"></div>
       </div>
 
       <div class="campos">
@@ -379,15 +395,26 @@
         </div>
         <div class="form-group">
           <label for="celular">Celular <span class="required">*</span></label>
-          <input type="tel" id="celular" inputmode="numeric" pattern="[0-9+\s-]*" placeholder="Ej: 0981 123 456" autocomplete="tel" required>
+          <input type="tel" id="celular" inputmode="numeric" pattern="[0-9+\s\-]*" placeholder="Ej: 0981 123 456" autocomplete="tel" required>
         </div>
         <div class="form-group">
           <label for="email">Email <span class="required">*</span></label>
           <input type="email" id="email" placeholder="Ej: juan@gmail.com" autocomplete="email" required>
         </div>
         <div class="form-group ancho">
-          <label for="motivo">Motivo <span class="required">*</span></label>
-          <textarea id="motivo" placeholder="¿Para qué vas a usar el espacio?" required></textarea>
+          <label for="motivoFrente" id="etiquetaMotivo">Motivo <span class="required">*</span></label>
+          <!-- Frente: se elige de una lista (las opciones vienen de /api/configuracion). Altillo: texto libre. -->
+          <select id="motivoFrente" required>
+            <option value="">Elegí el motivo…</option>
+          </select>
+          <textarea id="motivo" placeholder="¿Para qué vas a usar el espacio?" required hidden></textarea>
+        </div>
+        <!-- Acompañantes: solo en el Altillo (aplicarCampoMotivo lo muestra u oculta) -->
+        <div class="form-group ancho" id="grupoAcomp" hidden>
+          <label id="etiquetaAcomp">Acompañantes <span class="acomp-ayuda">(opcional, hasta <span id="maxAcomp">4</span>)</span></label>
+          <div class="acomp-lista" id="acompLista" aria-labelledby="etiquetaAcomp"></div>
+          <p class="acomp-aviso" id="acompAviso" role="status"></p>
+          <button type="button" class="acomp-agregar" id="btnAgregarAcomp">+ Agregar acompañante</button>
         </div>
       </div>
 
@@ -456,6 +483,13 @@
       return h * 60 + m <= minutosAhoraEnAsuncion();
     }
 
+    // Altillo: un bloque de una hora se puede elegir mientras no haya terminado (a las 11:30
+    // todavía se puede el de las 11:00; a las 12:00 ya no). Igual que en el servidor.
+    function bloqueYaTermino(fecha, horaInicioHHMM) {
+      if (fecha !== hoyEnAsuncionStr()) return false;
+      return aMinutos(horaInicioHHMM) + 60 <= minutosAhoraEnAsuncion();
+    }
+
     // Turnos del Frente (con nombre propio, no horario libre como Altillo). Vienen de
     // /api/configuracion: el admin supremo los puede cambiar desde el panel. Estos son los de
     // respaldo si no se pudo consultar (los de siempre).
@@ -465,6 +499,17 @@
       { nombre: 'Merienda', inicio: '14:00', fin: '18:00' }
     ];
     let configuracionPublica = { max_reservas_por_persona_mes: 2, whatsapp: '595972753471' };
+    // Motivos del Frente (el servidor solo acepta estos), horario del Altillo y tope de
+    // acompañantes. También vienen de /api/configuracion; estos son los de respaldo.
+    let MOTIVOS_FRENTE = [
+      'Actividad Personal',
+      'Recaudación - Asociación Estudiantil',
+      'Recaudación - Secretaría CEQ',
+      'Recaudación - Padrinaje',
+      'Recaudación - Congreso o Evento Académico'
+    ];
+    let ALTILLO = { hora_desde: 8, hora_hasta: 20, max_horas: 2 };
+    let MAX_ACOMPANANTES = 4;
 
     function aMinutos(hhmm) {
       const [h, m] = hhmm.split(':').map(Number);
@@ -512,10 +557,112 @@
         if (turnos.length > 0) TURNOS_FRENTE = turnos;
         if (Number.isInteger(datos.max_reservas_por_persona_mes)) configuracionPublica.max_reservas_por_persona_mes = datos.max_reservas_por_persona_mes;
         if (datos.contacto_frente && /^\d{8,15}$/.test(datos.contacto_frente.whatsapp)) configuracionPublica.whatsapp = datos.contacto_frente.whatsapp;
+        const motivos = (Array.isArray(datos.motivos_frente) ? datos.motivos_frente : []).filter(m => typeof m === 'string' && m.trim());
+        if (motivos.length > 0) MOTIVOS_FRENTE = motivos;
+        const a = datos.altillo;
+        if (a && Number.isInteger(a.hora_desde) && Number.isInteger(a.hora_hasta) && Number.isInteger(a.max_horas) &&
+            a.hora_desde >= 0 && a.hora_hasta <= 24 && a.hora_desde < a.hora_hasta && a.max_horas >= 1) {
+          ALTILLO = { hora_desde: a.hora_desde, hora_hasta: a.hora_hasta, max_horas: a.max_horas };
+        }
+        if (Number.isInteger(datos.max_acompanantes) && datos.max_acompanantes >= 0) MAX_ACOMPANANTES = datos.max_acompanantes;
       } catch (error) {
         console.error('Error al cargar la configuración:', error);
       }
       document.getElementById('maxPorPersona').textContent = configuracionPublica.max_reservas_por_persona_mes;
+      llenarMotivosFrente();
+      actualizarBotonAcompanantes();
+    }
+
+    // Llena la lista de motivos del Frente sin perder lo que ya eligió la persona
+    function llenarMotivosFrente() {
+      const select = document.getElementById('motivoFrente');
+      const elegido = select.value;
+      select.replaceChildren(new Option('Elegí el motivo…', ''));
+      MOTIVOS_FRENTE.forEach(m => select.add(new Option(m, m)));
+      if (MOTIVOS_FRENTE.includes(elegido)) select.value = elegido;
+    }
+
+    // El Frente usa la lista de motivos; el Altillo, texto libre y acompañantes
+    function aplicarCampoMotivo() {
+      const esFrente = espacioSeleccionado === 3;
+      document.getElementById('motivoFrente').hidden = !esFrente;
+      document.getElementById('motivo').hidden = esFrente;
+      document.getElementById('etiquetaMotivo').htmlFor = esFrente ? 'motivoFrente' : 'motivo';
+      const conAcompanantes = espacioSeleccionado === 1;
+      document.getElementById('grupoAcomp').hidden = !conAcompanantes;
+      if (!conAcompanantes) {
+        document.getElementById('acompLista').replaceChildren();
+        actualizarBotonAcompanantes();
+      }
+    }
+
+    function motivoElegido() {
+      return espacioSeleccionado === 3
+        ? document.getElementById('motivoFrente').value
+        : document.getElementById('motivo').value.trim();
+    }
+
+    // ===== Acompañantes (hasta MAX_ACOMPANANTES, nombre + celular) =====
+    function agregarAcompanante() {
+      const lista = document.getElementById('acompLista');
+      if (lista.children.length >= MAX_ACOMPANANTES) return;
+      const n = lista.children.length + 1;
+      const fila = document.createElement('div');
+      fila.className = 'acomp-fila';
+      const nombre = document.createElement('input');
+      nombre.type = 'text';
+      nombre.className = 'acomp-nombre';
+      nombre.placeholder = 'Nombre y apellido';
+      nombre.maxLength = 100;
+      nombre.setAttribute('aria-label', `Nombre del acompañante ${n}`);
+      const celular = document.createElement('input');
+      celular.type = 'tel';
+      celular.className = 'acomp-celular';
+      celular.inputMode = 'numeric';
+      celular.placeholder = 'Celular';
+      celular.maxLength = 30;
+      celular.setAttribute('aria-label', `Celular del acompañante ${n}`);
+      const quitar = document.createElement('button');
+      quitar.type = 'button';
+      quitar.className = 'acomp-quitar';
+      quitar.textContent = '×';
+      quitar.setAttribute('aria-label', 'Quitar acompañante');
+      quitar.addEventListener('click', () => {
+        fila.remove();
+        actualizarBotonAcompanantes();
+        validarFormulario();
+      });
+      nombre.addEventListener('input', validarFormulario);
+      celular.addEventListener('input', validarFormulario);
+      fila.append(nombre, celular, quitar);
+      lista.appendChild(fila);
+      actualizarBotonAcompanantes();
+      validarFormulario();
+      nombre.focus();
+    }
+
+    function actualizarBotonAcompanantes() {
+      document.getElementById('maxAcomp').textContent = MAX_ACOMPANANTES;
+      const lista = document.getElementById('acompLista');
+      while (lista.children.length > MAX_ACOMPANANTES) lista.lastElementChild.remove();
+      document.getElementById('btnAgregarAcomp').hidden = lista.children.length >= MAX_ACOMPANANTES;
+    }
+
+    // Filas completas como [{nombre, celular}]; las filas vacías se ignoran. `error` explica
+    // la primera fila a medio completar (el botón de reservar queda deshabilitado mientras tanto).
+    function leerAcompanantes() {
+      const acompanantes = [];
+      let error = '';
+      if (espacioSeleccionado !== 1) return { acompanantes, error };
+      document.querySelectorAll('#acompLista .acomp-fila').forEach((fila, i) => {
+        const nombre = fila.querySelector('.acomp-nombre').value.trim();
+        const celular = fila.querySelector('.acomp-celular').value.trim();
+        if (!nombre && !celular) return;
+        if (!error && nombre.length < 2) error = `Falta el nombre del acompañante ${i + 1}`;
+        else if (!error && celular.replace(/\D/g, '').length < 6) error = `Falta el celular del acompañante ${i + 1}`;
+        acompanantes.push({ nombre, celular });
+      });
+      return { acompanantes, error };
     }
 
     // fetch para los endpoints de lectura: si el servidor responde 429, activa la pausa
@@ -815,11 +962,12 @@
       });
       espacioSeleccionado = id;
       document.getElementById('espacioNombre').value = espacios[espacioSeleccionado];
+      aplicarCampoMotivo();
+      validarFormulario();
       document.getElementById('fecha').value = '';
       document.getElementById('hoursGrid').innerHTML = '';
       document.getElementById('selectedRange').style.display = 'none';
       document.getElementById('reservasDelDia').innerHTML = '';
-      mostrarListaEspera('', []);
       diaSeleccionado = null;
       horasSeleccionadas = [];
       actualizarCalendario();
@@ -877,6 +1025,7 @@
     }
 
     function actualizarCalendario() {
+      actualizarListaEspera();
       const mes = mesCalendario.getMonth();
       const año = mesCalendario.getFullYear();
       
@@ -1013,8 +1162,8 @@
             }
 
             // Calcular horas disponibles según espacio
-            const horaMin = espacioSeleccionado === 3 ? 7 : 8;
-            const horaMax = espacioSeleccionado === 3 ? 18 : 18;
+            const horaMin = espacioSeleccionado === 3 ? 7 : ALTILLO.hora_desde;
+            const horaMax = espacioSeleccionado === 3 ? 18 : ALTILLO.hora_hasta;
             const horasDisponibles = hayBloqueoTotal ? 0 : (horaMax - horaMin) - horasOcupadas.size;
 
             if (horasDisponibles === 0) {
@@ -1112,7 +1261,6 @@
       // Si es Frente, mostrar un botón por turno
       if (espacioSeleccionado === 3) {
         const turnos = TURNOS_FRENTE;
-        const turnosParaEspera = [];
         let hayTurnoLibre = false;
 
         const reservasDelDia = reservasActuales.filter(r => 
@@ -1160,8 +1308,6 @@
             btn.classList.add('full');
             btn.disabled = true;
             estado.textContent = tieneConflictoReserva ? 'Ocupado' : 'No disponible';
-            // Para la lista de espera: tomado por una reserva (no bloqueado) y todavía no empezó
-            if (tieneConflictoReserva && !tieneConflictoBloqueo && !yaPaso) turnosParaEspera.push(turno);
           } else {
             hayTurnoLibre = true;
             btn.classList.add('available');
@@ -1170,12 +1316,10 @@
           }
           grid.appendChild(btn);
         });
-        // Día lleno: se ofrece anotarse para que avisen si alguien cancela
-        mostrarListaEspera(fecha, hayTurnoLibre ? [] : turnosParaEspera);
       } else {
-        // Para Altillo y Sala: mostrar bloques de horas
-        const horaInicio = 8;
-        const horaFin = 18;
+        // Para Altillo y Sala: bloques de una hora (Altillo: 08:00 a 20:00, el último bloque es 19:00)
+        const horaInicio = ALTILLO.hora_desde;
+        const horaFin = ALTILLO.hora_hasta;
         
         const horas = Array.from({ length: horaFin - horaInicio }, (_, i) => 
           `${(i + horaInicio).toString().padStart(2, '0')}:00`
@@ -1221,7 +1365,7 @@
           btn.textContent = hora;
           btn.dataset.indice = indice;
 
-          if (horasOcupadas.has(hora) || horarioYaPaso(fecha, hora)) {
+          if (horasOcupadas.has(hora) || bloqueYaTermino(fecha, hora)) {
             btn.classList.add('disabled');
             btn.classList.add('full');
             btn.disabled = true;
@@ -1232,54 +1376,71 @@
           }
           grid.appendChild(btn);
         });
-        // Día lleno por reservas (no por un bloqueo de todo el día): lista de espera del día completo
-        const hayBloqueoTotal = bloqueosDelDia.some(b => b.hora_inicio === '00:00:00' && b.hora_fin === '23:59:00');
-        mostrarListaEspera(fecha, !hayHoraLibre && !hayBloqueoTotal && reservasDelDia.length > 0 ? 'dia' : []);
       }
     }
 
-    // ===== Lista de espera =====
-    // Si el día está lleno: "Ya no hay reservas disponibles" + la opción de dejar el correo para
-    // que avisen si alguien cancela. `turnos` es la lista de turnos del Frente tomados por
-    // reservas, o 'dia' para el Altillo (día completo). Si el formulario ya está armado para el
-    // mismo día y turnos, no se vuelve a armar (el refresco automático no le borra lo que escribe).
+    // ===== Lista de espera (general) =====
+    // Si en el espacio elegido ya no queda NINGÚN lugar libre en los meses habilitados, se muestra
+    // "Ya no hay reservas disponibles" arriba del calendario, con la opción de dejar el correo para
+    // que avisen cuando alguien cancele (cualquier día y turno). Si queda aunque sea un lugar, no se muestra.
+
+    // true si ese día tiene algún turno (Frente) o bloque de una hora (Altillo) libre
+    function diaTieneLugar(fecha) {
+      if (espacioSeleccionado === 3) return turnosOcupadosFrente(fecha).some(ocupado => !ocupado);
+      const ocupaciones = [
+        ...reservasActuales.filter(r => r.espacio_id === espacioSeleccionado && r.fecha === fecha),
+        ...bloqueosCargados.filter(b => b.espacio_id === espacioSeleccionado && b.fecha === fecha)
+      ];
+      for (let h = ALTILLO.hora_desde; h < ALTILLO.hora_hasta; h++) {
+        const ini = `${String(h).padStart(2, '0')}:00`, fin = `${String(h + 1).padStart(2, '0')}:00`;
+        if (bloqueYaTermino(fecha, ini)) continue;
+        if (!ocupaciones.some(o => seSuperponen(o.hora_inicio.substring(0, 5), o.hora_fin.substring(0, 5), ini, fin))) return true;
+      }
+      return false;
+    }
+
+    // true: no queda ningún lugar; false: queda alguno; null: no hay días para reservar (ningún
+    // mes habilitado o ya no quedan días hábiles), y ahí no corresponde el aviso
+    function sinLugaresEnGeneral() {
+      if (!mesesCargadosOk) return null;
+      const hoy = hoyEnAsuncionStr();
+      let diasHabiles = 0;
+      for (const clave of mesesHabilitadosSet) {
+        const [anio, mes] = clave.split('-').map(Number);
+        const ultimo = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+        for (let d = 1; d <= ultimo; d++) {
+          const fecha = `${anio}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          const diaSemana = new Date(fecha + 'T12:00:00Z').getUTCDay();
+          if (fecha < hoy || diaSemana === 0 || diaSemana === 6) continue;
+          diasHabiles++;
+          if (diaTieneLugar(fecha)) return false;
+        }
+      }
+      return diasHabiles > 0 ? true : null;
+    }
+
     let claveListaEspera = '';
 
-    function mostrarListaEspera(fecha, turnos) {
+    function actualizarListaEspera() {
       const caja = document.getElementById('listaEspera');
-      const vacio = !turnos || (Array.isArray(turnos) && turnos.length === 0);
-      const clave = vacio ? '' : `${espacioSeleccionado}|${fecha}|${Array.isArray(turnos) ? turnos.map(t => t.inicio).join(',') : 'dia'}`;
+      const lleno = espaciosPublicos[espacioSeleccionado] === true && sinLugaresEnGeneral() === true;
+      // Si ya está armado para este espacio no se vuelve a armar (el refresco automático no le
+      // borra a la persona lo que está escribiendo)
+      const clave = lleno ? String(espacioSeleccionado) : '';
       if (clave === claveListaEspera) return;
       claveListaEspera = clave;
       caja.replaceChildren();
-      if (vacio) {
+      if (!lleno) {
         caja.style.display = 'none';
         return;
       }
 
+      const espacioId = espacioSeleccionado;
       const titulo = document.createElement('h3');
-      titulo.textContent = 'Ya no hay reservas disponibles para este día';
+      titulo.textContent = 'Ya no hay reservas disponibles';
       const texto = document.createElement('p');
-      texto.textContent = 'Si alguien cancela, te avisamos por correo para que puedas reservar. El lugar es de quien reserve primero.';
+      texto.textContent = `Todos los lugares del ${espacios[espacioId]} están ocupados. Si alguien cancela, te avisamos por correo para que puedas reservar. El lugar es de quien reserve primero.`;
       caja.append(titulo, texto);
-
-      const marcas = [];
-      if (Array.isArray(turnos)) {
-        const lista = document.createElement('div');
-        lista.className = 'le-turnos';
-        turnos.forEach(t => {
-          const etiqueta = document.createElement('label');
-          const marca = document.createElement('input');
-          marca.type = 'checkbox';
-          marca.checked = true;
-          marca.dataset.inicio = t.inicio;
-          marca.dataset.fin = t.fin;
-          etiqueta.append(marca, document.createTextNode(`${t.nombre} (${t.inicio} – ${t.fin})`));
-          lista.appendChild(etiqueta);
-          marcas.push(marca);
-        });
-        caja.appendChild(lista);
-      }
 
       const fila = document.createElement('div');
       fila.className = 'le-fila';
@@ -1300,14 +1461,9 @@
 
       boton.addEventListener('click', async () => {
         const email = correo.value.trim();
-        const elegidos = marcas.filter(m => m.checked).map(m => ({ inicio: m.dataset.inicio, fin: m.dataset.fin }));
         mensaje.className = 'le-mensaje error';
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
           mensaje.textContent = 'Escribí un correo válido.';
-          return;
-        }
-        if (Array.isArray(turnos) && elegidos.length === 0) {
-          mensaje.textContent = 'Marcá al menos un turno.';
           return;
         }
         boton.disabled = true;
@@ -1316,24 +1472,19 @@
           const res = await fetch(`${API_BASE}/lista-espera`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ espacio_id: espacioSeleccionado, fecha, turnos: Array.isArray(turnos) ? elegidos : undefined, email })
+            body: JSON.stringify({ espacio_id: espacioId, email })
           });
           const datos = await res.json().catch(() => ({}));
           if (res.ok) {
             const okMsg = document.createElement('p');
             okMsg.className = 'le-mensaje ok';
-            okMsg.textContent = `✓ Listo: si se libera un lugar, te avisamos a ${email}.`;
+            okMsg.textContent = `✓ Listo: si se libera un lugar en el ${espacios[espacioId]}, te avisamos a ${email}.`;
             caja.replaceChildren(titulo, okMsg);
             return;
           }
-          mensaje.textContent = datos.error || 'No se pudo guardar. Probá de nuevo en un momento.';
-          if (res.status === 409) {
-            // Un turno se liberó mientras tanto: se actualiza para que lo pueda reservar
-            claveListaEspera = '';
-            await cargarReservas();
-            actualizarCalendario();
-            actualizarHorasDisponibles(fecha);
-          }
+          mensaje.textContent = res.status === 429
+            ? 'Hiciste muchos intentos seguidos. Probá de nuevo en un rato.'
+            : (datos.error || 'No se pudo guardar. Probá de nuevo en un momento.');
         } catch (error) {
           mensaje.textContent = 'No se pudo conectar con el servidor. Probá de nuevo en un momento.';
         } finally {
@@ -1369,9 +1520,9 @@
         return;
       }
 
-      // Máximo 3 horas
-      if (horasSeleccionadas.length >= 3) {
-        mostrarError('Máximo 3 horas de duración');
+      // Máximo de horas por reserva (Altillo: 2)
+      if (horasSeleccionadas.length >= ALTILLO.max_horas) {
+        mostrarError(`Máximo ${ALTILLO.max_horas} horas de duración`);
         return;
       }
 
@@ -1497,21 +1648,30 @@
       document.getElementById('celular').addEventListener('input', validarFormulario);
       document.getElementById('email').addEventListener('input', validarFormulario);
       document.getElementById('motivo').addEventListener('input', validarFormulario);
+      document.getElementById('motivoFrente').addEventListener('change', validarFormulario);
+      document.getElementById('btnAgregarAcomp').addEventListener('click', agregarAcompanante);
       document.getElementById('btnReservar').addEventListener('click', crearReserva);
 
       document.getElementById('espacioNombre').value = espacios[espacioSeleccionado];
+      llenarMotivosFrente();
+      aplicarCampoMotivo();
+      actualizarBotonAcompanantes();
     }
 
     function validarFormulario() {
       const nombre = document.getElementById('nombre').value.trim();
       const celular = document.getElementById('celular').value.trim();
       const email = document.getElementById('email').value.trim();
-      const motivo = document.getElementById('motivo').value.trim();
+      const motivo = motivoElegido();
       const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
       const celularValido = celular.length >= 9;
+      const errorAcompanantes = leerAcompanantes().error;
+      const acompanantesOk = !errorAcompanantes;
+      // Explica por qué el botón no se habilita (una fila de acompañante a medio completar)
+      document.getElementById('acompAviso').textContent = errorAcompanantes ? errorAcompanantes + ' (o quitá la fila con ×)' : '';
 
       document.getElementById('btnReservar').disabled = !(
-        nombre && celularValido && emailValido && motivo && diaSeleccionado && horasSeleccionadas.length > 0
+        nombre && celularValido && emailValido && motivo && acompanantesOk && diaSeleccionado && horasSeleccionadas.length > 0
       );
     }
 
@@ -1519,10 +1679,15 @@
       const nombre = document.getElementById('nombre').value.trim();
       const celular = document.getElementById('celular').value.trim();
       const email = document.getElementById('email').value.trim();
-      const motivo = document.getElementById('motivo').value.trim();
+      const motivo = motivoElegido();
+      const { acompanantes, error: errorAcompanantes } = leerAcompanantes();
 
       if (horasSeleccionadas.length === 0) {
         mostrarError('Selecciona al menos 1 hora');
+        return;
+      }
+      if (errorAcompanantes) {
+        mostrarError(errorAcompanantes);
         return;
       }
 
@@ -1558,7 +1723,8 @@
             fecha: diaSeleccionado,
             hora_inicio: horaInicio,
             hora_fin: horaFin,
-            motivo: motivo
+            motivo: motivo,
+            acompanantes
           })
         });
 
@@ -1604,6 +1770,9 @@
         document.getElementById('celular').value = '';
         document.getElementById('email').value = '';
         document.getElementById('motivo').value = '';
+        document.getElementById('motivoFrente').value = '';
+        document.getElementById('acompLista').replaceChildren();
+        actualizarBotonAcompanantes();
         document.getElementById('fecha').value = '';
         document.getElementById('hoursGrid').innerHTML = '';
         document.getElementById('selectedRange').style.display = 'none';
