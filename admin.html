@@ -209,6 +209,7 @@
     /* ---------- Admin supremo ---------- */
     [hidden] { display: none !important; }
     .tab-content h3.mt { margin-top: 36px; }
+    .rangos-rapidos { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
     .vacio-celda { text-align: center; color: var(--suave); padding: 18px 12px; }
     .espacio-card button { justify-self: start; }
     .registro-celda { font-size: 12px; color: var(--suave); line-height: 1.4; min-width: 170px; }
@@ -543,6 +544,12 @@
         <div id="tab-exportar" class="tab-content">
           <h3>Exportar reservas a Excel</h3>
 
+          <div class="rangos-rapidos">
+            <button class="btn-small" onclick="rangoExportacion('este')">Este mes</button>
+            <button class="btn-small" onclick="rangoExportacion('anterior')">Mes pasado</button>
+            <button class="btn-small" onclick="rangoExportacion('todo')">Todo</button>
+          </div>
+
           <div class="filters">
             <input type="date" id="exportFechaInicio" aria-label="Fecha de inicio">
             <input type="date" id="exportFechaFin" aria-label="Fecha de fin">
@@ -551,10 +558,20 @@
               <option value="1">Altillo</option>
               <option value="3">Frente</option>
             </select>
+            <select id="exportEstado" aria-label="Estado">
+              <option value="">Activas y canceladas</option>
+              <option value="activa">Solo activas</option>
+              <option value="cancelada">Solo canceladas</option>
+            </select>
           </div>
 
           <button class="btn-export" onclick="exportarExcel()">Descargar Excel</button>
-          <p class="nota" style="margin-top: 14px;">El archivo trae una hoja por cada espacio, con las reservas del rango elegido.</p>
+          <p class="nota" style="margin-top: 14px;">
+            El archivo trae una hoja <b>Resumen</b> (totales por espacio, turno, día de la semana y mes)
+            y una hoja por espacio con cada reserva: número, fecha, turno, datos de contacto, estado,
+            si fue de prioridad, cuándo se hizo y, si se canceló, cuándo, quién y por qué.
+            Las columnas tienen filtros y las fechas se pueden ordenar.
+          </p>
         </div>
 
         <!-- TAB: REPORTES -->
@@ -765,17 +782,23 @@
     // Fecha y hora guardadas por la base -> "DD/MM/AAAA HH:MM" en hora de Asunción.
     // La base guarda en UTC: created_at llega sin zona ("2026-10-11T08:41:05.123456") y se
     // toma como UTC; cancelada_en y creado_en ya traen la zona ("...+00:00").
-    function fechaHoraAsuncion(valor) {
-      if (!valor) return '-';
+    function partesFechaHoraAsuncion(valor) {
+      if (!valor) return null;
       let texto = String(valor).replace(' ', 'T').replace(/(\.\d{3})\d+/, '$1');
       if (!/(Z|[+-]\d{2}:?\d{2})$/.test(texto)) texto += 'Z';
       const fecha = new Date(texto);
-      if (isNaN(fecha)) return String(valor);
+      if (isNaN(fecha)) return null;
       const partes = new Intl.DateTimeFormat('es-PY', {
         timeZone: 'America/Asuncion', day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
       }).formatToParts(fecha);
-      const p = Object.fromEntries(partes.map(x => [x.type, x.value]));
+      return Object.fromEntries(partes.map(x => [x.type, x.value]));
+    }
+
+    function fechaHoraAsuncion(valor) {
+      if (!valor) return '-';
+      const p = partesFechaHoraAsuncion(valor);
+      if (!p) return String(valor);
       return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
     }
 
@@ -874,10 +897,8 @@
       const boton = document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`);
       if (boton) boton.classList.add('active');
 
-      if (tab === 'exportar') {
-        const hoy = hoyEnAsuncionStr();
-        document.getElementById('exportFechaInicio').value = hoy;
-        document.getElementById('exportFechaFin').value = hoy;
+      if (tab === 'exportar' && !document.getElementById('exportFechaInicio').value) {
+        rangoExportacion('este'); // antes arrancaba en "hoy a hoy"
       }
 
       if (tab === 'reportes') {
@@ -1406,98 +1427,209 @@
       }
     }
 
-    // EXPORTAR EXCEL
-    function exportarExcel() {
-      // Evita inyección de fórmulas en el Excel exportado (nombre/motivo/celular/email
-      // vienen de un formulario público sin restricción de caracteres). Si el valor
-      // empieza con =, +, -, @, tab o retorno de carro, Excel podría intentar
-      // interpretarlo como fórmula al abrir el archivo en vez de mostrarlo como texto.
-      // Anteponer una comilla simple fuerza a que siempre se trate como texto literal.
-      function sanitizarParaExcel(valor) {
-        const texto = String(valor ?? '');
-        return /^[=+\-@\t\r]/.test(texto) ? "'" + texto : texto;
+    // ========== EXPORTAR A EXCEL ==========
+    const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+    // Botones "Este mes", "Mes pasado" y "Todo" (todas las reservas cargadas)
+    function rangoExportacion(cual) {
+      let inicio, fin;
+      if (cual === 'todo') {
+        const fechas = reservasActuales.map(r => r.fecha).sort();
+        inicio = fechas[0] || hoyEnAsuncionStr();
+        fin = fechas[fechas.length - 1] || hoyEnAsuncionStr();
+      } else {
+        const [anio, mes] = hoyEnAsuncionStr().split('-').map(Number);
+        const primero = new Date(Date.UTC(anio, mes - 1 - (cual === 'anterior' ? 1 : 0), 1));
+        const ultimo = new Date(Date.UTC(primero.getUTCFullYear(), primero.getUTCMonth() + 1, 0));
+        inicio = primero.toISOString().slice(0, 10);
+        fin = ultimo.toISOString().slice(0, 10);
+      }
+      document.getElementById('exportFechaInicio').value = inicio;
+      document.getElementById('exportFechaFin').value = fin;
+    }
+
+    // Excel guarda las fechas como cantidad de días desde el 30/12/1899. Se calcula a mano y en
+    // UTC para que la fecha nunca se corra según la zona horaria de la computadora que exporta.
+    function serialExcel(anio, mes, dia, hora = 0, minuto = 0) {
+      return (Date.UTC(anio, mes - 1, dia, hora, minuto) - Date.UTC(1899, 11, 30)) / 86400000;
+    }
+
+    function serialFecha(fechaISO) {
+      const [a, m, d] = fechaISO.split('-').map(Number);
+      return serialExcel(a, m, d);
+    }
+
+    // Fecha y hora de la base (UTC) -> número de Excel con la hora de Asunción
+    function serialFechaHora(valor) {
+      const p = partesFechaHoraAsuncion(valor);
+      return p ? serialExcel(+p.year, +p.month, +p.day, +p.hour, +p.minute) : null;
+    }
+
+    function nombreMes(fechaISO) {
+      const [a, m] = fechaISO.split('-').map(Number);
+      const nombre = new Intl.DateTimeFormat('es-PY', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(a, m - 1, 1)));
+      return `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${a}`;
+    }
+
+    // Evita inyección de fórmulas en el Excel exportado (nombre/motivo/celular/email
+    // vienen de un formulario público sin restricción de caracteres). Si el valor
+    // empieza con =, +, -, @, tab o retorno de carro, Excel podría intentar
+    // interpretarlo como fórmula al abrir el archivo en vez de mostrarlo como texto.
+    // Anteponer una comilla simple fuerza a que siempre se trate como texto literal.
+    function sanitizarParaExcel(valor) {
+      const texto = String(valor ?? '');
+      return /^[=+\-@\t\r]/.test(texto) ? "'" + texto : texto;
+    }
+
+    // [título, ancho, formato de número (solo las columnas de fecha)]
+    const COLUMNAS_EXCEL = [
+      ['N°', 7], ['Fecha', 11, 'dd/mm/yyyy'], ['Día', 10], ['Turno', 10], ['Inicio', 7], ['Fin', 7],
+      ['Nombre', 24], ['Celular', 14], ['Email', 28], ['Motivo', 30], ['Estado', 10], ['Prioridad', 9],
+      ['Creada', 16, 'dd/mm/yyyy hh:mm'], ['Cancelada', 16, 'dd/mm/yyyy hh:mm'], ['Cancelada por', 14], ['Motivo de cancelación', 30]
+    ];
+
+    function hojaReservas(reservas) {
+      const filas = [COLUMNAS_EXCEL.map(c => c[0])];
+      reservas.forEach(r => {
+        const [celular = '', email = ''] = String(r.contacto || '').split('|').map(p => p.trim());
+        const inicio = r.hora_inicio.substring(0, 5);
+        const fin = r.hora_fin.substring(0, 5);
+        const [a, m, d] = r.fecha.split('-').map(Number);
+        filas.push([
+          r.id,
+          serialFecha(r.fecha),
+          DIAS_SEMANA[new Date(Date.UTC(a, m - 1, d)).getUTCDay()],
+          Number(r.espacio_id) === 3 ? (NOMBRES_TURNOS_FRENTE[`${inicio}-${fin}`] || '-') : '-',
+          inicio,
+          fin,
+          sanitizarParaExcel(r.nombre_solicitante),
+          sanitizarParaExcel(celular),
+          sanitizarParaExcel(email),
+          sanitizarParaExcel(r.motivo ? r.motivo.trim() : ''),
+          r.estado === 'cancelada' ? 'Cancelada' : 'Activa',
+          r.reservado_por_admin ? 'Sí' : 'No',
+          serialFechaHora(r.created_at),
+          r.estado === 'cancelada' ? serialFechaHora(r.cancelada_en) : null,
+          r.estado === 'cancelada' ? (r.cancelada_por || (r.cancelada_en ? '' : 'sin datos')) : '',
+          sanitizarParaExcel(r.motivo_cancelacion || '')
+        ]);
+      });
+
+      const hoja = XLSX.utils.aoa_to_sheet(filas);
+      // Formato de fecha en las columnas de fecha (el valor ya es un número de Excel)
+      COLUMNAS_EXCEL.forEach(([, , formato], col) => {
+        if (!formato) return;
+        for (let fila = 1; fila < filas.length; fila++) {
+          const celda = hoja[XLSX.utils.encode_cell({ r: fila, c: col })];
+          if (celda && celda.t === 'n') celda.z = formato;
+        }
+      });
+      hoja['!cols'] = COLUMNAS_EXCEL.map(c => ({ wch: c[1] }));
+      hoja['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: filas.length - 1, c: COLUMNAS_EXCEL.length - 1 } }) };
+      return hoja;
+    }
+
+    function hojaResumen(reservas, { fechaInicio, fechaFin, espacio, estado }) {
+      const activas = reservas.filter(r => r.estado === 'activa');
+      const contar = (lista, condicion) => lista.filter(condicion).length;
+      const fechaDMY = f => f.split('-').reverse().join('/');
+      const p = partesFechaHoraAsuncion(new Date().toISOString());
+      const filas = [
+        ['Reservas del CEQ: resumen'],
+        ['Período', `${fechaDMY(fechaInicio)} a ${fechaDMY(fechaFin)}`],
+        ['Espacio', espacio ? espacios[espacio] : 'Todos'],
+        ['Estado', estado === 'activa' ? 'Solo activas' : estado === 'cancelada' ? 'Solo canceladas' : 'Activas y canceladas'],
+        ['Generado', `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`],
+        [],
+        ['Por espacio', 'Activas', 'Canceladas', 'Total']
+      ];
+      [3, 1, 2].forEach(id => {
+        const delEspacio = reservas.filter(r => Number(r.espacio_id) === id);
+        if (delEspacio.length === 0) return;
+        const act = contar(delEspacio, r => r.estado === 'activa');
+        filas.push([espacios[id], act, delEspacio.length - act, delEspacio.length]);
+      });
+      filas.push(['Total', activas.length, reservas.length - activas.length, reservas.length]);
+
+      const frente = activas.filter(r => Number(r.espacio_id) === 3);
+      if (frente.length > 0) {
+        filas.push([], ['Frente por turno (activas)', 'Reservas']);
+        ['Desayuno', 'Almuerzo', 'Merienda'].forEach(turno => {
+          filas.push([turno, contar(frente, r => NOMBRES_TURNOS_FRENTE[`${r.hora_inicio.substring(0, 5)}-${r.hora_fin.substring(0, 5)}`] === turno)]);
+        });
       }
 
-      const fechaInicio = document.getElementById('exportFechaInicio').value;
-      const fechaFin = document.getElementById('exportFechaFin').value;
-      const espacio = document.getElementById('exportEspacio').value;
+      filas.push([], ['Por día de la semana (activas)', 'Reservas']);
+      [1, 2, 3, 4, 5].forEach(dia => {
+        filas.push([DIAS_SEMANA[dia], contar(activas, r => { const [a, m, d] = r.fecha.split('-').map(Number); return new Date(Date.UTC(a, m - 1, d)).getUTCDay() === dia; })]);
+      });
 
-      if (!fechaInicio || !fechaFin) {
-        alert('Seleccioná rango de fechas');
+      filas.push([], ['Por mes', 'Activas', 'Canceladas']);
+      [...new Set(reservas.map(r => r.fecha.slice(0, 7)))].sort().forEach(mes => {
+        const delMes = reservas.filter(r => r.fecha.startsWith(mes));
+        const act = contar(delMes, r => r.estado === 'activa');
+        filas.push([nombreMes(mes + '-01'), act, delMes.length - act]);
+      });
+
+      // Personas distintas: se reconoce a cada una por su email (o por el celular si no hay email)
+      const personas = new Set(activas.map(r => {
+        const [cel = '', mail = ''] = String(r.contacto || '').split('|').map(x => x.trim().toLowerCase());
+        return mail || cel.replace(/\D/g, '');
+      }).filter(Boolean));
+      filas.push([], ['Personas distintas con reservas activas', personas.size]);
+      filas.push(['Reservas de prioridad (activas)', contar(activas, r => r.reservado_por_admin)]);
+
+      const hoja = XLSX.utils.aoa_to_sheet(filas);
+      hoja['!cols'] = [{ wch: 38 }, { wch: 22 }, { wch: 12 }, { wch: 10 }];
+      return hoja;
+    }
+
+    // Arma el libro (separado de la descarga para poder probarlo)
+    function armarLibroExcel(opciones) {
+      const { fechaInicio, fechaFin, espacio, estado } = opciones;
+      const filtradas = reservasActuales
+        .filter(r => r.fecha >= fechaInicio && r.fecha <= fechaFin)
+        .filter(r => !espacio || String(r.espacio_id) === String(espacio))
+        .filter(r => !estado || r.estado === estado)
+        .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora_inicio.localeCompare(b.hora_inicio) || a.id - b.id);
+      if (filtradas.length === 0) return null;
+
+      const libro = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(libro, hojaResumen(filtradas, opciones), 'Resumen');
+      [3, 1, 2].forEach(id => {
+        const delEspacio = filtradas.filter(r => Number(r.espacio_id) === id);
+        if (delEspacio.length > 0) XLSX.utils.book_append_sheet(libro, hojaReservas(delEspacio), espacios[id]);
+      });
+      return libro;
+    }
+
+    function exportarExcel() {
+      const opciones = {
+        fechaInicio: document.getElementById('exportFechaInicio').value,
+        fechaFin: document.getElementById('exportFechaFin').value,
+        espacio: document.getElementById('exportEspacio').value,
+        estado: document.getElementById('exportEstado').value
+      };
+      if (!opciones.fechaInicio || !opciones.fechaFin) {
+        alert('Elegí el rango de fechas (o usá "Este mes", "Mes pasado" o "Todo").');
         return;
       }
-
-      let filtradas = reservasActuales.filter(r => 
-        r.fecha >= fechaInicio && r.fecha <= fechaFin
-      );
-      if (espacio) filtradas = filtradas.filter(r => r.espacio_id == espacio);
-
-      if (filtradas.length === 0) {
-        alert('No hay reservas en el rango seleccionado');
+      if (opciones.fechaInicio > opciones.fechaFin) {
+        alert('La fecha de inicio es posterior a la de fin.');
+        return;
+      }
+      if (typeof XLSX === 'undefined') {
+        alert('Error: la librería de Excel no cargó. Recargá la página e intentá de nuevo.');
         return;
       }
 
       try {
-        // Verificar que XLSX esté disponible
-        if (typeof XLSX === 'undefined') {
-          alert('Error: librería de Excel no cargó. Intenta recargar la página.');
+        const libro = armarLibroExcel(opciones);
+        if (!libro) {
+          alert('No hay reservas con esos filtros.');
           return;
         }
-
-        // Crear workbook
-        const workbook = XLSX.utils.book_new();
-        
-        // Agrupar por espacio
-        const porEspacio = {
-          1: [],
-          2: [],
-          3: []
-        };
-
-        filtradas.forEach(r => {
-          porEspacio[r.espacio_id].push(r);
-        });
-
-        // Crear hoja para cada espacio
-        Object.keys(porEspacio).forEach(espacioId => {
-          const reservasEspacio = porEspacio[espacioId];
-          if (reservasEspacio.length === 0) return;
-
-          const datos = reservasEspacio.map(r => {
-            const celular = r.contacto.includes('|') ? r.contacto.split('|')[0].trim() : r.contacto;
-            const email = r.contacto.includes('|') ? r.contacto.split('|')[1].trim() : '';
-            // Convertir fecha YYYY-MM-DD a DD/MM/YYYY
-            const [año, mes, día] = r.fecha.split('-');
-            const fechaFormato = `${día}/${mes}/${año}`;
-            return {
-              'Fecha': fechaFormato,
-              'Hora Inicio': r.hora_inicio.substring(0, 5),
-              'Hora Fin': r.hora_fin.substring(0, 5),
-              'Nombre': sanitizarParaExcel(r.nombre_solicitante),
-              'Celular': sanitizarParaExcel(celular),
-              'Email': sanitizarParaExcel(email),
-              'Motivo': sanitizarParaExcel(r.motivo ? r.motivo.trim() : 'Sin especificar'),
-              'Estado': r.estado
-            };
-          });
-
-          const hoja = XLSX.utils.json_to_sheet(datos);
-          // Ajustar ancho de columnas
-          hoja['!cols'] = [
-            { wch: 12 },
-            { wch: 12 },
-            { wch: 12 },
-            { wch: 20 },
-            { wch: 18 },
-            { wch: 25 },
-            { wch: 20 },
-            { wch: 12 }
-          ];
-
-          XLSX.utils.book_append_sheet(workbook, hoja, espacios[espacioId]);
-        });
-
-        XLSX.writeFile(workbook, `reservas-ceq-${fechaInicio}-${fechaFin}.xlsx`);
+        XLSX.writeFile(libro, `reservas-ceq-${opciones.fechaInicio}-a-${opciones.fechaFin}.xlsx`);
       } catch (error) {
         console.error('Error detallado:', error);
         alert('Error al exportar: ' + error.message);
