@@ -4,8 +4,8 @@ Páginas del sistema de reservas del Centro de Estudiantes de Química (CEQ-UNA)
 
 | Archivo | Qué es |
 |---|---|
-| `index.html` | Página pública: calendario, formulario de reserva y "Reportar un problema". |
-| `cancelar.html` | Cancelar una reserva con el código. |
+| `index.html` | Página pública: calendario, formulario de reserva, lista de espera de los días llenos, cuenta regresiva de las aperturas programadas y "Reportar un problema". |
+| `cancelar.html` | Cancelar una reserva con el código o con el enlace "Cancelar mi reserva" de los correos. |
 | `admin.html` | Panel de administración (reservas, bloqueos, meses, prioridad, exportar a Excel y reportes). Con la contraseña del admin supremo aparece además la pestaña **Avanzado** (espacios, eliminar registros, actividad y seguridad). |
 | `logo-ceq.png`, `favicon.ico`, `favicon-192.png`, `apple-touch-icon.png` | Logo e íconos del sitio. |
 
