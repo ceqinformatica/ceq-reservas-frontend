@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Términos y condiciones · Centro de Estudiantes de Química</title>
+<meta name="description" content="Términos y condiciones de uso del sistema de reservas de espacios del Centro de Estudiantes de Química (CEQ-UNA).">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+
+  <style>
+    /* Mismo diseño que index.html (identidad de la web oficial del CEQ) */
+    :root {
+      --marino: #173874;
+      --azul: #3873CE;
+      --azul-hover: #2D62B5;
+      --cielo: #D6E6FA;
+      --tarjeta: #EFF7FE;
+      --blanco: #FFFFFF;
+      --texto: #1E1E1E;
+      --suave: #5A6B85;
+      --linea: #C9DBF3;
+      --lleno-bg: #FBE3E1;
+      --lleno: #B2392F;
+      --ok-bg: #E3F4EA;
+      --ok: #1D7A47;
+      --radio: 18px;
+      --radio-chico: 8px;
+      --f: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { font-family: var(--f); background: var(--cielo); color: var(--texto); font-size: 15px; line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; }
+    a { color: inherit; }
+    button { font-family: inherit; }
+    :focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+    /* Barra superior */
+    .topbar { background: var(--blanco); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 50; }
+    .topbar-in { max-width: 1200px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .marca { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--marino); }
+    .marca img { width: 40px; height: 40px; display: block; }
+    .marca b { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+    .menu { display: flex; align-items: center; gap: 22px; list-style: none; }
+    .menu a { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; color: var(--marino); text-decoration: none; padding: 6px 0; }
+    .menu a:hover { color: var(--azul); }
+    .menu .admin { border: 1px solid var(--marino); border-radius: 5px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .menu .admin svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Título */
+    .portada-in { max-width: 560px; width: 100%; margin: 0 auto; padding: 32px 20px 20px; }
+    .portada h1 { font-size: clamp(22px, 4vw, 32px); line-height: 1.1; font-weight: 600; text-transform: uppercase; color: var(--marino); letter-spacing: -.01em; }
+
+    /* Tarjeta */
+    main { flex: 1; width: 100%; max-width: 560px; margin: 0 auto; padding: 0 20px 48px; }
+    .panel { background: var(--tarjeta); border-radius: var(--radio); padding: 28px 24px; display: grid; gap: 18px; }
+    .titulo-seccion { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--marino); line-height: 1.2; }
+    .titulo-seccion::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; flex: none; }
+    .ayuda { color: var(--suave); font-size: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: var(--marino); }
+    .form-group input { width: 100%; padding: 14px; border-radius: var(--radio-chico); border: 1px solid var(--linea); background: var(--blanco); color: var(--marino); font: 600 18px var(--f); letter-spacing: .1em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+    .form-group input::placeholder { font-weight: 500; letter-spacing: .04em; color: #9AAAC2; text-transform: none; }
+    .form-group input:focus { outline: none; border-color: var(--azul); box-shadow: 0 0 0 3px rgba(56,115,206,.18); }
+    .btn-primary { background: var(--azul); color: var(--blanco); border: 0; border-radius: 5px; padding: 14px 18px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; }
+    .btn-primary:hover:not(:disabled) { background: var(--azul-hover); }
+    .btn-primary:disabled { background: #A9C0E6; cursor: not-allowed; }
+    .perdido { text-align: center; }
+    .perdido a { color: var(--marino); font-weight: 600; }
+    .volver { text-align: center; font-size: 14px; }
+    .volver a { color: var(--marino); font-weight: 600; text-decoration: none; }
+    .volver a:hover { color: var(--azul); text-decoration: underline; text-underline-offset: 3px; }
+
+    #formCodigo, #cancelarEnlace { display: grid; gap: 18px; }
+    [hidden] { display: none !important; }
+    .datos-reserva { background: var(--blanco); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; color: var(--marino); font-size: 15px; }
+    .datos-reserva strong { font-weight: 700; }
+
+    .status-message { display: none; padding: 12px 14px; border-radius: var(--radio-chico); font-size: 14px; font-weight: 500; }
+    .status-success { background: var(--ok-bg); color: var(--ok); }
+    .status-error { background: var(--lleno-bg); color: var(--lleno); }
+    .status-error a { color: var(--lleno); font-weight: 700; }
+
+    /* Pie (igual que index.html) */
+    .pie { background: var(--marino); color: #DCE7F7; }
+    .pie-in { max-width: 1200px; margin: 0 auto; padding: 28px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; align-items: center; }
+    .pie-marca { display: flex; gap: 14px; align-items: center; min-width: 0; }
+    .pie-marca img { width: 48px; height: 48px; background: var(--blanco); border-radius: 12px; padding: 4px; flex: none; }
+    .pie-version { font-size: 15px; font-weight: 600; color: var(--blanco); }
+    .pie-version b { font-weight: 600; font-size: 12px; background: rgba(255,255,255,.14); border-radius: 4px; padding: 2px 7px; margin-left: 6px; vertical-align: 1px; font-variant-numeric: tabular-nums; white-space: nowrap; display: inline-block; }
+    .pie-copy { color: #A9BEDF; font-size: 13px; margin-top: 3px; }
+    .pie-copy .sep { opacity: .5; margin: 0 4px; }
+    .pie-legal { font-size: 13px; margin-top: 4px; color: #A9BEDF; }
+    .pie-legal a { color: #D3E0F3; text-decoration: underline; text-decoration-color: rgba(211,224,243,.45); text-underline-offset: 3px; }
+    .pie-legal a:hover { color: var(--blanco); text-decoration-color: currentColor; }
+    .pie-legal .sep { opacity: .5; margin: 0 6px; }
+    .pie-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 22px; }
+    .pie-btn { display: inline-flex; align-items: center; gap: 7px; padding: 6px 0; color: #D3E0F3; font: 500 14px var(--f); text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; transition: color .15s, text-decoration-color .15s; }
+    .pie-btn:hover { color: var(--blanco); text-decoration-color: currentColor; }
+    .pie-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+    @media (min-width: 641px) and (max-width: 1000px) {
+      .pie-in { flex-wrap: nowrap; align-items: center; }
+      .pie-acciones { flex-direction: column; align-items: flex-end; gap: 2px; flex: none; padding-left: 24px; border-left: 1px solid rgba(255,255,255,.15); }
+      .pie-copy .sep { display: none; }
+      .pie-copy span.resto { display: block; }
+    }
+    @media (max-width: 640px) {
+      .topbar-in { padding: 8px 16px; }
+      .marca img { width: 34px; height: 34px; }
+      .marca b { font-size: 18px; }
+      .menu { gap: 14px; }
+      .menu a { font-size: 13px; }
+      .portada-in { padding: 22px 16px 16px; }
+      main { padding: 0 12px 32px; }
+      .panel { padding: 22px 16px; border-radius: 16px; }
+      .pie-in { padding: 28px 16px 22px; flex-direction: column; align-items: center; text-align: center; gap: 0; }
+      .pie-marca, .pie-marca > div { display: contents; }
+      .pie-marca img { order: 1; width: 52px; height: 52px; margin-bottom: 12px; }
+      .pie-version { order: 2; }
+      .pie-acciones { order: 3; justify-content: center; gap: 4px 18px; margin: 14px 0 18px; }
+      .pie-btn { font-size: 13px; }
+      .pie-legal { order: 5; width: 100%; margin-top: 6px; font-size: 12px; }
+      .pie-copy { order: 4; width: 100%; margin-top: 0; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.15); font-size: 12px; line-height: 1.6; }
+      .pie-copy .sep { display: none; }
+      .pie-copy span.resto { display: block; }
+    }
+  </style>
+  <style>
+    /* Páginas de texto (términos y privacidad) */
+    .portada-in, main { max-width: 760px; }
+    .texto { background: var(--tarjeta); border-radius: var(--radio); padding: 28px 28px 32px; color: var(--texto); }
+    .texto .fecha { color: var(--suave); font-size: 14px; margin-bottom: 18px; }
+    .texto h2 { font-size: 18px; font-weight: 700; color: var(--marino); margin: 26px 0 8px; line-height: 1.3; }
+    .texto h2:first-of-type { margin-top: 6px; }
+    .texto p { margin: 8px 0; }
+    .texto ul { margin: 8px 0 8px 22px; }
+    .texto li { margin: 4px 0; }
+    .texto ul.letras { list-style: none; margin-left: 4px; }
+    .texto a { color: var(--marino); font-weight: 600; }
+    .texto strong { color: var(--marino); }
+    .texto .nota { background: var(--blanco); border-left: 4px solid var(--azul); border-radius: var(--radio-chico); padding: 12px 14px; margin: 14px 0; }
+    @media (max-width: 640px) { .texto { padding: 22px 16px 26px; border-radius: 16px; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-in">
+      <a class="marca" href="https://cequna2.wordpress.com/" aria-label="Centro de Estudiantes de Química, ir a la web">
+        <img src="logo-ceq.png" alt="">
+        <b>CEQ</b>
+      </a>
+      <nav aria-label="Principal">
+        <ul class="menu">
+          <li><a href="https://reservas.ceq-una.com">Reservas</a></li>
+          <li><a class="admin" href="https://reservas.ceq-una.com/admin.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Admin</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <section class="portada">
+    <div class="portada-in">
+      <h1>Términos y condiciones</h1>
+    </div>
+  </section>
+
+  <main>
+    <article class="texto">
+      <p class="fecha">Versión 1.0 · Vigente desde el 11 de octubre de 2026</p>
+      <p>Los presentes Términos y Condiciones de Uso (en adelante, los «Términos») regulan el acceso y la utilización del sistema de reservas de espacios disponible en <strong>reservas.ceq-una.com</strong>, administrado por el <strong>Centro de Estudiantes de Química de la Facultad de Ciencias Químicas de la Universidad Nacional de Asunción</strong> (en adelante, el «CEQ»). Su lectura es necesaria antes de realizar cualquier reserva.</p>
+
+      <h2>Artículo 1. Definiciones</h2>
+      <p>A los efectos de estos Términos, se entiende por:</p>
+      <ul>
+        <li><strong>Sistema:</strong> el sitio web reservas.ceq-una.com, sus páginas, el servidor y la base de datos que lo componen, y los correos electrónicos que emite.</li>
+        <li><strong>Usuario:</strong> toda persona que accede al Sistema o realiza, consulta o cancela una reserva.</li>
+        <li><strong>Espacios:</strong> los lugares administrados por el CEQ que pueden reservarse a través del Sistema, en particular el «Frente» y el «Altillo».</li>
+        <li><strong>Reserva:</strong> la asignación de un Espacio a un Usuario en una fecha y horario determinados, confirmada por el Sistema.</li>
+        <li><strong>Moderadores:</strong> las personas designadas por el CEQ para administrar el Sistema.</li>
+        <li><strong>Comisión Directiva:</strong> el órgano de conducción del CEQ.</li>
+      </ul>
+
+      <h2>Artículo 2. Aceptación</h2>
+      <p>2.1. Al realizar una Reserva, anotarse en la lista de espera o enviar un reporte, el Usuario declara haber leído, comprendido y aceptado íntegramente estos Términos y la <a href="privacidad.html">Política de Privacidad</a>, que forma parte integrante de ellos.</p>
+      <p>2.2. El Usuario que no esté de acuerdo con estos Términos deberá abstenerse de utilizar el Sistema.</p>
+
+      <h2>Artículo 3. Naturaleza del servicio</h2>
+      <p>3.1. El Sistema es un servicio gratuito que el CEQ pone a disposición de la comunidad de la Facultad de Ciencias Químicas para organizar el uso de sus Espacios. Su utilización no genera relación de consumo, contractual onerosa ni de ninguna otra índole entre el Usuario y el CEQ distinta de la aquí regulada.</p>
+      <p>3.2. La Reserva otorga un permiso de uso personal, temporal, revocable y no transferible del Espacio, en la fecha y el horario confirmados, con sujeción a estos Términos y a las normas del CEQ y de la Facultad.</p>
+
+      <h2>Artículo 4. Capacidad del Usuario</h2>
+      <p>4.1. El Usuario declara ser mayor de edad. Las personas menores de dieciocho (18) años solo podrán utilizar el Sistema con la autorización de su padre, madre o tutor, quien será responsable del cumplimiento de estos Términos.</p>
+      <p>4.2. Quien realiza una Reserva en nombre de una agrupación, comisión u otra organización declara contar con facultades para hacerlo y responde personalmente por el uso del Espacio.</p>
+
+      <h2>Artículo 5. Espacios, horarios y límites</h2>
+      <p>5.1. <strong>Frente:</strong> se reserva por turnos fijos. Los turnos vigentes son los que el Sistema muestra al momento de reservar.</p>
+      <p>5.2. <strong>Altillo:</strong> cuando se encuentre habilitado, se reserva por bloques de una (1) hora, entre las 08:00 y las 20:00, con una duración mínima de una (1) hora y máxima de dos (2) horas por Reserva. En el día en curso, solo podrá reservarse un bloque que no haya finalizado.</p>
+      <p>5.3. Las Reservas se realizan de lunes a viernes, únicamente en los meses que el CEQ habilite. El CEQ podrá anunciar en el Sistema la fecha y hora de apertura de cada mes.</p>
+      <p>5.4. Cada Usuario podrá tener, como máximo, la cantidad de Reservas activas por mes y por Espacio que indique el Sistema. A tal efecto, se considerará como una misma persona a quien utilice el mismo correo electrónico o el mismo número de celular.</p>
+      <p>5.5. Los horarios, turnos, límites y demás condiciones operativas podrán ser modificados por el CEQ. Las condiciones aplicables a cada Reserva son las vigentes al momento de su confirmación.</p>
+
+      <h2>Artículo 6. Procedimiento de reserva</h2>
+      <p>6.1. Para reservar, el Usuario deberá consignar su nombre y apellido, un número de celular y una dirección de correo electrónico propios, válidos y en uso, e indicar el motivo de la Reserva. En el Frente, el motivo se selecciona de la lista que ofrece el Sistema.</p>
+      <p>6.2. En el Altillo, el Usuario podrá declarar hasta cuatro (4) acompañantes, con nombre y número de celular. Al hacerlo, declara contar con el consentimiento de cada acompañante para proporcionar sus datos, conforme a la Política de Privacidad.</p>
+      <p>6.3. La Reserva se considera confirmada cuando el Sistema muestra el código de cancelación. El correo electrónico de confirmación es un comprobante adicional; su falta de recepción por causas ajenas al CEQ no afecta la validez de la Reserva.</p>
+      <p>6.4. El Usuario es el único responsable de la exactitud de los datos que proporciona. El CEQ no está obligado a verificarlos, pero podrá cancelar las Reservas realizadas con datos falsos, incompletos o de terceros sin autorización.</p>
+
+      <h2>Artículo 7. Cancelación por el Usuario</h2>
+      <p>7.1. El Usuario podrá cancelar su Reserva mediante el código de cancelación o mediante el enlace personal incluido en los correos del Sistema.</p>
+      <p>7.2. <strong>Frente:</strong> la cancelación a través del Sistema es posible hasta dos (2) días calendario antes de la fecha de la Reserva. Vencido ese plazo, solo podrá gestionarse a través del canal de contacto del Frente que indican los correos del Sistema, y su aceptación quedará a criterio del CEQ.</p>
+      <p>7.3. El Usuario se compromete a cancelar con la mayor anticipación posible toda Reserva que no vaya a utilizar. Dos (2) días antes de la fecha, el Sistema enviará un recordatorio al correo registrado.</p>
+      <p>7.4. El código de cancelación es personal y se almacena cifrado; el CEQ no puede recuperarlo. El Usuario es responsable de su custodia.</p>
+
+      <h2>Artículo 8. Lista de espera</h2>
+      <p>8.1. Cuando no queden lugares disponibles en un Espacio, el Usuario podrá registrar su correo electrónico para recibir un aviso si se libera un lugar.</p>
+      <p>8.2. El aviso se envía una única vez, de forma simultánea, a todas las personas registradas para ese Espacio. El lugar liberado corresponde a quien lo reserve primero. La inscripción en la lista de espera no otorga prioridad ni garantiza la obtención de una Reserva.</p>
+
+      <h2>Artículo 9. Facultades del CEQ</h2>
+      <p>El CEQ, por medio de la Comisión Directiva o de los Moderadores, podrá:</p>
+      <ul class="letras">
+        <li>a) Reservar Espacios con prioridad para actividades institucionales del CEQ, sin sujeción a los límites del artículo 5.</li>
+        <li>b) Bloquear días u horarios por razones institucionales, de mantenimiento, de seguridad o de fuerza mayor.</li>
+        <li>c) Cancelar Reservas por causa justificada, entre otras: actividad institucional, uso distinto del declarado, datos falsos, incumplimiento de estos Términos o disposición de las autoridades de la Facultad. En tales casos, se notificará al Usuario por correo electrónico con indicación del motivo.</li>
+        <li>d) Registrar si cada Reserva fue utilizada, con fines de organización.</li>
+        <li>e) Restringir temporal o definitivamente el uso del Sistema a quien incumpla estos Términos, previa evaluación de la Comisión Directiva.</li>
+        <li>f) Habilitar, suspender o deshabilitar Espacios o el Sistema en su totalidad.</li>
+      </ul>
+
+      <h2>Artículo 10. Obligaciones del Usuario en el uso de los Espacios</h2>
+      <p>El Usuario se obliga a: (a) utilizar el Espacio únicamente para el motivo declarado; (b) respetar estrictamente el horario reservado; (c) cuidar las instalaciones, el mobiliario y el equipamiento; (d) dejar el Espacio limpio y en las mismas condiciones en que lo recibió; (e) cumplir las normas del CEQ, de la Facultad y de la Universidad; y (f) responder por los daños que él, sus acompañantes o invitados causen al Espacio o a sus bienes.</p>
+
+      <h2>Artículo 11. Conductas prohibidas</h2>
+      <p>Queda prohibido al Usuario:</p>
+      <ul class="letras">
+        <li>a) Proporcionar datos falsos, inexactos o de terceros sin su autorización.</li>
+        <li>b) Ceder, transferir, vender o comercializar Reservas, o reservar para terceros con el fin de eludir los límites del artículo 5.</li>
+        <li>c) Utilizar programas, robots u otros medios automatizados para realizar Reservas o consultas, o realizar un número de solicitudes que afecte el funcionamiento del Sistema.</li>
+        <li>d) Intentar acceder sin autorización al panel de administración, a la base de datos o a información de otros Usuarios, o vulnerar de cualquier forma la seguridad del Sistema.</li>
+        <li>e) Incluir en el motivo, en los reportes o en cualquier otro campo contenido ofensivo, discriminatorio, ilícito o que contenga datos personales sensibles.</li>
+        <li>f) Utilizar el Sistema para fines distintos de la reserva de Espacios.</li>
+      </ul>
+      <p>El incumplimiento de este artículo faculta al CEQ a cancelar las Reservas involucradas y a adoptar las medidas previstas en el artículo 9, sin perjuicio de las acciones legales que correspondan.</p>
+
+      <h2>Artículo 12. Disponibilidad y limitación de responsabilidad</h2>
+      <p>12.1. El CEQ procurará que el Sistema funcione de manera continua y correcta, pero no garantiza su disponibilidad ininterrumpida ni la ausencia de errores. El Sistema puede verse afectado por mantenimiento, fallas técnicas, interrupciones de los proveedores de servicios o causas de fuerza mayor.</p>
+      <p>12.2. En la máxima medida permitida por la ley, el CEQ no será responsable por: (a) la imposibilidad de realizar o cancelar una Reserva por fallas del Sistema, de la conexión del Usuario o de terceros; (b) la falta de recepción de correos electrónicos por causas ajenas al CEQ, incluidas las que dependan del proveedor de correo del Usuario o de su carpeta de correo no deseado; (c) la pérdida de oportunidades derivada de la asignación de lugares por orden de llegada; ni (d) los daños que deriven del uso indebido de los Espacios por parte de los Usuarios.</p>
+      <p>12.3. Ante una discrepancia entre la información del Sistema y una decisión de la Comisión Directiva, prevalecerá la decisión de la Comisión Directiva. Ante errores técnicos evidentes (por ejemplo, dos Reservas para un mismo turno), el CEQ podrá corregirlos y lo comunicará a los Usuarios afectados.</p>
+      <p>12.4. Los Usuarios pueden informar fallas mediante la opción «Reportar un problema» del Sistema.</p>
+
+      <h2>Artículo 13. Propiedad intelectual</h2>
+      <p>El nombre, el logotipo y los signos distintivos del CEQ, así como el diseño y los contenidos del Sistema, pertenecen al CEQ o a sus respectivos titulares. No se otorga al Usuario ninguna licencia sobre ellos más allá del uso del Sistema conforme a estos Términos.</p>
+
+      <h2>Artículo 14. Comunicaciones</h2>
+      <p>El Usuario acepta que las comunicaciones relativas a sus Reservas (confirmaciones, recordatorios, cancelaciones y avisos) se realicen por correo electrónico a la dirección que haya registrado, y que estas se consideren válidamente efectuadas desde su envío.</p>
+
+      <h2>Artículo 15. Modificaciones</h2>
+      <p>El CEQ podrá modificar estos Términos en cualquier momento. La versión vigente se publicará en esta página, con indicación de su número de versión y fecha de vigencia. Las modificaciones no afectarán las Reservas ya confirmadas, salvo que sean necesarias por razones de seguridad o por disposición de autoridad competente. El uso del Sistema con posterioridad a la publicación implica la aceptación de la nueva versión.</p>
+
+      <h2>Artículo 16. Divisibilidad</h2>
+      <p>Si alguna disposición de estos Términos fuera declarada inválida o inaplicable, dicha circunstancia no afectará la validez de las restantes, que conservarán plena vigencia.</p>
+
+      <h2>Artículo 17. Ley aplicable y jurisdicción</h2>
+      <p>Estos Términos se rigen por las leyes de la República del Paraguay. Las partes procurarán resolver de buena fe cualquier controversia, en primer lugar, mediante comunicación con el CEQ y, de ser necesario, ante la Comisión Directiva. De no lograrse una solución, serán competentes los juzgados y tribunales de la República del Paraguay.</p>
+
+      <h2>Artículo 18. Contacto</h2>
+      <p>Para consultas, reclamos o notificaciones relativas a estos Términos: <a href="mailto:ceq.informatica@gmail.com">ceq.informatica@gmail.com</a>. Centro de Estudiantes de Química, Facultad de Ciencias Químicas, Universidad Nacional de Asunción, Campus Universitario, San Lorenzo, Paraguay.</p>
+
+      <p class="volver" style="margin-top:26px"><a href="https://reservas.ceq-una.com">← Volver a reservas</a></p>
+    </article>
+  </main>
+
+  <footer class="pie">
+    <div class="pie-in">
+      <div class="pie-marca">
+        <img src="logo-ceq.png" alt="Logo del CEQ">
+        <div>
+          <p class="pie-version">Sistema de Reservas del CEQ <b>v2.5a-34</b></p>
+          <p class="pie-copy">© <span id="anioCopy">2026</span> Centro de Estudiantes de Química <span class="sep">|</span> <span class="resto">Todos los derechos reservados</span></p>
+          <p class="pie-legal"><a href="terminos.html">Términos y condiciones</a><span class="sep">·</span><a href="privacidad.html">Política de privacidad</a></p>
+        </div>
+      </div>
+      <div class="pie-acciones">
+        <a class="pie-btn" href="https://reservas.ceq-una.com">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>
+          Hacer una reserva
+        </a>
+      </div>
+    </div>
+  </footer>
+  <script>document.getElementById('anioCopy').textContent = new Date().getFullYear();</script>
+</body>
+</html>

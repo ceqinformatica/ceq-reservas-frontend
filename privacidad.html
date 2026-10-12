@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de privacidad · Centro de Estudiantes de Química</title>
+<meta name="description" content="Qué datos guarda el sistema de reservas del Centro de Estudiantes de Química (CEQ-UNA), para qué se usan y cómo pedir que se borren.">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+
+  <style>
+    /* Mismo diseño que index.html (identidad de la web oficial del CEQ) */
+    :root {
+      --marino: #173874;
+      --azul: #3873CE;
+      --azul-hover: #2D62B5;
+      --cielo: #D6E6FA;
+      --tarjeta: #EFF7FE;
+      --blanco: #FFFFFF;
+      --texto: #1E1E1E;
+      --suave: #5A6B85;
+      --linea: #C9DBF3;
+      --lleno-bg: #FBE3E1;
+      --lleno: #B2392F;
+      --ok-bg: #E3F4EA;
+      --ok: #1D7A47;
+      --radio: 18px;
+      --radio-chico: 8px;
+      --f: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { font-family: var(--f); background: var(--cielo); color: var(--texto); font-size: 15px; line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; }
+    a { color: inherit; }
+    button { font-family: inherit; }
+    :focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+    /* Barra superior */
+    .topbar { background: var(--blanco); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 50; }
+    .topbar-in { max-width: 1200px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .marca { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--marino); }
+    .marca img { width: 40px; height: 40px; display: block; }
+    .marca b { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+    .menu { display: flex; align-items: center; gap: 22px; list-style: none; }
+    .menu a { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; color: var(--marino); text-decoration: none; padding: 6px 0; }
+    .menu a:hover { color: var(--azul); }
+    .menu .admin { border: 1px solid var(--marino); border-radius: 5px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .menu .admin svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Título */
+    .portada-in { max-width: 560px; width: 100%; margin: 0 auto; padding: 32px 20px 20px; }
+    .portada h1 { font-size: clamp(22px, 4vw, 32px); line-height: 1.1; font-weight: 600; text-transform: uppercase; color: var(--marino); letter-spacing: -.01em; }
+
+    /* Tarjeta */
+    main { flex: 1; width: 100%; max-width: 560px; margin: 0 auto; padding: 0 20px 48px; }
+    .panel { background: var(--tarjeta); border-radius: var(--radio); padding: 28px 24px; display: grid; gap: 18px; }
+    .titulo-seccion { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--marino); line-height: 1.2; }
+    .titulo-seccion::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; flex: none; }
+    .ayuda { color: var(--suave); font-size: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: var(--marino); }
+    .form-group input { width: 100%; padding: 14px; border-radius: var(--radio-chico); border: 1px solid var(--linea); background: var(--blanco); color: var(--marino); font: 600 18px var(--f); letter-spacing: .1em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+    .form-group input::placeholder { font-weight: 500; letter-spacing: .04em; color: #9AAAC2; text-transform: none; }
+    .form-group input:focus { outline: none; border-color: var(--azul); box-shadow: 0 0 0 3px rgba(56,115,206,.18); }
+    .btn-primary { background: var(--azul); color: var(--blanco); border: 0; border-radius: 5px; padding: 14px 18px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; }
+    .btn-primary:hover:not(:disabled) { background: var(--azul-hover); }
+    .btn-primary:disabled { background: #A9C0E6; cursor: not-allowed; }
+    .perdido { text-align: center; }
+    .perdido a { color: var(--marino); font-weight: 600; }
+    .volver { text-align: center; font-size: 14px; }
+    .volver a { color: var(--marino); font-weight: 600; text-decoration: none; }
+    .volver a:hover { color: var(--azul); text-decoration: underline; text-underline-offset: 3px; }
+
+    #formCodigo, #cancelarEnlace { display: grid; gap: 18px; }
+    [hidden] { display: none !important; }
+    .datos-reserva { background: var(--blanco); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; color: var(--marino); font-size: 15px; }
+    .datos-reserva strong { font-weight: 700; }
+
+    .status-message { display: none; padding: 12px 14px; border-radius: var(--radio-chico); font-size: 14px; font-weight: 500; }
+    .status-success { background: var(--ok-bg); color: var(--ok); }
+    .status-error { background: var(--lleno-bg); color: var(--lleno); }
+    .status-error a { color: var(--lleno); font-weight: 700; }
+
+    /* Pie (igual que index.html) */
+    .pie { background: var(--marino); color: #DCE7F7; }
+    .pie-in { max-width: 1200px; margin: 0 auto; padding: 28px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; align-items: center; }
+    .pie-marca { display: flex; gap: 14px; align-items: center; min-width: 0; }
+    .pie-marca img { width: 48px; height: 48px; background: var(--blanco); border-radius: 12px; padding: 4px; flex: none; }
+    .pie-version { font-size: 15px; font-weight: 600; color: var(--blanco); }
+    .pie-version b { font-weight: 600; font-size: 12px; background: rgba(255,255,255,.14); border-radius: 4px; padding: 2px 7px; margin-left: 6px; vertical-align: 1px; font-variant-numeric: tabular-nums; white-space: nowrap; display: inline-block; }
+    .pie-copy { color: #A9BEDF; font-size: 13px; margin-top: 3px; }
+    .pie-copy .sep { opacity: .5; margin: 0 4px; }
+    .pie-legal { font-size: 13px; margin-top: 4px; color: #A9BEDF; }
+    .pie-legal a { color: #D3E0F3; text-decoration: underline; text-decoration-color: rgba(211,224,243,.45); text-underline-offset: 3px; }
+    .pie-legal a:hover { color: var(--blanco); text-decoration-color: currentColor; }
+    .pie-legal .sep { opacity: .5; margin: 0 6px; }
+    .pie-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 22px; }
+    .pie-btn { display: inline-flex; align-items: center; gap: 7px; padding: 6px 0; color: #D3E0F3; font: 500 14px var(--f); text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; transition: color .15s, text-decoration-color .15s; }
+    .pie-btn:hover { color: var(--blanco); text-decoration-color: currentColor; }
+    .pie-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+    @media (min-width: 641px) and (max-width: 1000px) {
+      .pie-in { flex-wrap: nowrap; align-items: center; }
+      .pie-acciones { flex-direction: column; align-items: flex-end; gap: 2px; flex: none; padding-left: 24px; border-left: 1px solid rgba(255,255,255,.15); }
+      .pie-copy .sep { display: none; }
+      .pie-copy span.resto { display: block; }
+    }
+    @media (max-width: 640px) {
+      .topbar-in { padding: 8px 16px; }
+      .marca img { width: 34px; height: 34px; }
+      .marca b { font-size: 18px; }
+      .menu { gap: 14px; }
+      .menu a { font-size: 13px; }
+      .portada-in { padding: 22px 16px 16px; }
+      main { padding: 0 12px 32px; }
+      .panel { padding: 22px 16px; border-radius: 16px; }
+      .pie-in { padding: 28px 16px 22px; flex-direction: column; align-items: center; text-align: center; gap: 0; }
+      .pie-marca, .pie-marca > div { display: contents; }
+      .pie-marca img { order: 1; width: 52px; height: 52px; margin-bottom: 12px; }
+      .pie-version { order: 2; }
+      .pie-acciones { order: 3; justify-content: center; gap: 4px 18px; margin: 14px 0 18px; }
+      .pie-btn { font-size: 13px; }
+      .pie-legal { order: 5; width: 100%; margin-top: 6px; font-size: 12px; }
+      .pie-copy { order: 4; width: 100%; margin-top: 0; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.15); font-size: 12px; line-height: 1.6; }
+      .pie-copy .sep { display: none; }
+      .pie-copy span.resto { display: block; }
+    }
+  </style>
+  <style>
+    /* Páginas de texto (términos y privacidad) */
+    .portada-in, main { max-width: 760px; }
+    .texto { background: var(--tarjeta); border-radius: var(--radio); padding: 28px 28px 32px; color: var(--texto); }
+    .texto .fecha { color: var(--suave); font-size: 14px; margin-bottom: 18px; }
+    .texto h2 { font-size: 18px; font-weight: 700; color: var(--marino); margin: 26px 0 8px; line-height: 1.3; }
+    .texto h2:first-of-type { margin-top: 6px; }
+    .texto p { margin: 8px 0; }
+    .texto ul { margin: 8px 0 8px 22px; }
+    .texto li { margin: 4px 0; }
+    .texto ul.letras { list-style: none; margin-left: 4px; }
+    .texto a { color: var(--marino); font-weight: 600; }
+    .texto strong { color: var(--marino); }
+    .texto .nota { background: var(--blanco); border-left: 4px solid var(--azul); border-radius: var(--radio-chico); padding: 12px 14px; margin: 14px 0; }
+    @media (max-width: 640px) { .texto { padding: 22px 16px 26px; border-radius: 16px; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-in">
+      <a class="marca" href="https://cequna2.wordpress.com/" aria-label="Centro de Estudiantes de Química, ir a la web">
+        <img src="logo-ceq.png" alt="">
+        <b>CEQ</b>
+      </a>
+      <nav aria-label="Principal">
+        <ul class="menu">
+          <li><a href="https://reservas.ceq-una.com">Reservas</a></li>
+          <li><a class="admin" href="https://reservas.ceq-una.com/admin.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Admin</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <section class="portada">
+    <div class="portada-in">
+      <h1>Política de privacidad</h1>
+    </div>
+  </section>
+
+  <main>
+    <article class="texto">
+      <p class="fecha">Versión 1.0 · Vigente desde el 11 de octubre de 2026</p>
+      <p>La presente Política de Privacidad (en adelante, la «Política») informa de qué manera el <strong>Centro de Estudiantes de Química de la Facultad de Ciencias Químicas de la Universidad Nacional de Asunción</strong> (en adelante, el «CEQ») recolecta, utiliza, almacena, comunica y protege los datos personales de las personas que utilizan el sistema de reservas disponible en <strong>reservas.ceq-una.com</strong> (en adelante, el «Sistema»), así como los derechos que les asisten. Los términos con mayúscula inicial tienen el significado que les asignan los <a href="terminos.html">Términos y Condiciones</a>.</p>
+
+      <h2>Artículo 1. Marco normativo</h2>
+      <p>El tratamiento de datos personales se realiza conforme a la Constitución Nacional, en particular sus artículos 33 (derecho a la intimidad) y 135 (habeas data); a la Ley N° 1682/2001 «Que reglamenta la información de carácter privado» y sus modificaciones; y a la Ley N° 7593/2025 «De Protección de Datos Personales», a cuyos principios el CEQ se adecua desde la vigencia de esta Política, así como a las demás normas aplicables y a las que las modifiquen o reglamenten.</p>
+
+      <h2>Artículo 2. Responsable del tratamiento</h2>
+      <p>El responsable del tratamiento es el Centro de Estudiantes de Química, con domicilio en la Facultad de Ciencias Químicas, Universidad Nacional de Asunción, Campus Universitario, San Lorenzo, Paraguay. El tratamiento es gestionado por su Secretaría de Informática. Canal de contacto para cualquier asunto relativo a datos personales: <a href="mailto:ceq.informatica@gmail.com">ceq.informatica@gmail.com</a>.</p>
+
+      <h2>Artículo 3. Datos personales que se tratan</h2>
+      <ul class="letras">
+        <li>a) <strong>Datos de la Reserva:</strong> nombre y apellido, número de celular, correo electrónico, motivo, Espacio, fecha y horario.</li>
+        <li>b) <strong>Datos de acompañantes</strong> (solo Altillo): nombre y número de celular de hasta cuatro (4) personas.</li>
+        <li>c) <strong>Datos de gestión:</strong> fecha y hora de creación de la Reserva; en su caso, fecha, autor y motivo de la cancelación; registro de asistencia; código de cancelación, que se almacena exclusivamente de forma cifrada e irreversible.</li>
+        <li>d) <strong>Lista de espera:</strong> correo electrónico y Espacio de interés.</li>
+        <li>e) <strong>Reportes de problemas:</strong> el texto que el Usuario redacte y, de manera opcional, la página y el navegador desde los que se envía.</li>
+        <li>f) <strong>Datos técnicos:</strong> dirección IP y fecha y hora de los accesos, que se tratan de forma automática para la seguridad del Sistema y la prevención de abusos.</li>
+      </ul>
+      <p>El CEQ <strong>no solicita datos sensibles</strong> (por ejemplo, relativos a la salud, la religión, la ideología o la orientación sexual). El Usuario debe abstenerse de incluirlos en el motivo, en los reportes o en cualquier otro campo de texto libre.</p>
+
+      <h2>Artículo 4. Finalidades</h2>
+      <p>Los datos se tratan exclusivamente para las siguientes finalidades:</p>
+      <ul class="letras">
+        <li>a) Gestionar las Reservas, la lista de espera y el uso ordenado de los Espacios.</li>
+        <li>b) Verificar el cumplimiento de los límites de Reservas por persona.</li>
+        <li>c) Enviar comunicaciones vinculadas con el servicio: confirmación, código y enlace de cancelación, recordatorio, avisos de la lista de espera y notificaciones de cancelación.</li>
+        <li>d) Contactar al Usuario ante cambios o incidencias relativas a su Reserva.</li>
+        <li>e) Elaborar estadísticas internas de uso de los Espacios, de manera agregada.</li>
+        <li>f) Proteger la seguridad del Sistema, prevenir usos abusivos y atender los reportes de problemas.</li>
+      </ul>
+      <p>Los datos <strong>no se utilizan con fines publicitarios ni comerciales, no se venden ni se ceden a terceros</strong>, y no se someten a decisiones automatizadas que produzcan efectos jurídicos sobre el Usuario, con excepción de la aplicación automática de las reglas de reserva descritas en los Términos.</p>
+
+      <h2>Artículo 5. Bases de legitimación</h2>
+      <p>El tratamiento se basa en: (a) el <strong>consentimiento</strong> libre, previo, expreso e informado del Usuario, que se otorga al realizar una Reserva, anotarse en la lista de espera o enviar un reporte, previa puesta a disposición de esta Política; (b) la necesidad de <strong>prestar el servicio solicitado</strong> por el Usuario; y (c) el <strong>interés legítimo</strong> del CEQ en la seguridad del Sistema y en la organización de sus Espacios.</p>
+
+      <h2>Artículo 6. Datos de terceros</h2>
+      <p>Cuando el Usuario proporciona datos de acompañantes u otras personas, declara bajo su responsabilidad que cuenta con su consentimiento para hacerlo y que les ha informado del contenido de esta Política. El CEQ suprimirá dichos datos a solicitud de su titular.</p>
+
+      <h2>Artículo 7. Publicidad del calendario</h2>
+      <p>7.1. Para garantizar la transparencia en la asignación de los Espacios, el calendario público del Sistema muestra el <strong>nombre</strong> de quien reservó y el <strong>motivo</strong> de cada Reserva activa. La publicación de estos dos datos es una condición necesaria del servicio: el Usuario es informado de ello antes de reservar y lo acepta expresamente al confirmar la Reserva.</p>
+      <p>7.2. El número de celular, el correo electrónico, los datos de los acompañantes y el código de cancelación <strong>nunca</strong> se publican.</p>
+
+      <h2>Artículo 8. Destinatarios y acceso</h2>
+      <p>8.1. Acceden a los datos completos únicamente los Moderadores y la Secretaría de Informática del CEQ, mediante un panel protegido por contraseña, y en la medida necesaria para sus funciones. Quienes acceden están obligados a guardar confidencialidad.</p>
+      <p>8.2. El CEQ mantiene una planilla interna de gestión que no contiene números de celular ni correos electrónicos.</p>
+      <p>8.3. Los datos podrán ser comunicados a autoridades competentes cuando exista una obligación legal o una orden judicial.</p>
+
+      <h2>Artículo 9. Proveedores de servicios y transferencias internacionales</h2>
+      <p>9.1. Para el funcionamiento del Sistema, el CEQ utiliza proveedores que tratan los datos por su cuenta y siguiendo sus instrucciones, exclusivamente para prestar el servicio: Supabase (base de datos), Render (servidor), Vercel (alojamiento de las páginas), Brevo (envío de correos electrónicos), Cloudflare (dominio y red), Google (planilla interna, copias de seguridad y tipografías del sitio) y UptimeRobot (monitoreo de disponibilidad).</p>
+      <p>9.2. Algunos de estos proveedores almacenan o procesan los datos fuera del Paraguay, principalmente en los Estados Unidos de América. El CEQ selecciona proveedores que aplican medidas de seguridad reconocidas internacionalmente, como el cifrado de las comunicaciones. Al aceptar esta Política, el Usuario consiente expresamente dichas transferencias internacionales.</p>
+
+      <h2>Artículo 10. Plazos de conservación</h2>
+      <ul class="letras">
+        <li>a) <strong>Datos de las Reservas y de los acompañantes:</strong> durante el tiempo necesario para la gestión de la Reserva y, posteriormente, como registro del uso de los Espacios, por un plazo máximo de seis (6) meses —un semestre— contados desde la fecha de la Reserva. Vencido ese plazo, el nombre, los datos de contacto, los datos de los acompañantes y los textos libres se suprimen de forma automática, y solo se conserva información estadística que no permite identificar a las personas.</li>
+        <li>b) <strong>Copias de seguridad:</strong> se generan mensualmente, se almacenan en un espacio privado del CEQ y se conservan por el mismo plazo máximo de seis (6) meses.</li>
+        <li>c) <strong>Lista de espera:</strong> la inscripción se elimina automáticamente a los siete (7) días de enviado el aviso o a los sesenta (60) días de su registro si no se envió ningún aviso.</li>
+        <li>d) <strong>Reportes de problemas:</strong> hasta su resolución y, como máximo, durante seis (6) meses.</li>
+        <li>e) <strong>Datos técnicos:</strong> durante el plazo breve que establecen los registros de los proveedores, solo con fines de seguridad.</li>
+      </ul>
+      <p>Lo anterior se aplica sin perjuicio de la conservación que resulte necesaria para atender obligaciones legales o el ejercicio o la defensa de derechos.</p>
+
+      <h2>Artículo 11. Derechos del titular</h2>
+      <p>11.1. El titular de los datos puede ejercer, en forma gratuita, los derechos de <strong>acceso</strong>, <strong>rectificación</strong>, <strong>actualización</strong>, <strong>supresión</strong> y <strong>oposición</strong> al tratamiento, así como revocar su consentimiento y ejercer los demás derechos que le reconozca la legislación vigente, incluida la garantía constitucional de habeas data.</p>
+      <p>11.2. <strong>Procedimiento:</strong> la solicitud se dirige por correo electrónico a <a href="mailto:ceq.informatica@gmail.com">ceq.informatica@gmail.com</a>, preferentemente desde la dirección registrada en la Reserva, indicando el derecho que se ejerce y los datos a los que se refiere. El CEQ podrá solicitar información adicional razonable para verificar la identidad del solicitante. El CEQ responderá en un plazo máximo de quince (15) días hábiles desde la recepción de la solicitud.</p>
+      <p>11.3. La supresión de los datos de una Reserva activa, así como la oposición a la publicación del nombre y del motivo prevista en el artículo 7, implican la cancelación de dicha Reserva. La revocación del consentimiento no afecta la licitud del tratamiento realizado con anterioridad.</p>
+      <p>11.4. Si el titular considera que su solicitud no fue debidamente atendida, podrá recurrir ante la autoridad de control competente o ante los órganos jurisdiccionales de la República del Paraguay.</p>
+
+      <h2>Artículo 12. Medidas de seguridad</h2>
+      <p>12.1. El CEQ aplica medidas técnicas y organizativas razonables para proteger los datos contra su pérdida, alteración, acceso no autorizado o divulgación, entre ellas: cifrado de todas las comunicaciones (HTTPS); almacenamiento cifrado e irreversible de los códigos de cancelación; acceso al panel restringido mediante contraseñas cifradas, sesiones con vencimiento y protección contra solicitudes falsificadas; restricción del acceso a la base de datos exclusivamente al servidor del Sistema; límites de solicitudes para prevenir abusos; y copias de seguridad periódicas.</p>
+      <p>12.2. Ningún sistema es completamente invulnerable. En caso de un incidente de seguridad que afecte datos personales, el CEQ adoptará sin demora las medidas necesarias para mitigarlo, lo comunicará a los titulares afectados y, cuando corresponda, a la autoridad competente.</p>
+
+      <h2>Artículo 13. Cookies y almacenamiento local</h2>
+      <p>13.1. Las páginas públicas del Sistema <strong>no utilizan cookies</strong> de seguimiento, de análisis ni de publicidad. Únicamente guardan en el navegador del Usuario, durante la sesión, la indicación de que ya fue mostrado un aviso, para no repetirlo.</p>
+      <p>13.2. El panel de administración utiliza cookies técnicas, estrictamente necesarias, para mantener la sesión de los Moderadores.</p>
+      <p>13.3. Las tipografías del sitio se cargan desde los servidores de Google, que recibe la dirección IP del visitante para entregarlas.</p>
+
+      <h2>Artículo 14. Menores de edad</h2>
+      <p>El Sistema está dirigido a la comunidad universitaria. Los datos de personas menores de dieciocho (18) años solo podrán proporcionarse con la autorización de su padre, madre o tutor.</p>
+
+      <h2>Artículo 15. Modificaciones</h2>
+      <p>El CEQ podrá modificar esta Política para adecuarla a cambios normativos o del Sistema. La versión vigente se publicará en esta página, con indicación de su número de versión y fecha de vigencia. Cuando los cambios sean sustanciales, se informarán de manera visible en el Sistema.</p>
+
+      <h2>Artículo 16. Contacto</h2>
+      <p>Para cualquier consulta sobre esta Política o sobre el tratamiento de sus datos: <a href="mailto:ceq.informatica@gmail.com">ceq.informatica@gmail.com</a>. Centro de Estudiantes de Química, Facultad de Ciencias Químicas, Universidad Nacional de Asunción, Campus Universitario, San Lorenzo, Paraguay.</p>
+
+      <p class="volver" style="margin-top:26px"><a href="https://reservas.ceq-una.com">← Volver a reservas</a></p>
+    </article>
+  </main>
+
+  <footer class="pie">
+    <div class="pie-in">
+      <div class="pie-marca">
+        <img src="logo-ceq.png" alt="Logo del CEQ">
+        <div>
+          <p class="pie-version">Sistema de Reservas del CEQ <b>v2.5a-34</b></p>
+          <p class="pie-copy">© <span id="anioCopy">2026</span> Centro de Estudiantes de Química <span class="sep">|</span> <span class="resto">Todos los derechos reservados</span></p>
+          <p class="pie-legal"><a href="terminos.html">Términos y condiciones</a><span class="sep">·</span><a href="privacidad.html">Política de privacidad</a></p>
+        </div>
+      </div>
+      <div class="pie-acciones">
+        <a class="pie-btn" href="https://reservas.ceq-una.com">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>
+          Hacer una reserva
+        </a>
+      </div>
+    </div>
+  </footer>
+  <script>document.getElementById('anioCopy').textContent = new Date().getFullYear();</script>
+</body>
+</html>

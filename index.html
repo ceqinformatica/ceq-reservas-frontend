@@ -204,6 +204,7 @@
     .btn-primary:hover:not(:disabled) { background: var(--azul-hover); }
     .btn-primary:disabled { background: #A9C0E6; cursor: not-allowed; }
     .ayuda { font-size: 12px; color: var(--suave); text-align: center; margin-top: -6px; }
+    .ayuda a { color: var(--marino); }
 
     .status-message { padding: 12px 14px; border-radius: var(--radio-chico); font-size: 14px; font-weight: 500; }
     .status-message:empty { display: none; }
@@ -219,6 +220,10 @@
     .pie-version b { font-weight: 600; font-size: 12px; background: rgba(255,255,255,.14); border-radius: 4px; padding: 2px 7px; margin-left: 6px; vertical-align: 1px; font-variant-numeric: tabular-nums; white-space: nowrap; display: inline-block; }
     .pie-copy { color: #A9BEDF; font-size: 13px; margin-top: 3px; }
     .pie-copy .sep { opacity: .5; margin: 0 4px; }
+    .pie-legal { font-size: 13px; margin-top: 4px; color: #A9BEDF; }
+    .pie-legal a { color: #D3E0F3; text-decoration: underline; text-decoration-color: rgba(211,224,243,.45); text-underline-offset: 3px; }
+    .pie-legal a:hover { color: var(--blanco); text-decoration-color: currentColor; }
+    .pie-legal .sep { opacity: .5; margin: 0 6px; }
     /* Enlaces simples con ícono, sin caja: discretos, como el pie de la web del CEQ */
     .pie-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 22px; }
     .pie-btn { display: inline-flex; align-items: center; gap: 7px; background: none; border: 0; padding: 6px 0; color: #D3E0F3; font: 500 14px var(--f); cursor: pointer; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; transition: color .15s, text-decoration-color .15s; }
@@ -286,6 +291,7 @@
       .pie-version { order: 2; }
       .pie-acciones { order: 3; justify-content: center; gap: 4px 18px; margin: 14px 0 18px; }
       .pie-btn { font-size: 13px; }
+      .pie-legal { order: 5; width: 100%; margin-top: 6px; font-size: 12px; }
       .pie-copy { order: 4; width: 100%; margin-top: 0; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.15); font-size: 12px; line-height: 1.6; }
       .pie-copy .sep { display: none; }
       .pie-copy span.resto { display: block; }
@@ -419,7 +425,7 @@
       </div>
 
       <button class="btn-primary" id="btnReservar" disabled>Crear reserva</button>
-      <p class="ayuda">Te llega un email con tu código para cancelar. En el Frente, la cancelación es gratis hasta 2 días antes de la fecha; después, solo por WhatsApp. Máximo <span id="maxPorPersona">2</span> reservas por persona por mes.</p>
+      <p class="ayuda">Te llega un email con tu código para cancelar. En el Frente, la cancelación es gratis hasta 2 días antes de la fecha; después, solo por WhatsApp. Máximo <span id="maxPorPersona">2</span> reservas por persona por mes. Al reservar aceptás los <a href="terminos.html">términos y condiciones</a> y la <a href="privacidad.html">política de privacidad</a>.</p>
     </section>
   </main>
 
@@ -1887,6 +1893,7 @@
         <div>
           <p class="pie-version">Sistema de Reservas del CEQ <b>v2.5a-34</b></p>
           <p class="pie-copy">© <span id="anioCopy">2026</span> Centro de Estudiantes de Química <span class="sep">|</span> <span class="resto">Todos los derechos reservados</span></p>
+          <p class="pie-legal"><a href="terminos.html">Términos y condiciones</a><span class="sep">·</span><a href="privacidad.html">Política de privacidad</a></p>
         </div>
       </div>
       <div class="pie-acciones">
