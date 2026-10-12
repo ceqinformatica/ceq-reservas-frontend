@@ -237,6 +237,12 @@
     .modal-caja h3::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; }
     .modal-caja p { color: var(--texto); font-size: 15px; }
     #textoAvisoEspacio { display: grid; gap: 14px; }
+    .cuerpo-novedades { display: grid; gap: 14px; }
+    .novedades { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .novedades li { background: var(--tarjeta); border-left: 3px solid var(--azul); border-radius: 10px; padding: 10px 14px; font-size: 14px; color: var(--texto); }
+    .novedades li strong { color: var(--marino); display: block; margin-bottom: 2px; }
+    .modal-caja .nota-legal { font-size: 14px; }
+    .cuerpo-novedades a { color: var(--azul); font-weight: 600; }
     .modal-caja .datos-reserva { background: var(--tarjeta); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; color: var(--marino); }
     .codigo { font-size: 24px; font-weight: 700; letter-spacing: .12em; text-align: center; color: var(--marino); background: var(--tarjeta); border: 2px dashed var(--azul); border-radius: 12px; padding: 12px; user-select: all; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
     .modal-botones { display: flex; gap: 10px; }
@@ -439,6 +445,8 @@
     let avisosEspacios = {
       1: 'Por el momento, las reservas del Altillo se gestionan de forma manual, ya que la persona encargada actualmente no cuenta con una computadora para administrarlas a través de este sistema.\n\nPara reservar este espacio, anotate en la planilla correspondiente. Cuando se restablezca el acceso, el Altillo va a volver a estar disponible acá.'
     };
+    let mostrarAvisoEspacio = {}; // false: el espacio está deshabilitado sin ventana al entrar
+    let ventanaNovedades = null;   // viene de /api/configuracion (ver mostrarNovedades)
     let diaSeleccionado = null;
     let horasSeleccionadas = [];
     let reservasActuales = [];
@@ -571,6 +579,8 @@
           ALTILLO = { hora_desde: a.hora_desde, hora_hasta: a.hora_hasta, max_horas: a.max_horas };
         }
         if (Number.isInteger(datos.max_acompanantes) && datos.max_acompanantes >= 0) MAX_ACOMPANANTES = datos.max_acompanantes;
+        const v = datos.ventana_novedades;
+        ventanaNovedades = v && typeof v.titulo === 'string' && typeof v.version === 'string' ? v : null;
       } catch (error) {
         console.error('Error al cargar la configuración:', error);
       }
@@ -931,6 +941,7 @@
           if (typeof e.publico !== 'boolean') return;
           espaciosPublicos[e.id] = e.publico;
           avisosEspacios[e.id] = e.aviso || '';
+          mostrarAvisoEspacio[e.id] = e.mostrar_aviso !== false;
         });
       } catch (error) {
         console.error('Error al cargar los espacios:', error);
@@ -1003,8 +1014,8 @@
       const yaVisto = id => {
         try { return sessionStorage.getItem(`avisoEspacioVisto${id}`) === '1'; } catch (e) { return false; }
       };
-      const pendientes = [3, 1].filter(id => espaciosPublicos[id] !== true && avisosEspacios[id] && !yaVisto(id));
-      if (pendientes.length === 0) return;
+      const pendientes = [3, 1].filter(id => espaciosPublicos[id] !== true && avisosEspacios[id] && mostrarAvisoEspacio[id] !== false && !yaVisto(id));
+      if (pendientes.length === 0) { mostrarNovedades(); return; }
 
       document.getElementById('tituloAvisoEspacio').textContent = pendientes.length === 1
         ? `Reservas del ${espacios[pendientes[0]]}`
@@ -1920,6 +1931,16 @@
     </div>
   </div>
 
+  <!-- MODAL NOVEDADES (el contenido lo arma mostrarNovedades(); se escribe en el panel:
+       admin supremo > Avanzado > Ventana de novedades) -->
+  <div id="modalNovedades" class="modal" style="z-index: 1100;">
+    <div class="modal-caja" role="dialog" aria-modal="true" aria-labelledby="tituloNovedades">
+      <h3 id="tituloNovedades"></h3>
+      <div id="cuerpoNovedades" class="cuerpo-novedades"></div>
+      <button id="btnCerrarNovedades" class="btn-primary" onclick="cerrarNovedades()">Entendido</button>
+    </div>
+  </div>
+
   <!-- MODAL CONFIRMACIÓN DE RESERVA -->
   <div id="modalConfirmacion" class="modal" style="z-index: 1200;">
     <div class="modal-caja" role="dialog" aria-modal="true" aria-labelledby="tituloConfirmacion">
@@ -2057,6 +2078,75 @@
       (modal.dataset.espacios || '').split(',').filter(Boolean).forEach(id => {
         try { sessionStorage.setItem(`avisoEspacioVisto${id}`, '1'); } catch (e) { /* sin almacenamiento: se vuelve a mostrar */ }
       });
+      mostrarNovedades();
+    }
+
+    // Ventana de novedades: la escribe el admin supremo (Avanzado > Ventana de novedades) y llega
+    // en /api/configuracion. Se muestra una vez por navegador y por versión, después del aviso de
+    // espacios (si lo hay). Todo el texto va con textContent: nunca se interpreta como HTML.
+    let novedadesVistasAhora = false;
+
+    // Escribe un texto en `el`; las frases "términos y condiciones" y "política de privacidad"
+    // se convierten en enlaces a esas páginas
+    function textoConEnlacesLegales(el, texto) {
+      const enlaces = { 'términos y condiciones': 'terminos.html', 'política de privacidad': 'privacidad.html' };
+      String(texto).split(/(t[ée]rminos y condiciones|pol[íi]tica de privacidad)/i).forEach(parte => {
+        const destino = enlaces[parte.toLowerCase().replace('terminos', 'términos').replace('politica', 'política')];
+        if (destino) {
+          const a = document.createElement('a');
+          a.href = destino;
+          a.textContent = parte;
+          el.appendChild(a);
+        } else if (parte) {
+          el.appendChild(document.createTextNode(parte));
+        }
+      });
+    }
+
+    function mostrarNovedades() {
+      const v = ventanaNovedades;
+      if (!v || novedadesVistasAhora) return;
+      try { if (localStorage.getItem('novedadesVistas') === v.version) return; } catch (e) { /* se muestra */ }
+      const abierta = id => document.getElementById(id).style.display === 'flex';
+      if (abierta('modalConfirmacion') || abierta('modalReporte') || abierta('modalAvisoEspacio')) return;
+
+      document.getElementById('tituloNovedades').textContent = v.titulo;
+      const cuerpo = document.getElementById('cuerpoNovedades');
+      cuerpo.replaceChildren();
+      const parrafos = (texto, clase) => String(texto || '').split(/\n\s*\n/).forEach(t => {
+        if (!t.trim()) return;
+        const p = document.createElement('p');
+        if (clase) p.className = clase;
+        textoConEnlacesLegales(p, t.trim());
+        cuerpo.appendChild(p);
+      });
+      parrafos(v.intro);
+      const bloques = Array.isArray(v.bloques) ? v.bloques : [];
+      if (bloques.length > 0) {
+        const ul = document.createElement('ul');
+        ul.className = 'novedades';
+        bloques.forEach(b => {
+          const li = document.createElement('li');
+          if (b.titulo) {
+            const strong = document.createElement('strong');
+            strong.textContent = b.titulo;
+            li.appendChild(strong);
+          }
+          if (b.texto) textoConEnlacesLegales(li, b.texto);
+          ul.appendChild(li);
+        });
+        cuerpo.appendChild(ul);
+      }
+      parrafos(v.cierre, 'nota-legal');
+      document.getElementById('modalNovedades').dataset.version = v.version;
+      document.getElementById('modalNovedades').style.display = 'flex';
+    }
+
+    function cerrarNovedades() {
+      const modal = document.getElementById('modalNovedades');
+      modal.style.display = 'none';
+      novedadesVistasAhora = true;
+      try { localStorage.setItem('novedadesVistas', modal.dataset.version || ''); } catch (e) { /* sin almacenamiento: solo por esta visita */ }
     }
 
     // Tecla Escape: cierra la ventana que esté abierta más arriba, igual que su botón
@@ -2066,6 +2156,7 @@
       const abierta = id => document.getElementById(id).style.display === 'flex';
       if (abierta('modalConfirmacion')) cerrarConfirmacionReserva();
       else if (abierta('modalAvisoEspacio')) cerrarAvisoEspacio();
+      else if (abierta('modalNovedades')) cerrarNovedades();
       else if (abierta('modalReporte') && !document.getElementById('btnCancelarReporte').disabled) cerrarModalReporte();
     });
 

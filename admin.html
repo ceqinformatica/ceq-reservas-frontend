@@ -247,6 +247,28 @@
     .espacio-card label.check input { width: 18px; height: 18px; accent-color: var(--azul); }
     .espacio-card textarea { width: 100%; min-height: 96px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font-size: 14px; resize: vertical; }
     .espacio-card .etiqueta { font-size: 13px; font-weight: 600; color: var(--marino); }
+    .espacio-card .ayuda { font-size: 12.5px; color: var(--suave); margin-top: -4px; }
+    /* Ventana de novedades: editor a la izquierda y vista previa a la derecha */
+    .novedades-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+    @media (max-width: 860px) { .novedades-editor { grid-template-columns: 1fr; } }
+    .espacio-card input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font-size: 14px; }
+    .espacio-card textarea.corto { min-height: 64px; }
+    .bloque-editor { border-left: 3px solid var(--azul); background: var(--tarjeta); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; }
+    .bloque-cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--marino); }
+    .bloque-cab div { display: flex; gap: 6px; }
+    .novedades-estado { font-size: 14px; font-weight: 600; }
+    .novedades-botones { display: flex; flex-wrap: wrap; gap: 10px; }
+    .vista-titulo { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--suave); }
+    .vista-caja { background: var(--blanco); border-radius: var(--radio); padding: 28px; display: grid; gap: 14px; box-shadow: 0 10px 30px rgba(23,56,116,.15); position: sticky; top: 16px; }
+    .vista-caja h4 { display: flex; align-items: center; gap: 10px; font-size: 20px; color: var(--marino); margin: 0; }
+    .vista-caja h4::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; flex: none; }
+    .vista-caja p { font-size: 15px; color: var(--texto); }
+    .vista-caja ul { display: grid; gap: 10px; list-style: none; }
+    .vista-caja li { background: var(--tarjeta); border-left: 3px solid var(--azul); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+    .vista-caja li strong { color: var(--marino); display: block; margin-bottom: 2px; }
+    .vista-caja .nota-legal { font-size: 14px; }
+    .vista-caja a { color: var(--azul); font-weight: 600; }
+    .vista-caja .vista-boton { background: var(--azul); color: var(--blanco); border-radius: 8px; padding: 12px; text-align: center; font-weight: 600; }
     .acciones-lista { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; font-size: 14px; }
     .acciones-lista label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--marino); font-weight: 600; }
     .acciones-lista input, .tabla-seleccion input { width: 17px; height: 17px; accent-color: var(--azul); cursor: pointer; }
@@ -640,9 +662,44 @@
           <h3>Espacios</h3>
           <p class="nota">
             Elegí qué espacios se pueden reservar desde la página. Cuando uno no está disponible,
-            su botón aparece como "No disponible" y, al entrar a la página, se muestra el aviso que escribas acá.
+            su botón aparece como "No disponible" y, si marcás "Mostrar este aviso al entrar", aparece
+            una ventana con el aviso que escribas acá. Si no, se deshabilita sin ninguna ventana.
           </p>
           <div id="espaciosAdmin" class="espacios-grid"></div>
+
+          <h3 class="mt">Ventana de novedades</h3>
+          <p class="nota">
+            La ventana que aparece al entrar a la página para contar novedades. Cada persona la ve una
+            sola vez: cuando toca "Entendido" no le vuelve a salir, salvo que publiques una nueva.
+            Las frases "Términos y condiciones" y "Política de privacidad" se convierten solas en enlaces.
+          </p>
+          <div class="novedades-editor">
+            <div class="espacio-card">
+              <p class="novedades-estado" id="novedadesEstado"></p>
+              <label class="etiqueta" for="novTitulo">Título</label>
+              <input type="text" id="novTitulo" maxlength="80" placeholder="Ej: ¡Actualizamos la página de reservas!">
+              <label class="etiqueta" for="novIntro">Texto de introducción (opcional)</label>
+              <textarea id="novIntro" class="corto" maxlength="600" placeholder="Ej: Esto es lo nuevo:"></textarea>
+              <span class="etiqueta">Bloques</span>
+              <p class="ayuda">Cada bloque es un recuadro con un título en negrita y un texto corto (hasta 6).</p>
+              <div id="novBloques" style="display:grid; gap:10px;"></div>
+              <button class="btn-small" type="button" onclick="agregarBloqueNovedades()">+ Agregar bloque</button>
+              <label class="etiqueta" for="novCierre">Texto final (opcional)</label>
+              <textarea id="novCierre" maxlength="600" placeholder="Ej: Antes de reservar, leé los Términos y condiciones y la Política de privacidad."></textarea>
+              <p class="ayuda">Para separar párrafos, dejá una línea en blanco.</p>
+              <label class="check"><input type="checkbox" id="novVolver" checked> Mostrarla de nuevo a quienes ya la cerraron</label>
+              <p class="ayuda">Desmarcalo si solo corregís un error de tipeo y no querés que la vean otra vez.</p>
+              <div class="novedades-botones">
+                <button class="btn-small" type="button" onclick="guardarNovedades(true)">Publicar</button>
+                <button class="btn-small btn-cancel" type="button" onclick="guardarNovedades(false)">Quitar de la página</button>
+              </div>
+              <p class="config-mensaje" id="novedadesMensaje" role="status"></p>
+            </div>
+            <div>
+              <p class="vista-titulo">Vista previa</p>
+              <div class="vista-caja" id="novVista"></div>
+            </div>
+          </div>
 
           <h3 class="mt">Eliminar reservas canceladas</h3>
           <p class="nota">
@@ -2290,9 +2347,193 @@
         document.getElementById('configEmailFrente').value = c.contacto_email_frente;
         document.getElementById('configWhatsapp').value = c.contacto_whatsapp_frente;
         document.getElementById('configEmailAlertas').value = c.email_alertas;
+        llenarNovedades(c.ventana_novedades);
       } catch (error) {
         console.error('Error cargando la configuración:', error);
         mensajeConfig('No se pudo cargar la configuración.', 'error');
+      }
+    }
+
+    // --- Ventana de novedades (la que aparece al entrar a la página) ---
+    const MAX_BLOQUES_NOVEDADES = 6;
+
+    function mensajeNovedades(texto, tipo) {
+      const p = document.getElementById('novedadesMensaje');
+      p.className = 'config-mensaje' + (tipo ? ' ' + tipo : '');
+      p.textContent = texto;
+    }
+
+    function llenarNovedades(v) {
+      v = v || { activa: false, titulo: '', intro: '', bloques: [], cierre: '' };
+      const estado = document.getElementById('novedadesEstado');
+      estado.textContent = v.activa ? '● Se está mostrando en la página' : '○ No se muestra en la página';
+      estado.style.color = v.activa ? 'var(--ok)' : 'var(--suave)';
+      document.getElementById('novTitulo').value = v.titulo || '';
+      document.getElementById('novIntro').value = v.intro || '';
+      document.getElementById('novCierre').value = v.cierre || '';
+      document.getElementById('novBloques').replaceChildren(...(v.bloques || []).map(b => filaBloqueNovedades(b)));
+      vistaPreviaNovedades();
+    }
+
+    function filaBloqueNovedades(b = { titulo: '', texto: '' }) {
+      const fila = document.createElement('div');
+      fila.className = 'bloque-editor';
+      const cab = document.createElement('div');
+      cab.className = 'bloque-cab';
+      const nombre = document.createElement('span');
+      const botones = document.createElement('div');
+      const boton = (texto, etiqueta, accion) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-small';
+        btn.textContent = texto;
+        btn.setAttribute('aria-label', etiqueta);
+        btn.addEventListener('click', () => { accion(); numerarBloques(); vistaPreviaNovedades(); });
+        return btn;
+      };
+      botones.append(
+        boton('↑', 'Subir bloque', () => fila.previousElementSibling && fila.parentElement.insertBefore(fila, fila.previousElementSibling)),
+        boton('↓', 'Bajar bloque', () => fila.nextElementSibling && fila.parentElement.insertBefore(fila.nextElementSibling, fila)),
+        boton('Quitar', 'Quitar bloque', () => fila.remove())
+      );
+      cab.append(nombre, botones);
+      const titulo = document.createElement('input');
+      titulo.type = 'text';
+      titulo.maxLength = 60;
+      titulo.placeholder = 'Título del bloque (ej: Lista de espera)';
+      titulo.value = b.titulo || '';
+      titulo.dataset.campo = 'titulo';
+      titulo.setAttribute('aria-label', 'Título del bloque');
+      const texto = document.createElement('textarea');
+      texto.className = 'corto';
+      texto.maxLength = 400;
+      texto.placeholder = 'Texto del bloque';
+      texto.value = b.texto || '';
+      texto.dataset.campo = 'texto';
+      texto.setAttribute('aria-label', 'Texto del bloque');
+      fila.append(cab, titulo, texto);
+      setTimeout(numerarBloques);
+      return fila;
+    }
+
+    function numerarBloques() {
+      document.querySelectorAll('#novBloques .bloque-editor').forEach((f, i) => {
+        f.querySelector('.bloque-cab span').textContent = `Bloque ${i + 1}`;
+      });
+    }
+
+    function agregarBloqueNovedades() {
+      const cont = document.getElementById('novBloques');
+      if (cont.children.length >= MAX_BLOQUES_NOVEDADES) {
+        alert(`Se pueden tener hasta ${MAX_BLOQUES_NOVEDADES} bloques.`);
+        return;
+      }
+      const fila = filaBloqueNovedades();
+      cont.appendChild(fila);
+      numerarBloques();
+      fila.querySelector('input').focus();
+      vistaPreviaNovedades();
+    }
+
+    function leerNovedades() {
+      return {
+        titulo: document.getElementById('novTitulo').value.trim(),
+        intro: document.getElementById('novIntro').value.trim(),
+        bloques: [...document.querySelectorAll('#novBloques .bloque-editor')].map(f => ({
+          titulo: f.querySelector('[data-campo="titulo"]').value.trim(),
+          texto: f.querySelector('[data-campo="texto"]').value.trim()
+        })).filter(b => b.titulo || b.texto),
+        cierre: document.getElementById('novCierre').value.trim()
+      };
+    }
+
+    // Igual que en la página: las frases legales se convierten en enlaces (todo con textContent)
+    function textoConEnlacesLegales(el, texto) {
+      const enlaces = { 'términos y condiciones': 'terminos.html', 'política de privacidad': 'privacidad.html' };
+      String(texto).split(/(t[ée]rminos y condiciones|pol[íi]tica de privacidad)/i).forEach(parte => {
+        const destino = enlaces[parte.toLowerCase().replace('terminos', 'términos').replace('politica', 'política')];
+        if (destino) {
+          const a = document.createElement('a');
+          a.href = destino;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = parte;
+          el.appendChild(a);
+        } else if (parte) {
+          el.appendChild(document.createTextNode(parte));
+        }
+      });
+    }
+
+    function vistaPreviaNovedades() {
+      const v = leerNovedades();
+      const caja = document.getElementById('novVista');
+      caja.replaceChildren();
+      const h = document.createElement('h4');
+      h.textContent = v.titulo || '(sin título)';
+      caja.appendChild(h);
+      const parrafos = (texto, clase) => texto.split(/\n\s*\n/).forEach(t => {
+        if (!t.trim()) return;
+        const p = document.createElement('p');
+        if (clase) p.className = clase;
+        textoConEnlacesLegales(p, t.trim());
+        caja.appendChild(p);
+      });
+      parrafos(v.intro);
+      if (v.bloques.length > 0) {
+        const ul = document.createElement('ul');
+        v.bloques.forEach(b => {
+          const li = document.createElement('li');
+          if (b.titulo) {
+            const s = document.createElement('strong');
+            s.textContent = b.titulo;
+            li.appendChild(s);
+          }
+          if (b.texto) textoConEnlacesLegales(li, b.texto);
+          ul.appendChild(li);
+        });
+        caja.appendChild(ul);
+      }
+      parrafos(v.cierre, 'nota-legal');
+      const boton = document.createElement('div');
+      boton.className = 'vista-boton';
+      boton.textContent = 'Entendido';
+      caja.appendChild(boton);
+    }
+    document.addEventListener('input', e => {
+      if (e.target.closest && e.target.closest('.novedades-editor')) vistaPreviaNovedades();
+    });
+
+    async function guardarNovedades(activa) {
+      const v = leerNovedades();
+      const volver = document.getElementById('novVolver').checked;
+      if (activa && !v.titulo) {
+        mensajeNovedades('Poné un título antes de publicar.', 'error');
+        return;
+      }
+      const pregunta = !activa
+        ? '¿Quitar la ventana de novedades? Deja de aparecer en la página (el texto queda guardado acá).'
+        : (volver
+          ? '¿Publicar la ventana? La van a ver todas las personas al entrar a la página, incluso quienes ya la habían cerrado.'
+          : '¿Guardar los cambios? Solo la verán quienes todavía no la cerraron.');
+      if (!confirm(pregunta)) return;
+      mensajeNovedades('Guardando…');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/novedades`, {
+          method: 'POST',
+          body: JSON.stringify({ ...v, titulo: v.titulo || '(sin título)', activa, volver_a_mostrar: activa && volver })
+        });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          mensajeNovedades(datos.error || 'No se pudo guardar.', 'error');
+          return;
+        }
+        llenarNovedades(datos.ventana_novedades);
+        mensajeNovedades(activa ? '✓ Publicada. Ya aparece en la página.' : '✓ Listo: la ventana ya no aparece en la página.', 'ok');
+        cargarActividad();
+      } catch (error) {
+        mensajeNovedades('No se pudo conectar con el servidor.', 'error');
+        avisarErrorConexion(error);
       }
     }
 
@@ -2425,12 +2666,26 @@
           area.value = e.aviso || '';
           area.placeholder = 'Ej: Por el momento, este espacio se reserva con planilla.';
 
+          // Deshabilitar sin ventana: el texto del aviso se guarda igual, solo no se muestra
+          const checkAviso = document.createElement('label');
+          checkAviso.className = 'check';
+          const inputAviso = document.createElement('input');
+          inputAviso.type = 'checkbox';
+          inputAviso.id = `espacioMostrarAviso${id}`;
+          inputAviso.checked = e.mostrar_aviso !== false;
+          checkAviso.append(inputAviso, document.createTextNode('Mostrar este aviso al entrar a la página'));
+          const ayuda = document.createElement('p');
+          ayuda.className = 'ayuda';
+          ayuda.textContent = 'Desmarcalo para deshabilitar el espacio sin que aparezca ninguna ventana.';
+
+          if (!e.publico && (e.mostrar_aviso === false || !e.aviso)) badge.textContent = 'No disponible · sin aviso';
+
           const btn = document.createElement('button');
           btn.className = 'btn-small';
           btn.textContent = 'Guardar';
           btn.addEventListener('click', () => guardarEspacio(id, e.nombre, e.publico === true, btn));
 
-          card.append(cab, check, etiqueta, area, btn);
+          card.append(cab, check, etiqueta, area, checkAviso, ayuda, btn);
           cont.appendChild(card);
         });
       } catch (error) {
@@ -2446,11 +2701,12 @@
     async function guardarEspacio(id, nombre, estabaPublico, boton) {
       const publico = document.getElementById(`espacioPublico${id}`).checked;
       const aviso = document.getElementById(`espacioAviso${id}`).value.trim();
+      const mostrar_aviso = document.getElementById(`espacioMostrarAviso${id}`).checked;
 
       if (publico !== estabaPublico) {
         const pregunta = publico
           ? `¿Habilitar el ${nombre}? Desde ya se va a poder reservar desde la página.`
-          : `¿Deshabilitar el ${nombre}? Nadie va a poder reservarlo desde la página hasta que lo vuelvas a habilitar. Las reservas que ya existen no se tocan (si hace falta, cancelalas en la pestaña Reservas).`;
+          : `¿Deshabilitar el ${nombre}? Nadie va a poder reservarlo desde la página hasta que lo vuelvas a habilitar. ${mostrar_aviso && aviso ? 'Al entrar, se va a mostrar el aviso.' : 'No se va a mostrar ningún aviso al entrar.'} Las reservas que ya existen no se tocan (si hace falta, cancelalas en la pestaña Reservas).`;
         if (!confirm(pregunta)) return;
       }
 
@@ -2458,7 +2714,7 @@
       try {
         const res = await fetchConJWT(`${API_BASE}/superadmin/espacios/${id}`, {
           method: 'POST',
-          body: JSON.stringify({ publico, aviso })
+          body: JSON.stringify({ publico, aviso, mostrar_aviso })
         });
         if (!res.ok) {
           alert(await leerError(res));
