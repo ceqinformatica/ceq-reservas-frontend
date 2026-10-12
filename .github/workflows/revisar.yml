@@ -1,0 +1,25 @@
+# Revisión automática de las páginas: GitHub la corre sola cada vez que se sube un cambio.
+# Si una página tiene un error de JavaScript o un enlace roto, avisa con una cruz roja.
+name: Revisar páginas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Bajar el código
+        uses: actions/checkout@v5
+
+      - name: Instalar Node.js 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Revisar las páginas
+        run: node pruebas/revisar-paginas.js
