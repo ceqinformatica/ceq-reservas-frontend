@@ -232,6 +232,11 @@
     // ===== Cancelar con el enlace del correo (?r=número&t=firma) =====
     const parametros = new URLSearchParams(window.location.search);
     const enlace = { r: parametros.get('r'), t: parametros.get('t') };
+    // Se saca el enlace de la barra de direcciones (CEQ-13): queda solo en memoria, así no se ve
+    // en el historial ni si alguien copia la dirección o saca una captura
+    if (enlace.r || enlace.t) {
+      try { history.replaceState(null, '', location.pathname); } catch (e) { /* se deja como está */ }
+    }
 
     function filaDato(etiqueta, valor) {
       const linea = document.createElement('div');

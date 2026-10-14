@@ -759,7 +759,7 @@
             <button class="btn-small" type="button" onclick="agregarTurnoConfig()">+ Agregar turno</button>
             <p class="nota">Cambiar un turno no toca las reservas que ya existen: se siguen mostrando con su horario.</p>
             <div class="config-campos">
-              <label>Máximo de reservas por persona por mes <input type="number" id="configMax" min="1" max="20"></label>
+              <label>Máximo de reservas por persona por mes en el Frente (el Altillo no tiene límite) <input type="number" id="configMax" min="1" max="20"></label>
               <label>Correo de contacto del Frente <input type="email" id="configEmailFrente"></label>
               <label>WhatsApp del Frente (con código de país) <input type="text" id="configWhatsapp" inputmode="numeric" placeholder="595981123456"></label>
               <label>Correo que recibe las alertas <input type="email" id="configEmailAlertas"></label>
@@ -1099,15 +1099,18 @@
 
     function actualizarEstadisticas() {
       const hoy = hoyEnAsuncionStr();
-      const inicioSemana = new Date();
-      inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay() + 1);
+      // Semana de lunes a domingo en hora de Paraguay (CEQ-15). Antes se calculaba con la hora
+      // de la computadora y sin fin: el domingo apuntaba al lunes siguiente y contaba todo lo futuro.
+      const lunes = new Date(hoy + 'T00:00:00Z');
+      lunes.setUTCDate(lunes.getUTCDate() - (lunes.getUTCDay() + 6) % 7);
+      const lunesSiguiente = new Date(lunes);
+      lunesSiguiente.setUTCDate(lunesSiguiente.getUTCDate() + 7);
+      const desde = lunes.toISOString().slice(0, 10);
+      const hasta = lunesSiguiente.toISOString().slice(0, 10);
 
       const total = reservasActuales.filter(r => r.estado === 'activa').length;
       const hoyCount = reservasActuales.filter(r => r.fecha === hoy && r.estado === 'activa').length;
-      const semana = reservasActuales.filter(r => {
-        const fecha = new Date(r.fecha);
-        return fecha >= inicioSemana && r.estado === 'activa';
-      }).length;
+      const semana = reservasActuales.filter(r => r.estado === 'activa' && r.fecha >= desde && r.fecha < hasta).length;
       const canceladas = reservasActuales.filter(r => r.estado === 'cancelada').length;
 
       document.getElementById('totalReservas').textContent = total;
