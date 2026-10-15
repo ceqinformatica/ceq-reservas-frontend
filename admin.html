@@ -269,6 +269,18 @@
     .config-mensaje.error { color: var(--lleno); }
     .config-mensaje.ok { color: var(--ok); }
     @media (max-width: 520px) { .config-turno { grid-template-columns: 1fr 1fr; } }
+    .config-turno.config-motivo { grid-template-columns: 1fr auto; }
+    .espacio-card .campo-select { width: 100%; padding: 10px 12px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font-size: 14px; background: var(--blanco); }
+    .config-campos select { padding: 9px 10px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font-size: 14px; background: var(--blanco); }
+    /* Estadísticas, lista de espera y datos de una persona */
+    .stats-tabla { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--blanco); border-radius: 12px; overflow: hidden; }
+    .stats-tabla th, .stats-tabla td { padding: 8px 10px; border-bottom: 1px solid var(--linea); text-align: left; }
+    .stats-tabla th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--marino); }
+    .stats-tabla td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .barra { height: 8px; border-radius: 4px; background: var(--azul); display: inline-block; vertical-align: middle; margin-right: 6px; }
+    .stats-grupo { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
+    .stats-grupo h4 { margin: 0 0 6px; }
+    .persona-resultado { display: grid; gap: 10px; }
     .vacio-celda { text-align: center; color: var(--suave); padding: 18px 12px; }
     .espacio-card button { justify-self: start; }
     .registro-celda { font-size: 12px; color: var(--suave); line-height: 1.4; min-width: 170px; }
@@ -795,6 +807,14 @@
               <label class="etiqueta" for="novCierre">Texto final (opcional)</label>
               <textarea id="novCierre" maxlength="600" placeholder="Ej: Antes de reservar, leé los Términos y condiciones y la Política de privacidad."></textarea>
               <p class="ayuda">Para separar párrafos, dejá una línea en blanco.</p>
+              <label class="etiqueta" for="novFrecuencia">¿Cuántas veces se muestra?</label>
+              <select id="novFrecuencia" class="campo-select">
+                <option value="una_vez">Una sola vez por navegador (al tocar "Entendido" no vuelve a salir)</option>
+                <option value="cada_visita">Cada vez que alguien entra a la página</option>
+              </select>
+              <label class="etiqueta" for="novHasta">Mostrar hasta (opcional)</label>
+              <input type="date" id="novHasta" class="campo-select">
+              <p class="ayuda">Después de ese día deja de mostrarse sola. Vacío: hasta que la quites.</p>
               <label class="check"><input type="checkbox" id="novVolver" checked> Mostrarla de nuevo a quienes ya la cerraron</label>
               <p class="ayuda">Desmarcalo si solo corregís un error de tipeo y no querés que la vean otra vez.</p>
               <div class="novedades-botones">
@@ -808,6 +828,40 @@
               <div class="vista-caja" id="novVista"></div>
             </div>
           </div>
+
+          <h3 class="mt">Estadísticas</h3>
+          <p class="nota">Calculadas con todas las reservas guardadas (las de hace más de 6 meses ya no tienen nombre, pero se cuentan igual).</p>
+          <div class="filters">
+            <select id="statsEspacio" onchange="mostrarEstadisticas()" aria-label="Espacio">
+              <option value="">Los dos espacios</option>
+              <option value="3">Frente</option>
+              <option value="1">Altillo</option>
+            </select>
+            <select id="statsPeriodo" onchange="mostrarEstadisticas()" aria-label="Período">
+              <option value="6">Últimos 6 meses</option>
+              <option value="3">Últimos 3 meses</option>
+              <option value="1">Este mes</option>
+              <option value="12">Último año</option>
+            </select>
+          </div>
+          <div id="statsContenido" class="stats-grupo"></div>
+
+          <h3 class="mt">Lista de espera</h3>
+          <p class="nota">Quiénes esperan que se libere un turno. Cuando alguien cancela, se les avisa una sola vez; a los 7 días del aviso (o a los 60 días sin aviso) salen solos de la lista.</p>
+          <div class="table-wrapper tabla-seleccion">
+            <table>
+              <thead><tr><th>Espacio</th><th>Correo</th><th>Se anotó</th><th>Estado</th><th></th></tr></thead>
+              <tbody id="listaEsperaBody"></tbody>
+            </table>
+          </div>
+
+          <h3 class="mt">Datos de una persona</h3>
+          <p class="nota">Para responder un pedido de la Política de Privacidad (art. 11): buscá por correo o celular para ver todo lo que hay guardado de esa persona, descargarlo o borrarlo. Borrar deja sus reservas sin nombre ni contacto (como a los 6 meses) y la saca de la lista de espera. No se puede deshacer.</p>
+          <div class="filters">
+            <input type="search" id="personaBuscar" placeholder="Correo o celular" aria-label="Correo o celular de la persona">
+            <button class="btn-small" onclick="buscarPersona()">Buscar</button>
+          </div>
+          <div id="personaResultado" class="persona-resultado"></div>
 
           <h3 class="mt">Eliminar reservas canceladas</h3>
           <p class="nota">
@@ -866,6 +920,17 @@
             <div class="config-turnos" id="configTurnos"></div>
             <button class="btn-small" type="button" onclick="agregarTurnoConfig()">+ Agregar turno</button>
             <p class="nota">Cambiar un turno no toca las reservas que ya existen: se siguen mostrando con su horario.</p>
+            <span class="etiqueta">Motivos del Frente</span>
+            <p class="nota">La lista que eligen al reservar el Frente (entre 1 y 10). Quitar uno no cambia las reservas que ya lo usan.</p>
+            <div class="config-turnos" id="configMotivos"></div>
+            <button class="btn-small" type="button" onclick="agregarMotivoConfig()">+ Agregar motivo</button>
+            <span class="etiqueta">Horario del Altillo</span>
+            <div class="config-campos">
+              <label>Abre a las <select id="configAltilloDesde"></select></label>
+              <label>Cierra a las <select id="configAltilloHasta"></select></label>
+              <label>Máximo de horas por reserva <input type="number" id="configAltilloMax" min="1" max="12"></label>
+            </div>
+            <p class="nota">Se reserva por bloques de 1 hora: el último bloque empieza 1 hora antes del cierre. Si lo cambiás, el artículo 5.2 de los Términos menciona el horario: avisá para actualizarlo.</p>
             <div class="config-campos">
               <label>Máximo de reservas por persona por mes en el Frente (el Altillo no tiene límite) <input type="number" id="configMax" min="1" max="20"></label>
               <label>Correo de contacto del Frente <input type="email" id="configEmailFrente"></label>
@@ -1197,7 +1262,7 @@
         reservasActuales = Array.isArray(data) ? data : [];
         actualizarEstadisticas();
         filtrarReservas(); // respeta los filtros y la búsqueda que ya estaban puestos
-        if (rolAdmin === 'superadmin') mostrarCanceladas();
+        if (rolAdmin === 'superadmin') { mostrarCanceladas(); mostrarEstadisticas(); }
         actualizarCalendario(); // sin esto, cancelar/crear una reserva no se reflejaba en la vista de calendario hasta recargar la página
         if (diaSeleccionadoAdmin) {
           // Sin esto, el panel de detalle a la derecha quedaba mostrando el estado viejo
@@ -2741,6 +2806,229 @@
       mostrarReportesSuper();
       cargarActividad();
       cargarConfiguracionAdmin();
+      cargarListaEspera().then(mostrarEstadisticas);
+    }
+
+    // --- Estadísticas (con las reservas que ya cargó el panel) ---
+    let listaEsperaActual = [];
+    function tablaStats(titulo, encabezados, filas, conBarra) {
+      const caja = document.createElement('div');
+      const h = document.createElement('h4');
+      h.textContent = titulo;
+      const tabla = document.createElement('table');
+      tabla.className = 'stats-tabla';
+      const thead = tabla.createTHead().insertRow();
+      encabezados.forEach(e => { const th = document.createElement('th'); th.textContent = e; thead.appendChild(th); });
+      const max = Math.max(1, ...filas.map(f => Number(f[1]) || 0));
+      const tbody = tabla.createTBody();
+      if (filas.length === 0) {
+        const td = tbody.insertRow().insertCell();
+        td.colSpan = encabezados.length;
+        td.textContent = 'Sin datos';
+      }
+      filas.forEach(f => {
+        const tr = tbody.insertRow();
+        f.forEach((valor, i) => {
+          const td = tr.insertCell();
+          if (i > 0) td.className = 'num';
+          if (i === 1 && conBarra) {
+            const barra = document.createElement('span');
+            barra.className = 'barra';
+            barra.style.width = `${Math.round((Number(valor) || 0) / max * 80)}px`;
+            td.appendChild(barra);
+          }
+          td.appendChild(document.createTextNode(valor));
+        });
+      });
+      caja.append(h, tabla);
+      return caja;
+    }
+
+    function mostrarEstadisticas() {
+      const cont = document.getElementById('statsContenido');
+      if (!cont) return;
+      const espacio = document.getElementById('statsEspacio').value;
+      const meses = Number(document.getElementById('statsPeriodo').value);
+      const hoy = hoyEnAsuncionStr();
+      const [a, m] = hoy.split('-').map(Number);
+      const desde = new Date(Date.UTC(a, m - meses, 1)).toISOString().slice(0, 10);
+      const enPeriodo = reservasActuales.filter(r => r.fecha >= desde && (!espacio || String(r.espacio_id) === espacio));
+      const activas = enPeriodo.filter(r => r.estado === 'activa');
+      const canceladas = enPeriodo.filter(r => r.estado === 'cancelada');
+      const pct = (n, total) => total ? `${Math.round(n / total * 100)} %` : '-';
+
+      // Por mes
+      const porMes = {};
+      enPeriodo.forEach(r => {
+        const k = r.fecha.slice(0, 7);
+        porMes[k] = porMes[k] || { a: 0, c: 0 };
+        porMes[k][r.estado === 'activa' ? 'a' : 'c']++;
+      });
+      const filasMes = Object.keys(porMes).sort().map(k => {
+        const [anio, mes] = k.split('-');
+        return [`${NOMBRES_MESES[Number(mes) - 1]} ${anio}`, porMes[k].a, porMes[k].c, pct(porMes[k].c, porMes[k].a + porMes[k].c)];
+      });
+
+      // Turnos y horas más pedidos (reservas activas)
+      const conteo = {};
+      activas.forEach(r => {
+        const ini = r.hora_inicio.substring(0, 5), fin = r.hora_fin.substring(0, 5);
+        const k = Number(r.espacio_id) === 3 ? `Frente · ${nombreTurnoFrente(ini, fin) || `${ini}-${fin}`}` : `Altillo · ${ini}-${fin}`;
+        conteo[k] = (conteo[k] || 0) + 1;
+      });
+      const filasTurnos = Object.entries(conteo).sort((x, y) => y[1] - x[1]).slice(0, 10);
+
+      // Día de la semana
+      const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      const porDia = {};
+      activas.forEach(r => { const d = new Date(r.fecha + 'T12:00:00Z').getUTCDay(); porDia[d] = (porDia[d] || 0) + 1; });
+      const filasDias = [1, 2, 3, 4, 5].map(d => [dias[d], porDia[d] || 0]);
+
+      // Asistencia (reservas activas de días que ya pasaron)
+      const pasadas = activas.filter(r => r.fecha < hoy);
+      const vino = pasadas.filter(r => r.asistencia === 'vino').length;
+      const noVino = pasadas.filter(r => r.asistencia === 'no_vino').length;
+      const filasAsistencia = [['Vino', vino, pct(vino, pasadas.length)], ['No vino', noVino, pct(noVino, pasadas.length)],
+        ['Sin marcar', pasadas.length - vino - noVino, pct(pasadas.length - vino - noVino, pasadas.length)]];
+
+      // Quiénes faltan seguido (2 o más "No vino" en el período)
+      const faltas = {};
+      pasadas.filter(r => r.asistencia === 'no_vino' && r.contacto !== '-').forEach(r => {
+        const [cel = '', mail = ''] = String(r.contacto).split('|').map(x => x.trim());
+        const k = mail.toLowerCase() || cel.replace(/\D/g, '');
+        faltas[k] = faltas[k] || { nombre: r.nombre_solicitante, n: 0, total: 0 };
+        faltas[k].n++;
+      });
+      pasadas.forEach(r => {
+        const [cel = '', mail = ''] = String(r.contacto).split('|').map(x => x.trim());
+        const k = mail.toLowerCase() || cel.replace(/\D/g, '');
+        if (faltas[k]) faltas[k].total++;
+      });
+      const filasFaltas = Object.entries(faltas).filter(([, f]) => f.n >= 2).sort((x, y) => y[1].n - x[1].n)
+        .map(([k, f]) => [`${f.nombre} (${k})`, f.n, `de ${f.total}`]);
+
+      const resumen = [['Reservas activas', activas.length, ''], ['Canceladas', canceladas.length, pct(canceladas.length, enPeriodo.length)],
+        ['Personas distintas', new Set(activas.map(r => String(r.contacto).split('|')[1]?.trim().toLowerCase() || r.contacto)).size, ''],
+        ['Esperando en la lista', listaEsperaActual.filter(l => !l.avisado_en && (!espacio || String(l.espacio_id) === espacio)).length, '']];
+
+      cont.replaceChildren(
+        tablaStats('Resumen', ['', 'Cantidad', '%'], resumen),
+        tablaStats('Por mes', ['Mes', 'Activas', 'Canceladas', '% cancel.'], filasMes, true),
+        tablaStats('Lo más pedido', ['Turno u horario', 'Reservas'], filasTurnos, true),
+        tablaStats('Por día de la semana', ['Día', 'Reservas'], filasDias, true),
+        tablaStats('Asistencia (días que ya pasaron)', ['', 'Reservas', '%'], filasAsistencia),
+        tablaStats('Faltan seguido (2 o más "No vino")', ['Persona', 'Faltas', 'Reservas'], filasFaltas)
+      );
+    }
+
+    // --- Lista de espera ---
+    async function cargarListaEspera() {
+      const tbody = document.getElementById('listaEsperaBody');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/lista-espera`);
+        if (!res.ok) throw new Error(await leerError(res));
+        listaEsperaActual = await res.json();
+        tbody.replaceChildren();
+        if (listaEsperaActual.length === 0) { filaVacia(tbody, 5, 'No hay nadie en la lista de espera.'); return; }
+        listaEsperaActual.forEach(l => {
+          const tr = tbody.insertRow();
+          [espacios[l.espacio_id] || '-', l.email, fechaHoraAsuncion(l.creado_en),
+            l.avisado_en ? `Avisado el ${fechaHoraAsuncion(l.avisado_en)}` : 'Esperando'].forEach(t => { tr.insertCell().textContent = t; });
+          const btn = document.createElement('button');
+          btn.className = 'btn-small btn-cancel';
+          btn.textContent = 'Sacar';
+          btn.addEventListener('click', async () => {
+            if (!confirm(`¿Sacar a ${l.email} de la lista de espera del ${espacios[l.espacio_id]}? No se le avisa.`)) return;
+            const r = await fetchConJWT(`${API_BASE}/superadmin/lista-espera/${l.id}`, { method: 'DELETE' });
+            if (!r.ok) { alert(await leerError(r)); return; }
+            await cargarListaEspera();
+            mostrarEstadisticas();
+            cargarActividad();
+          });
+          tr.insertCell().appendChild(btn);
+        });
+      } catch (error) {
+        tbody.replaceChildren();
+        filaVacia(tbody, 5, 'No se pudo cargar la lista de espera.');
+      }
+    }
+
+    // --- Datos de una persona ---
+    let personaActual = null;
+    async function buscarPersona() {
+      const q = document.getElementById('personaBuscar').value.trim();
+      const cont = document.getElementById('personaResultado');
+      cont.replaceChildren(vacioHoy('Buscando…'));
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/persona?q=${encodeURIComponent(q)}`);
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) { cont.replaceChildren(vacioHoy(datos.error || 'No se pudo buscar.')); return; }
+        personaActual = { q, datos };
+        const total = datos.reservas.length + datos.como_acompanante.length + datos.lista_espera.length;
+        cont.replaceChildren();
+        const resumen = document.createElement('p');
+        resumen.className = 'nota';
+        resumen.textContent = total === 0 ? 'No hay nada guardado con ese correo o celular.'
+          : `${datos.reservas.length} reserva(s) propias, ${datos.como_acompanante.length} como acompañante y ${datos.lista_espera.length} inscripción(es) en la lista de espera.`;
+        cont.appendChild(resumen);
+        if (datos.reservas.length) {
+          cont.appendChild(tablaStats('Sus reservas', ['Fecha', 'Espacio', 'Horario', 'Nombre', 'Estado'],
+            datos.reservas.map(r => [r.fecha.split('-').reverse().join('/'), espacios[r.espacio_id], `${r.hora_inicio.substring(0, 5)} - ${r.hora_fin.substring(0, 5)}`, r.nombre_solicitante, r.estado])));
+        }
+        if (datos.como_acompanante.length) {
+          cont.appendChild(tablaStats('Figura como acompañante en', ['Fecha', 'Espacio', 'Reservó'],
+            datos.como_acompanante.map(r => [r.fecha.split('-').reverse().join('/'), espacios[r.espacio_id], r.titular])));
+        }
+        if (datos.lista_espera.length) {
+          cont.appendChild(tablaStats('Lista de espera', ['Espacio', 'Se anotó'],
+            datos.lista_espera.map(l => [espacios[l.espacio_id], fechaHoraAsuncion(l.creado_en)])));
+        }
+        if (total > 0) {
+          const botones = document.createElement('div');
+          botones.className = 'novedades-botones';
+          const descargar = document.createElement('button');
+          descargar.className = 'btn-small';
+          descargar.textContent = 'Descargar sus datos (archivo)';
+          descargar.addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify({ busqueda: q, fecha: new Date().toISOString(), ...datos }, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `datos-${q.replace(/[^\w@.-]/g, '_')}.json`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+          });
+          const borrar = document.createElement('button');
+          borrar.className = 'btn-peligro';
+          borrar.textContent = 'Borrar sus datos';
+          borrar.addEventListener('click', borrarPersona);
+          botones.append(descargar, borrar);
+          cont.appendChild(botones);
+        }
+      } catch (error) {
+        cont.replaceChildren(vacioHoy('No se pudo conectar con el servidor.'));
+        avisarErrorConexion(error);
+      }
+    }
+
+    async function borrarPersona() {
+      if (!personaActual) return;
+      const escrito = prompt(`Se van a borrar los datos de "${personaActual.q}": sus reservas quedan sin nombre ni contacto y sale de la lista de espera. No se puede deshacer.\n\nPara confirmar, escribí BORRAR:`);
+      if (escrito !== 'BORRAR') return;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/persona/borrar`, { method: 'POST', body: JSON.stringify({ q: personaActual.q, confirmar: 'BORRAR' }) });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const extra = (datos.reservas || []).map(r => `- ${r.fecha.split('-').reverse().join('/')} · ${r.espacio}`).join('\n');
+          alert((datos.error || 'No se pudo borrar.') + (extra ? '\n\n' + extra : ''));
+          return;
+        }
+        alert(`✓ Listo: ${datos.reservas} reserva(s) anonimizada(s), ${datos.como_acompanante} como acompañante, ${datos.lista_espera} en lista de espera.`);
+        await cargarDatos();
+        buscarPersona();
+        cargarActividad();
+      } catch (error) {
+        avisarErrorConexion(error);
+      }
     }
 
     // --- Configuración (turnos del Frente, límite, contacto y correo de alertas) ---
@@ -2785,6 +3073,39 @@
       return fila;
     }
 
+    // Un motivo del Frente en Configuración (texto + Quitar)
+    function filaMotivoConfig(texto = '') {
+      const fila = document.createElement('div');
+      fila.className = 'config-turno config-motivo';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 60;
+      input.value = texto;
+      input.placeholder = 'Ej: Recaudación - Comisión de Deportes';
+      input.setAttribute('aria-label', 'Motivo del Frente');
+      const quitar = document.createElement('button');
+      quitar.type = 'button';
+      quitar.className = 'btn-small btn-cancel';
+      quitar.textContent = 'Quitar';
+      quitar.addEventListener('click', () => {
+        if (document.querySelectorAll('#configMotivos .config-motivo').length <= 1) {
+          alert('Tiene que quedar al menos un motivo.');
+          return;
+        }
+        fila.remove();
+      });
+      fila.append(input, quitar);
+      return fila;
+    }
+
+    function agregarMotivoConfig() {
+      const cont = document.getElementById('configMotivos');
+      if (cont.children.length >= 10) { alert('Se pueden tener hasta 10 motivos.'); return; }
+      const fila = filaMotivoConfig();
+      cont.appendChild(fila);
+      fila.querySelector('input').focus();
+    }
+
     function agregarTurnoConfig() {
       const contenedor = document.getElementById('configTurnos');
       if (contenedor.children.length >= 5) {
@@ -2805,6 +3126,17 @@
         document.getElementById('configEmailFrente').value = c.contacto_email_frente;
         document.getElementById('configWhatsapp').value = c.contacto_whatsapp_frente;
         document.getElementById('configEmailAlertas').value = c.email_alertas;
+        // Motivos del Frente y horario del Altillo (si el servidor todavía no los tiene, quedan vacíos)
+        document.getElementById('configMotivos').replaceChildren(...(c.motivos_frente || []).map(m => filaMotivoConfig(m)));
+        const horas = (desde, hasta) => Array.from({ length: hasta - desde + 1 }, (_, i) => desde + i);
+        const opcionesHora = (id, lista, valor) => {
+          const sel = document.getElementById(id);
+          sel.replaceChildren(...lista.map(h => new Option(`${String(h).padStart(2, '0')}:00`, h)));
+          if (valor != null) sel.value = String(valor);
+        };
+        opcionesHora('configAltilloDesde', horas(5, 22), c.altillo_hora_desde);
+        opcionesHora('configAltilloHasta', horas(6, 23), c.altillo_hora_hasta);
+        document.getElementById('configAltilloMax').value = c.altillo_max_horas ?? '';
         llenarNovedades(c.ventana_novedades);
       } catch (error) {
         console.error('Error cargando la configuración:', error);
@@ -2824,8 +3156,13 @@
     function llenarNovedades(v) {
       v = v || { activa: false, titulo: '', intro: '', bloques: [], cierre: '' };
       const estado = document.getElementById('novedadesEstado');
-      estado.textContent = v.activa ? '● Se está mostrando en la página' : '○ No se muestra en la página';
-      estado.style.color = v.activa ? 'var(--ok)' : 'var(--suave)';
+      const vencida = v.activa && v.hasta && v.hasta < hoyEnAsuncionStr();
+      estado.textContent = !v.activa ? '○ No se muestra en la página'
+        : vencida ? `○ Ya no se muestra: era hasta el ${v.hasta.split('-').reverse().join('/')}`
+        : '● Se está mostrando en la página' + (v.hasta ? ` (hasta el ${v.hasta.split('-').reverse().join('/')})` : '');
+      estado.style.color = v.activa && !vencida ? 'var(--ok)' : 'var(--suave)';
+      document.getElementById('novFrecuencia').value = v.frecuencia === 'cada_visita' ? 'cada_visita' : 'una_vez';
+      document.getElementById('novHasta').value = v.hasta || '';
       document.getElementById('novTitulo').value = v.titulo || '';
       document.getElementById('novIntro').value = v.intro || '';
       document.getElementById('novCierre').value = v.cierre || '';
@@ -2901,7 +3238,9 @@
           titulo: f.querySelector('[data-campo="titulo"]').value.trim(),
           texto: f.querySelector('[data-campo="texto"]').value.trim()
         })).filter(b => b.titulo || b.texto),
-        cierre: document.getElementById('novCierre').value.trim()
+        cierre: document.getElementById('novCierre').value.trim(),
+        frecuencia: document.getElementById('novFrecuencia').value,
+        hasta: document.getElementById('novHasta').value || null
       };
     }
 
@@ -3008,6 +3347,13 @@
         contacto_whatsapp_frente: document.getElementById('configWhatsapp').value.trim(),
         email_alertas: document.getElementById('configEmailAlertas').value.trim()
       };
+      const motivos = [...document.querySelectorAll('#configMotivos input')].map(i => i.value.trim()).filter(Boolean);
+      if (motivos.length) cuerpo.motivos_frente = motivos;
+      if (document.getElementById('configAltilloDesde').options.length) {
+        cuerpo.altillo_hora_desde = Number(document.getElementById('configAltilloDesde').value);
+        cuerpo.altillo_hora_hasta = Number(document.getElementById('configAltilloHasta').value);
+        cuerpo.altillo_max_horas = Number(document.getElementById('configAltilloMax').value);
+      }
       mensajeConfig('Guardando…');
       try {
         const res = await fetchConJWT(`${API_BASE}/superadmin/configuracion`, {

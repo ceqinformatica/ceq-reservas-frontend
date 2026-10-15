@@ -2137,7 +2137,10 @@
     function mostrarNovedades() {
       const v = ventanaNovedades;
       if (!v || novedadesVistasAhora) return;
-      try { if (localStorage.getItem('novedadesVistas') === v.version) return; } catch (e) { /* se muestra */ }
+      // "Una vez": se recuerda en el navegador. "Cada visita": solo mientras la pestaña está abierta
+      // (si la persona vuelve otro día o abre la página de nuevo, la ve otra vez).
+      const almacen = () => v.frecuencia === 'cada_visita' ? sessionStorage : localStorage;
+      try { if (almacen().getItem('novedadesVistas') === v.version) return; } catch (e) { /* se muestra */ }
       const abierta = id => document.getElementById(id).style.display === 'flex';
       if (abierta('modalConfirmacion') || abierta('modalReporte') || abierta('modalAvisoEspacio')) return;
 
@@ -2177,7 +2180,10 @@
       const modal = document.getElementById('modalNovedades');
       modal.style.display = 'none';
       novedadesVistasAhora = true;
-      try { localStorage.setItem('novedadesVistas', modal.dataset.version || ''); } catch (e) { /* sin almacenamiento: solo por esta visita */ }
+      try {
+        (ventanaNovedades && ventanaNovedades.frecuencia === 'cada_visita' ? sessionStorage : localStorage)
+          .setItem('novedadesVistas', modal.dataset.version || '');
+      } catch (e) { /* sin almacenamiento: solo por esta visita */ }
     }
 
     // Tecla Escape: cierra la ventana que esté abierta más arriba, igual que su botón
