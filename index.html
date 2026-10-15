@@ -522,7 +522,7 @@
       'Recaudación - Padrinaje',
       'Recaudación - Congreso o Evento Académico'
     ];
-    let ALTILLO = { hora_desde: 8, hora_hasta: 20, max_horas: 2 };
+    let ALTILLO = { hora_desde: 7, hora_hasta: 19, max_horas: 2 };
     let MAX_ACOMPANANTES = 4;
 
     function aMinutos(hhmm) {
@@ -1336,7 +1336,7 @@
           grid.appendChild(btn);
         });
       } else {
-        // Para Altillo y Sala: bloques de una hora (Altillo: 08:00 a 20:00, el último bloque es 19:00)
+        // Para Altillo y Sala: bloques de una hora (Altillo: 07:00 a 19:00, el último bloque es 18:00)
         const horaInicio = ALTILLO.hora_desde;
         const horaFin = ALTILLO.hora_hasta;
         
