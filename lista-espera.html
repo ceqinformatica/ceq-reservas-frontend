@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de espera · Centro de Estudiantes de Química</title>
+<meta name="description" content="Salir de la lista de espera del sistema de reservas del Centro de Estudiantes de Química (CEQ-UNA).">
+<meta name="robots" content="noindex">
+<!-- Ícono de la pestaña, de los buscadores y del acceso directo en celulares -->
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+
+  <style>
+    /* Mismo diseño que index.html (identidad de la web oficial del CEQ) */
+    :root {
+      --marino: #173874;
+      --azul: #3873CE;
+      --azul-hover: #2D62B5;
+      --cielo: #D6E6FA;
+      --tarjeta: #EFF7FE;
+      --blanco: #FFFFFF;
+      --texto: #1E1E1E;
+      --suave: #5A6B85;
+      --linea: #C9DBF3;
+      --lleno-bg: #FBE3E1;
+      --lleno: #B2392F;
+      --ok-bg: #E3F4EA;
+      --ok: #1D7A47;
+      --radio: 18px;
+      --radio-chico: 8px;
+      --f: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { font-family: var(--f); background: var(--cielo); color: var(--texto); font-size: 15px; line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; }
+    a { color: inherit; }
+    button { font-family: inherit; }
+    :focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+    /* Barra superior */
+    .topbar { background: var(--blanco); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 50; }
+    .topbar-in { max-width: 1200px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .marca { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--marino); }
+    .marca img { width: 40px; height: 40px; display: block; }
+    .marca b { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+    .menu { display: flex; align-items: center; gap: 22px; list-style: none; }
+    .menu a { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; color: var(--marino); text-decoration: none; padding: 6px 0; }
+    .menu a:hover { color: var(--azul); }
+    .menu .admin { border: 1px solid var(--marino); border-radius: 5px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .menu .admin svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Título */
+    .portada-in { max-width: 560px; width: 100%; margin: 0 auto; padding: 32px 20px 20px; }
+    .portada h1 { font-size: clamp(22px, 4vw, 32px); line-height: 1.1; font-weight: 600; text-transform: uppercase; color: var(--marino); letter-spacing: -.01em; }
+
+    /* Tarjeta */
+    main { flex: 1; width: 100%; max-width: 560px; margin: 0 auto; padding: 0 20px 48px; }
+    .panel { background: var(--tarjeta); border-radius: var(--radio); padding: 28px 24px; display: grid; gap: 18px; }
+    .titulo-seccion { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--marino); line-height: 1.2; }
+    .titulo-seccion::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; flex: none; }
+    .ayuda { color: var(--suave); font-size: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: var(--marino); }
+    .form-group input { width: 100%; padding: 14px; border-radius: var(--radio-chico); border: 1px solid var(--linea); background: var(--blanco); color: var(--marino); font: 600 18px var(--f); letter-spacing: .1em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+    .form-group input::placeholder { font-weight: 500; letter-spacing: .04em; color: #9AAAC2; text-transform: none; }
+    .form-group input:focus { outline: none; border-color: var(--azul); box-shadow: 0 0 0 3px rgba(56,115,206,.18); }
+    .btn-primary { background: var(--azul); color: var(--blanco); border: 0; border-radius: 5px; padding: 14px 18px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; }
+    .btn-primary:hover:not(:disabled) { background: var(--azul-hover); }
+    .btn-primary:disabled { background: #A9C0E6; cursor: not-allowed; }
+    .perdido { text-align: center; }
+    .perdido a { color: var(--marino); font-weight: 600; }
+    .volver { text-align: center; font-size: 14px; }
+    .volver a { color: var(--marino); font-weight: 600; text-decoration: none; }
+    .volver a:hover { color: var(--azul); text-decoration: underline; text-underline-offset: 3px; }
+
+    #formCodigo, #cancelarEnlace { display: grid; gap: 18px; }
+    [hidden] { display: none !important; }
+    .datos-reserva { background: var(--blanco); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; color: var(--marino); font-size: 15px; }
+    .datos-reserva strong { font-weight: 700; }
+
+    .status-message { display: none; padding: 12px 14px; border-radius: var(--radio-chico); font-size: 14px; font-weight: 500; }
+    .status-success { background: var(--ok-bg); color: var(--ok); }
+    .status-error { background: var(--lleno-bg); color: var(--lleno); }
+    .status-error a { color: var(--lleno); font-weight: 700; }
+
+    /* Pie (igual que index.html) */
+    .pie { background: var(--marino); color: #DCE7F7; }
+    .pie-in { max-width: 1200px; margin: 0 auto; padding: 28px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; align-items: center; }
+    .pie-marca { display: flex; gap: 14px; align-items: center; min-width: 0; }
+    .pie-marca img { width: 48px; height: 48px; background: var(--blanco); border-radius: 12px; padding: 4px; flex: none; }
+    .pie-version { font-size: 15px; font-weight: 600; color: var(--blanco); }
+    .pie-version b { font-weight: 600; font-size: 12px; background: rgba(255,255,255,.14); border-radius: 4px; padding: 2px 7px; margin-left: 6px; vertical-align: 1px; font-variant-numeric: tabular-nums; white-space: nowrap; display: inline-block; }
+    .pie-copy { color: #A9BEDF; font-size: 13px; margin-top: 3px; }
+    .pie-copy .sep { opacity: .5; margin: 0 4px; }
+    .pie-legal { font-size: 13px; margin-top: 4px; color: #A9BEDF; }
+    .pie-legal a { color: #D3E0F3; text-decoration: underline; text-decoration-color: rgba(211,224,243,.45); text-underline-offset: 3px; }
+    .pie-legal a:hover { color: var(--blanco); text-decoration-color: currentColor; }
+    .pie-legal .sep { opacity: .5; margin: 0 6px; }
+    .pie-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 22px; }
+    .pie-btn { display: inline-flex; align-items: center; gap: 7px; padding: 6px 0; color: #D3E0F3; font: 500 14px var(--f); text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; transition: color .15s, text-decoration-color .15s; }
+    .pie-btn:hover { color: var(--blanco); text-decoration-color: currentColor; }
+    .pie-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+    @media (min-width: 641px) and (max-width: 1000px) {
+      .pie-in { flex-wrap: nowrap; align-items: center; }
+      .pie-acciones { flex-direction: column; align-items: flex-end; gap: 2px; flex: none; padding-left: 24px; border-left: 1px solid rgba(255,255,255,.15); }
+      .pie-copy .sep { display: none; }
+      .pie-copy span.resto { display: block; }
+    }
+    @media (max-width: 640px) {
+      .topbar-in { padding: 8px 16px; }
+      .marca img { width: 34px; height: 34px; }
+      .marca b { font-size: 18px; }
+      .menu { gap: 14px; }
+      .menu a { font-size: 13px; }
+      .portada-in { padding: 22px 16px 16px; }
+      main { padding: 0 12px 32px; }
+      .panel { padding: 22px 16px; border-radius: 16px; }
+      .pie-in { padding: 28px 16px 22px; flex-direction: column; align-items: center; text-align: center; gap: 0; }
+      .pie-marca, .pie-marca > div { display: contents; }
+      .pie-marca img { order: 1; width: 52px; height: 52px; margin-bottom: 12px; }
+      .pie-version { order: 2; }
+      .pie-acciones { order: 3; justify-content: center; gap: 4px 18px; margin: 14px 0 18px; }
+      .pie-btn { font-size: 13px; }
+      .pie-legal { order: 5; width: 100%; margin-top: 6px; font-size: 12px; }
+      .pie-copy { order: 4; width: 100%; margin-top: 0; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.15); font-size: 12px; line-height: 1.6; }
+      .pie-copy .sep { display: none; }
+      .pie-copy span.resto { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-in">
+      <a class="marca" href="https://cequna2.wordpress.com/" aria-label="Centro de Estudiantes de Química, ir a la web">
+        <img src="logo-ceq.png" alt="">
+        <b>CEQ</b>
+      </a>
+      <nav aria-label="Principal">
+        <ul class="menu">
+          <li><a href="https://reservas.ceq-una.com">Reservas</a></li>
+          <li><a class="admin" href="https://reservas.ceq-una.com/admin.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Admin</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <section class="portada">
+    <div class="portada-in">
+      <h1>Lista de espera</h1>
+    </div>
+  </section>
+
+  <main>
+    <section class="panel" aria-labelledby="tituloBaja">
+      <h2 class="titulo-seccion" id="tituloBaja">Salir de la lista de espera</h2>
+
+      <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
+
+      <div id="confirmarBaja" hidden>
+        <p class="ayuda" id="textoBaja"></p>
+        <button class="btn-primary" id="btnBaja" onclick="salirDeLaLista()">Sí, salir de la lista</button>
+      </div>
+
+      <p class="ayuda" id="sinEnlace" hidden>Para salir de la lista de espera, abrí el enlace del correo que te mandamos cuando te anotaste.</p>
+
+      <p class="volver"><a href="https://reservas.ceq-una.com">← Volver a reservas</a></p>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <div class="pie-in">
+      <div class="pie-marca">
+        <img src="logo-ceq.png" alt="Logo del CEQ">
+        <div>
+          <p class="pie-version">Sistema de Reservas del CEQ <b>v2.5a-34</b></p>
+          <p class="pie-copy">© <span id="anioCopy">2026</span> Centro de Estudiantes de Química <span class="sep">|</span> <span class="resto">Todos los derechos reservados</span></p>
+          <p class="pie-legal"><a href="terminos.html">Términos y condiciones</a><span class="sep">·</span><a href="privacidad.html">Política de privacidad</a></p>
+        </div>
+      </div>
+      <div class="pie-acciones">
+        <a class="pie-btn" href="https://reservas.ceq-una.com">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>
+          Hacer una reserva
+        </a>
+      </div>
+    </div>
+  </footer>
+  <script>document.getElementById('anioCopy').textContent = new Date().getFullYear();</script>
+
+  <script>
+    const API_BASE = 'https://api.ceq-una.com/api';
+    const ESPACIOS = { 1: 'Altillo', 3: 'Frente' };
+    // El enlace del correo trae el espacio (s), el correo (e) y la firma (t). Se saca de la barra de
+    // direcciones y queda solo en memoria.
+    const parametros = new URLSearchParams(window.location.search);
+    const enlace = { s: parametros.get('s'), e: parametros.get('e'), t: parametros.get('t') };
+    if (enlace.s || enlace.e || enlace.t) {
+      try { history.replaceState(null, '', location.pathname); } catch (e) { /* se deja como está */ }
+    }
+
+    function mostrarMensaje(texto, tipo) {
+      const caja = document.getElementById('statusMessage');
+      caja.textContent = texto;
+      caja.className = 'status-message status-' + tipo;
+      caja.style.display = 'block';
+    }
+
+    if (enlace.s && enlace.e && enlace.t && ESPACIOS[enlace.s]) {
+      // La baja se confirma con el botón (no al abrir el enlace): los programas que revisan los
+      // enlaces de los correos los abren solos y no deben sacar a nadie de la lista
+      document.getElementById('textoBaja').textContent =
+        `¿Querés salir de la lista de espera del ${ESPACIOS[enlace.s]}? Ya no vas a recibir el aviso en ${enlace.e}.`;
+      document.getElementById('confirmarBaja').hidden = false;
+    } else {
+      document.getElementById('sinEnlace').hidden = false;
+    }
+
+    async function salirDeLaLista() {
+      const boton = document.getElementById('btnBaja');
+      boton.disabled = true;
+      boton.textContent = 'Un momento…';
+      try {
+        const res = await fetch(`${API_BASE}/lista-espera/baja`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(enlace)
+        });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(datos.error || 'No se pudo completar. Probá de nuevo en unos minutos.');
+        document.getElementById('confirmarBaja').hidden = true;
+        mostrarMensaje(datos.mensaje, 'success');
+      } catch (error) {
+        boton.disabled = false;
+        boton.textContent = 'Sí, salir de la lista';
+        mostrarMensaje(error.message === 'Failed to fetch' ? 'No se pudo conectar. Revisá tu conexión y probá de nuevo.' : error.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

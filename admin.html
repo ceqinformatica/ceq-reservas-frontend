@@ -181,7 +181,44 @@
     .calendar-day-number { font-size: 18px; font-weight: 500; color: var(--azul); line-height: 1; }
     .calendar-day-indicator { font-size: 11px; font-weight: 600; color: var(--marino); }
     .calendar-day.has-reservas { background: #DCEBFC; }
-    .calendar-day.today { border-color: var(--linea); }
+    /* Estado de los reportes */
+    .reporte-estado { display: grid; gap: 6px; min-width: 220px; }
+    .reporte-estado select, .reporte-estado textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font: inherit; font-size: 13px; }
+    .reporte-estado textarea { resize: vertical; }
+    .reporte-estado button { justify-self: start; }
+    /* Bloqueos de varios días */
+    .fila-dos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .etiqueta-form { font-size: 13px; font-weight: 600; color: var(--marino); }
+    .dias-semana { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+    .dias-semana label { display: inline-flex; align-items: center; gap: 5px; font-size: 14px; color: var(--marino); cursor: pointer; }
+    .dias-semana input { width: 16px; height: 16px; accent-color: var(--azul); }
+    .lote-previa { background: var(--blanco); border-radius: 12px; padding: 12px 14px; margin-top: 10px; display: grid; gap: 8px; font-size: 14px; }
+    .lote-previa ul { margin-left: 18px; color: var(--texto); }
+    .lote-previa .conflicto { color: var(--lleno); }
+    .item .serie { display: block; font-size: 12px; color: var(--suave); }
+    /* Pestaña "Hoy" */
+    .hoy-lista { display: grid; gap: 10px; margin-bottom: 8px; }
+    .hoy-item { background: var(--blanco); border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: 110px 1fr auto; gap: 4px 14px; align-items: center; border-left: 4px solid var(--linea); }
+    .hoy-item.en-curso { border-left-color: var(--ok); }
+    .hoy-item.termino { border-left-color: #B8C3D3; opacity: .85; }
+    .hoy-item.proxima { border-left-color: var(--azul); }
+    .hoy-hora { font-weight: 700; color: var(--marino); font-variant-numeric: tabular-nums; }
+    .hoy-hora small { display: block; font-weight: 600; font-size: 11px; color: var(--suave); text-transform: uppercase; letter-spacing: .04em; }
+    .hoy-datos { min-width: 0; font-size: 14px; color: var(--texto); }
+    .hoy-datos strong { color: var(--marino); }
+    .hoy-datos .detalle { color: var(--suave); font-size: 13px; overflow-wrap: anywhere; }
+    .hoy-datos a { color: var(--marino); font-weight: 600; }
+    .hoy-aviso { background: var(--dorado-bg); color: var(--dorado); border-radius: 10px; padding: 10px 14px; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+    .mt-chico { margin-top: 18px; }
+    @media (max-width: 640px) { .hoy-item { grid-template-columns: 1fr; } }
+    /* Hoy: borde azul y la etiqueta "HOY" (antes se veía blanco, como un día libre) */
+    .calendar-day.today { border-color: var(--azul); box-shadow: inset 0 0 0 1px var(--azul); position: relative; }
+    .calendar-day.today::after { content: "HOY"; position: absolute; top: 6px; right: 6px; font-size: 9px; font-weight: 800; letter-spacing: .06em; color: var(--blanco); background: var(--azul); border-radius: 4px; padding: 1px 5px; }
+    .calendar-day.today .calendar-day-number { font-weight: 800; }
+    /* Días que ya pasaron: más apagados */
+    .calendar-day.pasado { background: #EEF1F6; }
+    .calendar-day.pasado .calendar-day-number { color: #8A97AB; }
+    .calendar-day.pasado.has-reservas { background: #E2E8F1; }
     .calendar-day.selected-day { background: var(--marino); border-color: var(--marino); }
     .calendar-day.selected-day .calendar-day-number, .calendar-day.selected-day .calendar-day-indicator { color: var(--blanco); }
 
@@ -369,7 +406,8 @@
 
       <div class="admin-content">
         <div class="tabs" role="tablist">
-          <button class="tab-btn active" onclick="switchTab('reservas')">Reservas</button>
+          <button class="tab-btn active" onclick="switchTab('hoy')">Hoy</button>
+          <button class="tab-btn" onclick="switchTab('reservas')">Reservas</button>
           <button class="tab-btn" onclick="switchTab('bloqueos')">Bloqueos</button>
           <button class="tab-btn" onclick="switchTab('meses')">Meses</button>
           <button class="tab-btn" onclick="switchTab('prioridad')">Prioridad</button>
@@ -379,8 +417,28 @@
           <button class="tab-btn solo-super" hidden onclick="switchTab('avanzado')">Avanzado</button>
         </div>
 
+        <!-- TAB: HOY (lo del día: reservas con su asistencia, bloqueos, reportes nuevos y correos que no salieron) -->
+        <div id="tab-hoy" class="tab-content active">
+          <h3 id="hoyTitulo">Hoy</h3>
+          <div class="stats">
+            <div class="stat-card"><div class="stat-label">Reservas de hoy</div><div class="stat-value" id="hoyCantidad">0</div></div>
+            <div class="stat-card"><div class="stat-label">Asistencia sin marcar</div><div class="stat-value" id="hoySinAsistencia">0</div></div>
+            <div class="stat-card"><div class="stat-label">Reportes nuevos</div><div class="stat-value" id="hoyReportes">0</div></div>
+            <div class="stat-card"><div class="stat-label">Correos sin enviar</div><div class="stat-value" id="hoyCorreos">0</div></div>
+          </div>
+          <div id="hoyBloqueos"></div>
+          <div id="hoyLista" class="hoy-lista"></div>
+          <h4 class="mt-chico" id="mananaTitulo">Mañana</h4>
+          <div id="mananaLista" class="hoy-lista"></div>
+          <div id="hoyCorreosSeccion" hidden>
+            <h4 class="mt-chico">Correos que no salieron</h4>
+            <p class="nota">El sistema los reintenta solo (a los 1, 5, 15, 60 y 180 minutos). Si después de eso siguen fallando, quedan como "no enviado" y los podés reintentar acá.</p>
+            <div id="hoyCorreosLista" class="hoy-lista"></div>
+          </div>
+        </div>
+
         <!-- TAB: RESERVAS -->
-        <div id="tab-reservas" class="tab-content active">
+        <div id="tab-reservas" class="tab-content">
           <div class="stats">
             <div class="stat-card">
               <div class="stat-label">Reservas activas</div>
@@ -508,6 +566,47 @@
               </div>
 
               <button class="btn-block" style="width: 100%;" onclick="bloquearTodoDia()">Bloquear todo el día</button>
+
+              <h4 class="mt-chico">Bloquear varios días</h4>
+              <p class="nota">Un intervalo de fechas, todos los días o solo algunos (por ejemplo, martes y jueves), todo el día o en un horario. Primero se muestra qué días se bloquean; los días con reservas en ese horario no se bloquean (se avisa cuáles son).</p>
+              <div class="form-group">
+                <label for="loteEspacio">Espacio</label>
+                <select id="loteEspacio" onchange="llenarHorasLote()">
+                  <option value="1">Altillo</option>
+                  <option value="3">Frente</option>
+                </select>
+              </div>
+              <div class="fila-dos">
+                <div class="form-group"><label for="loteDesde">Desde</label><input type="date" id="loteDesde"></div>
+                <div class="form-group"><label for="loteHasta">Hasta</label><input type="date" id="loteHasta"></div>
+              </div>
+              <div class="form-group">
+                <span class="etiqueta-form">Días</span>
+                <div class="dias-semana" id="loteDias">
+                  <label><input type="checkbox" value="1" checked> Lun</label>
+                  <label><input type="checkbox" value="2" checked> Mar</label>
+                  <label><input type="checkbox" value="3" checked> Mié</label>
+                  <label><input type="checkbox" value="4" checked> Jue</label>
+                  <label><input type="checkbox" value="5" checked> Vie</label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="loteHorario">Horario</label>
+                <select id="loteHorario" onchange="document.getElementById('loteHoras').hidden = this.value !== 'horario'">
+                  <option value="completo">Todo el día</option>
+                  <option value="horario">Solo un horario</option>
+                </select>
+              </div>
+              <div class="fila-dos" id="loteHoras" hidden>
+                <div class="form-group"><label for="loteInicio">De</label><select id="loteInicio"></select></div>
+                <div class="form-group"><label for="loteFin">A</label><select id="loteFin"></select></div>
+              </div>
+              <div class="form-group">
+                <label for="loteMotivo">Motivo</label>
+                <input type="text" id="loteMotivo" maxlength="300" placeholder="Ej: Clases de laboratorio, Vacaciones">
+              </div>
+              <button class="btn-small" style="width: 100%; padding: 10px;" onclick="previsualizarLote()">Ver qué días se bloquean</button>
+              <div id="lotePrevia" class="lote-previa" hidden></div>
             </div>
 
             <div>
@@ -640,6 +739,16 @@
         <!-- TAB: REPORTES -->
         <div id="tab-reportes" class="tab-content">
           <h3>Reportes de errores</h3>
+          <p class="nota">Cada reporte pasa por <b>Nuevo</b> → <b>En revisión</b> → <b>Resuelto</b>. En la nota podés anotar qué pasó o qué se hizo (la ven los demás moderadores).</p>
+          <div class="filters">
+            <select id="filtroReportes" onchange="mostrarReportes(reportesActuales)" aria-label="Filtrar reportes por estado">
+              <option value="pendientes">Nuevos y en revisión</option>
+              <option value="">Todos</option>
+              <option value="nuevo">Nuevos</option>
+              <option value="en_revision">En revisión</option>
+              <option value="resuelto">Resueltos</option>
+            </select>
+          </div>
 
           <div class="table-wrapper">
             <table>
@@ -648,8 +757,7 @@
                   <th>Fecha</th>
                   <th>Mensaje</th>
                   <th>URL</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
+                  <th>Estado y nota</th>
                 </tr>
               </thead>
               <tbody id="reportesTableBody"></tbody>
@@ -829,6 +937,9 @@
       { nombre: 'Merienda', inicio: '14:00', fin: '18:00' }
     ];
 
+    // Horario del Altillo (viene de /api/configuracion)
+    let ALTILLO_ADMIN = { hora_desde: 7, hora_hasta: 19 };
+
     function nombreTurnoFrente(inicio, fin) {
       const turno = TURNOS_FRENTE.find(t => t.inicio === inicio && t.fin === fin);
       return turno ? turno.nombre : '';
@@ -851,9 +962,12 @@
         const turnos = (Array.isArray(datos.turnos_frente) ? datos.turnos_frente : [])
           .filter(t => t && t.nombre && /^\d{2}:\d{2}$/.test(t.inicio) && /^\d{2}:\d{2}$/.test(t.fin));
         if (turnos.length > 0) TURNOS_FRENTE = turnos;
+        const a = datos.altillo;
+        if (a && Number.isInteger(a.hora_desde) && Number.isInteger(a.hora_hasta)) ALTILLO_ADMIN = { hora_desde: a.hora_desde, hora_hasta: a.hora_hasta };
       } catch (error) {
         console.error('Error al cargar los turnos:', error);
       } finally {
+        llenarHorasLote();
         // Reserva de prioridad: un turno por opción
         const select = document.getElementById('prioridadTurno');
         const elegido = select.value;
@@ -1055,6 +1169,11 @@
         cargarReportes();
       }
 
+      if (tab === 'hoy') {
+        mostrarHoy();
+        cargarCorreosHoy();
+      }
+
       if (tab === 'meses') {
         cargarMesesHabilitados();
       }
@@ -1086,7 +1205,9 @@
           mostrarReservasDelDia(diaSeleccionadoAdmin.fecha, diaSeleccionadoAdmin.espacio);
         }
         await cargarBloqueos();
-        cargarReportes();
+        await cargarReportes();
+        mostrarHoy();
+        cargarCorreosHoy();
         cargarReservasPrioridad();
       } catch (error) {
         console.error('Error:', error);
@@ -1211,6 +1332,171 @@
       return td;
     }
 
+    // ===== Pestaña "Hoy" =====
+    // Lo del día en un solo lugar: reservas de hoy (en orden, con su asistencia), bloqueos de hoy,
+    // reservas del próximo día hábil, reportes nuevos y correos que no salieron.
+    function minutosAhoraAsuncion() {
+      const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Asuncion', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+        .formatToParts(new Date()).map(x => [x.type, x.value]));
+      return Number(p.hour) * 60 + Number(p.minute);
+    }
+    const aMinutos = hhmm => { const [h, m] = String(hhmm).split(':').map(Number); return h * 60 + m; };
+
+    // Próximo día hábil (si hoy es viernes, el lunes)
+    function proximoDiaHabil(fechaIso) {
+      const d = new Date(fechaIso + 'T12:00:00Z');
+      do { d.setUTCDate(d.getUTCDate() + 1); } while ([0, 6].includes(d.getUTCDay()));
+      return d.toISOString().slice(0, 10);
+    }
+
+    function fechaLargaAdmin(fechaIso) {
+      return new Intl.DateTimeFormat('es-PY', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(fechaIso + 'T12:00:00Z'));
+    }
+
+    function itemReservaHoy(r, conAsistencia, ahora) {
+      const ini = r.hora_inicio.substring(0, 5), fin = r.hora_fin.substring(0, 5);
+      const item = document.createElement('div');
+      item.className = 'hoy-item';
+      let etiqueta = '';
+      if (ahora != null) {
+        if (ahora >= aMinutos(fin)) { item.classList.add('termino'); etiqueta = 'Terminó'; }
+        else if (ahora >= aMinutos(ini)) { item.classList.add('en-curso'); etiqueta = 'En curso'; }
+        else { item.classList.add('proxima'); etiqueta = 'Próxima'; }
+      }
+      const hora = document.createElement('div');
+      hora.className = 'hoy-hora';
+      hora.textContent = `${ini} - ${fin}`;
+      const sub = document.createElement('small');
+      const turno = Number(r.espacio_id) === 3 ? nombreTurnoFrente(ini, fin) : '';
+      sub.textContent = [espacios[r.espacio_id], turno, etiqueta].filter(Boolean).join(' · ');
+      hora.appendChild(sub);
+
+      const datos = document.createElement('div');
+      datos.className = 'hoy-datos';
+      const nombre = document.createElement('strong');
+      nombre.textContent = r.nombre_solicitante + (r.reservado_por_admin ? ' (prioridad)' : '');
+      const [celular = '', email = ''] = String(r.contacto || '').split('|').map(p => p.trim());
+      const linea = document.createElement('div');
+      linea.className = 'detalle';
+      linea.textContent = [r.motivo, email].filter(Boolean).join(' · ');
+      datos.append(nombre, linea);
+      if (celular && celular !== '-') {
+        const tel = document.createElement('div');
+        tel.className = 'detalle';
+        const a = document.createElement('a');
+        a.href = `tel:${celular.replace(/[^\d+]/g, '')}`;
+        a.textContent = celular;
+        tel.appendChild(a);
+        datos.appendChild(tel);
+      }
+      const acomp = textoAcompanantes(r);
+      if (acomp) {
+        const l = document.createElement('div');
+        l.className = 'detalle';
+        l.textContent = 'Acompañantes: ' + acomp;
+        datos.appendChild(l);
+      }
+      item.append(hora, datos);
+      if (conAsistencia) item.appendChild(controlesAsistencia(r));
+      return item;
+    }
+
+    function vacioHoy(texto) {
+      const p = document.createElement('p');
+      p.className = 'vacio';
+      p.textContent = texto;
+      return p;
+    }
+
+    function mostrarHoy() {
+      const hoy = hoyEnAsuncionStr();
+      const ahora = minutosAhoraAsuncion();
+      const titulo = fechaLargaAdmin(hoy);
+      document.getElementById('hoyTitulo').textContent = 'Hoy, ' + titulo;
+      const ordenar = lista => lista.sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio) || a.espacio_id - b.espacio_id);
+      const deHoy = ordenar(reservasActuales.filter(r => r.fecha === hoy && r.estado === 'activa'));
+      document.getElementById('hoyCantidad').textContent = deHoy.length;
+      document.getElementById('hoySinAsistencia').textContent =
+        deHoy.filter(r => !r.asistencia && ahora >= aMinutos(r.hora_inicio.substring(0, 5))).length;
+      document.getElementById('hoyReportes').textContent =
+        reportesActuales.filter(r => (r.estado || (r.leido ? 'resuelto' : 'nuevo')) === 'nuevo').length;
+
+      const lista = document.getElementById('hoyLista');
+      lista.replaceChildren(...(deHoy.length ? deHoy.map(r => itemReservaHoy(r, true, ahora)) : [vacioHoy('Hoy no hay reservas.')]));
+
+      // Bloqueos de hoy
+      const avisos = document.getElementById('hoyBloqueos');
+      avisos.replaceChildren();
+      bloqueosCargados.filter(b => b.fecha === hoy).forEach(b => {
+        const div = document.createElement('div');
+        div.className = 'hoy-aviso';
+        const completo = b.hora_inicio === '00:00:00' && b.hora_fin === '23:59:00';
+        div.textContent = `Bloqueado: ${espacios[b.espacio_id] || ''}, ${completo ? 'todo el día' : `${b.hora_inicio.substring(0, 5)} - ${b.hora_fin.substring(0, 5)}`}${b.motivo ? ' · ' + b.motivo : ''}`;
+        avisos.appendChild(div);
+      });
+
+      // Próximo día hábil
+      const siguiente = proximoDiaHabil(hoy);
+      document.getElementById('mananaTitulo').textContent = (new Date(hoy + 'T12:00:00Z').getUTCDay() === 5 ? 'El lunes, ' : 'Mañana, ') + fechaLargaAdmin(siguiente);
+      const deManana = ordenar(reservasActuales.filter(r => r.fecha === siguiente && r.estado === 'activa'));
+      document.getElementById('mananaLista').replaceChildren(...(deManana.length ? deManana.map(r => itemReservaHoy(r, false, null)) : [vacioHoy('No hay reservas.')]));
+    }
+
+    // Correos que no salieron (los pendientes se reintentan solos; los "no enviado" se pueden reintentar)
+    async function cargarCorreosHoy() {
+      try {
+        const res = await fetchConJWT(`${API_BASE}/admin/correos`);
+        if (!res.ok) return;
+        const correos = await res.json();
+        document.getElementById('hoyCorreos').textContent = correos.length;
+        const seccion = document.getElementById('hoyCorreosSeccion');
+        seccion.hidden = correos.length === 0;
+        const lista = document.getElementById('hoyCorreosLista');
+        lista.replaceChildren(...correos.map(c => {
+          const item = document.createElement('div');
+          item.className = 'hoy-item ' + (c.estado === 'fallido' ? 'termino' : 'proxima');
+          const estado = document.createElement('div');
+          estado.className = 'hoy-hora';
+          estado.textContent = c.estado === 'fallido' ? 'No enviado' : 'Reintentando';
+          const sub = document.createElement('small');
+          sub.textContent = `${fechaHoraAsuncion(c.creado_en)} · ${c.intentos} intento${c.intentos === 1 ? '' : 's'}`;
+          estado.appendChild(sub);
+          const datos = document.createElement('div');
+          datos.className = 'hoy-datos';
+          const asunto = document.createElement('strong');
+          asunto.textContent = c.asunto;
+          const para = document.createElement('div');
+          para.className = 'detalle';
+          para.textContent = 'Para: ' + (Array.isArray(c.destinatarios) ? c.destinatarios.join(', ') : '');
+          const error = document.createElement('div');
+          error.className = 'detalle';
+          error.textContent = c.ultimo_error ? 'Error: ' + c.ultimo_error : '';
+          datos.append(asunto, para, error);
+          item.append(estado, datos);
+          if (c.estado === 'fallido') {
+            const btn = document.createElement('button');
+            btn.className = 'btn-small';
+            btn.textContent = 'Reintentar';
+            btn.addEventListener('click', async () => {
+              btn.disabled = true;
+              try {
+                const r = await fetchConJWT(`${API_BASE}/admin/correos/${c.id}/reintentar`, { method: 'POST' });
+                if (!r.ok) alert(await leerError(r));
+                setTimeout(cargarCorreosHoy, 2500);
+              } catch (err) {
+                avisarErrorConexion(err);
+                btn.disabled = false;
+              }
+            });
+            item.appendChild(btn);
+          }
+          return item;
+        }));
+      } catch (error) {
+        console.error('Error al cargar los correos:', error);
+      }
+    }
+
     // ===== Asistencia ("Vino" / "No vino") =====
     // Tocar la opción ya marcada la borra.
     function controlesAsistencia(r) {
@@ -1244,6 +1530,7 @@
         }
         r.asistencia = valor;
         filtrarReservas();
+        mostrarHoy();
         if (diaSeleccionadoAdmin) mostrarReservasDelDia(diaSeleccionadoAdmin.fecha, diaSeleccionadoAdmin.espacio);
       } catch (error) {
         avisarErrorConexion(error);
@@ -1350,7 +1637,7 @@
     {
       const h = new Date();
       const hoyLocal = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
-      ['bloqueFecha', 'prioridadFecha'].forEach(id => { document.getElementById(id).min = hoyLocal; });
+      ['bloqueFecha', 'prioridadFecha', 'loteDesde', 'loteHasta'].forEach(id => { document.getElementById(id).min = hoyLocal; });
     }
 
     async function confirmarCancelacion() {
@@ -1425,6 +1712,127 @@
       }
     }
 
+    // --- Bloqueos de varios días ---
+    // Horas que se pueden elegir: en el Altillo, cada hora de su horario; en el Frente, los
+    // comienzos y finales de los turnos
+    function llenarHorasLote() {
+      const espacio = document.getElementById('loteEspacio').value;
+      let horas;
+      if (espacio === '3') {
+        horas = [...new Set(TURNOS_FRENTE.flatMap(t => [t.inicio, t.fin]))].sort();
+      } else {
+        horas = [];
+        for (let h = ALTILLO_ADMIN.hora_desde; h <= ALTILLO_ADMIN.hora_hasta; h++) horas.push(`${String(h).padStart(2, '0')}:00`);
+      }
+      const llenar = (id, lista, elegida) => {
+        const sel = document.getElementById(id);
+        sel.replaceChildren(...lista.map(h => new Option(h, h)));
+        if (elegida && lista.includes(elegida)) sel.value = elegida;
+      };
+      llenar('loteInicio', horas.slice(0, -1), horas[0]);
+      llenar('loteFin', horas.slice(1), horas[horas.length - 1]);
+    }
+
+    function datosLote(confirmar) {
+      const completo = document.getElementById('loteHorario').value === 'completo';
+      return {
+        espacio_id: Number(document.getElementById('loteEspacio').value),
+        desde: document.getElementById('loteDesde').value,
+        hasta: document.getElementById('loteHasta').value,
+        dias: [...document.querySelectorAll('#loteDias input:checked')].map(c => Number(c.value)),
+        hora_inicio: completo ? '00:00:00' : document.getElementById('loteInicio').value,
+        hora_fin: completo ? '23:59:00' : document.getElementById('loteFin').value,
+        motivo: document.getElementById('loteMotivo').value.trim() || 'Sin especificar',
+        confirmar
+      };
+    }
+
+    const fechaCorta = f => { const [a, m, d] = f.split('-'); return `${d}/${m}`; };
+    const diaSemanaCorto = f => ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'][new Date(f + 'T12:00:00Z').getUTCDay()];
+
+    async function previsualizarLote() {
+      const datos = datosLote(false);
+      if (!datos.desde || !datos.hasta) { alert('Elegí las fechas "desde" y "hasta".'); return; }
+      const caja = document.getElementById('lotePrevia');
+      caja.hidden = false;
+      caja.replaceChildren(vacioHoy('Calculando…'));
+      try {
+        const res = await fetchConJWT(`${API_BASE}/bloqueos/lote`, { method: 'POST', body: JSON.stringify(datos) });
+        const r = await res.json().catch(() => ({}));
+        if (!res.ok) { caja.replaceChildren(vacioHoy(r.error || 'No se pudo calcular.')); return; }
+        caja.replaceChildren();
+        const titulo = document.createElement('strong');
+        titulo.textContent = r.fechas.length
+          ? `Se van a bloquear ${r.fechas.length} día${r.fechas.length === 1 ? '' : 's'} (${espacios[datos.espacio_id]}, ${datos.hora_inicio === '00:00:00' ? 'todo el día' : `${datos.hora_inicio} - ${datos.hora_fin}`}):`
+          : 'No queda ningún día para bloquear.';
+        caja.appendChild(titulo);
+        if (r.fechas.length) {
+          const p = document.createElement('p');
+          p.textContent = r.fechas.map(f => `${diaSemanaCorto(f)} ${fechaCorta(f)}`).join(', ');
+          caja.appendChild(p);
+        }
+        if (r.conflictos.length) {
+          const t = document.createElement('p');
+          t.className = 'conflicto';
+          t.textContent = `No se bloquean ${r.conflictos.length} día(s) porque hay reservas en ese horario (si hace falta, cancelalas primero):`;
+          const ul = document.createElement('ul');
+          r.conflictos.forEach(c => {
+            const li = document.createElement('li');
+            li.textContent = `${diaSemanaCorto(c.fecha)} ${fechaCorta(c.fecha)}: ` + c.reservas.map(x => `${x.nombre} (${x.horario})`).join(', ');
+            ul.appendChild(li);
+          });
+          caja.append(t, ul);
+        }
+        if (r.ya_bloqueadas.length) {
+          const p = document.createElement('p');
+          p.className = 'detalle';
+          p.textContent = `Ya estaban bloqueados: ${r.ya_bloqueadas.map(fechaCorta).join(', ')}.`;
+          caja.appendChild(p);
+        }
+        if (r.fechas.length) {
+          const btn = document.createElement('button');
+          btn.className = 'btn-block';
+          btn.style.width = '100%';
+          btn.textContent = `Confirmar y bloquear ${r.fechas.length} día${r.fechas.length === 1 ? '' : 's'}`;
+          btn.addEventListener('click', () => confirmarLote(btn));
+          caja.appendChild(btn);
+        }
+      } catch (error) {
+        caja.replaceChildren(vacioHoy('No se pudo conectar con el servidor.'));
+        avisarErrorConexion(error);
+      }
+    }
+
+    async function confirmarLote(boton) {
+      boton.disabled = true;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/bloqueos/lote`, { method: 'POST', body: JSON.stringify(datosLote(true)) });
+        const r = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(r.error || 'No se pudo bloquear.'); boton.disabled = false; return; }
+        alert(`✓ ${r.mensaje}`);
+        document.getElementById('lotePrevia').hidden = true;
+        await cargarBloqueos();
+        mostrarHoy();
+      } catch (error) {
+        boton.disabled = false;
+        avisarErrorConexion(error);
+      }
+    }
+
+    async function eliminarLote(lote, cantidad) {
+      if (!confirm(`¿Eliminar los ${cantidad} bloqueos de esta serie?`)) return;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/bloqueos/lote/${lote}`, { method: 'DELETE' });
+        const r = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(r.error || 'No se pudo eliminar.'); return; }
+        alert(`✓ ${r.mensaje}`);
+        await cargarBloqueos();
+        mostrarHoy();
+      } catch (error) {
+        avisarErrorConexion(error);
+      }
+    }
+
     async function cargarBloqueos() {
       try {
         const res = await fetchConJWT(`${API_BASE}/admin/bloqueos`);
@@ -1467,13 +1875,31 @@
           motivoEl.textContent = b.motivo || '';
           info.appendChild(motivoEl);
 
+          const botones = document.createElement('div');
+          botones.style.display = 'grid';
+          botones.style.gap = '6px';
           const btnEliminar = document.createElement('button');
           btnEliminar.className = 'btn-small btn-cancel';
           btnEliminar.textContent = 'Eliminar';
           btnEliminar.addEventListener('click', () => eliminarBloqueo(b.id));
+          botones.appendChild(btnEliminar);
+
+          // Bloqueo de una serie ("varios días"): se puede borrar la serie entera
+          const enSerie = b.lote ? bloqueosCargados.filter(x => x.lote === b.lote).length : 0;
+          if (enSerie > 1) {
+            const serie = document.createElement('span');
+            serie.className = 'serie';
+            serie.textContent = `Parte de una serie de ${enSerie} días`;
+            info.appendChild(serie);
+            const btnSerie = document.createElement('button');
+            btnSerie.className = 'btn-small btn-cancel';
+            btnSerie.textContent = 'Eliminar la serie';
+            btnSerie.addEventListener('click', () => eliminarLote(b.lote, enSerie));
+            botones.appendChild(btnSerie);
+          }
 
           fila.appendChild(info);
-          fila.appendChild(btnEliminar);
+          fila.appendChild(botones);
           bloqueosList.appendChild(fila);
         });
       } catch (error) {
@@ -2060,6 +2486,7 @@
         dayEl.className = 'calendar-day';
         if (reservasDia.length > 0) dayEl.classList.add('has-reservas');
         if (fecha === hoy) dayEl.classList.add('today');
+        else if (fecha < hoy) dayEl.classList.add('pasado');
 
         dayEl.innerHTML = `
           <div class="calendar-day-number">${dia}</div>
@@ -2068,7 +2495,7 @@
 
         dayEl.setAttribute('role', 'button');
         dayEl.setAttribute('tabindex', '0');
-        dayEl.setAttribute('aria-label', `Día ${dia}, ${reservasDia.length} reserva${reservasDia.length !== 1 ? 's' : ''}`);
+        dayEl.setAttribute('aria-label', `Día ${dia}${fecha === hoy ? ' (hoy)' : ''}, ${reservasDia.length} reserva${reservasDia.length !== 1 ? 's' : ''}`);
         dayEl.addEventListener('click', () => mostrarReservasDelDia(fecha, espacioSeleccionado));
         dayEl.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -2213,11 +2640,21 @@
       }
     }
 
-    function mostrarReportes(reportes) {
+    // Estado del reporte (si la base todavía no tiene la columna, se deduce de "leído")
+    const estadoReporte = r => r.estado || (r.leido ? 'resuelto' : 'nuevo');
+    const NOMBRES_ESTADO = { nuevo: 'Nuevo', en_revision: 'En revisión', resuelto: 'Resuelto' };
+
+    function mostrarReportes(todos) {
       const tbody = document.getElementById('reportesTableBody');
       if (!tbody) return;
 
       while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+      const filtro = document.getElementById('filtroReportes').value;
+      const reportes = todos.filter(r => !filtro || (filtro === 'pendientes' ? estadoReporte(r) !== 'resuelto' : estadoReporte(r) === filtro));
+      if (reportes.length === 0) {
+        filaVacia(tbody, 4, filtro === 'pendientes' ? 'No hay reportes pendientes.' : 'No hay reportes con ese estado.');
+        return;
+      }
 
       reportes.forEach(r => {
         const tr = document.createElement('tr');
@@ -2243,27 +2680,45 @@
         tdUrl.textContent = r.url || '-'; // texto plano, no se crea un <a> clickeable con esta URL sin validar
         tr.appendChild(tdUrl);
 
+        // Estado + nota + Guardar
         const tdEstado = document.createElement('td');
-        const badge = document.createElement('span');
-        badge.className = `status-badge ${r.leido ? 'status-cancelada' : 'status-activa'}`;
-        badge.textContent = r.leido ? 'Leído' : 'Nuevo';
-        tdEstado.appendChild(badge);
+        tdEstado.className = 'reporte-estado';
+        const select = document.createElement('select');
+        select.setAttribute('aria-label', 'Estado del reporte');
+        Object.entries(NOMBRES_ESTADO).forEach(([valor, texto]) => select.add(new Option(texto, valor)));
+        select.value = estadoReporte(r);
+        const nota = document.createElement('textarea');
+        nota.maxLength = 500;
+        nota.rows = 2;
+        nota.placeholder = 'Nota (opcional): qué pasó, qué se hizo';
+        nota.setAttribute('aria-label', 'Nota del reporte');
+        nota.value = r.nota || '';
+        const btn = document.createElement('button');
+        btn.className = 'btn-small';
+        btn.textContent = 'Guardar';
+        btn.addEventListener('click', () => guardarEstadoReporte(r.id, select.value, nota.value, btn));
+        tdEstado.append(select, nota, btn);
         tr.appendChild(tdEstado);
-
-        const tdAccion = document.createElement('td');
-        if (!r.leido) {
-          const btn = document.createElement('button');
-          btn.className = 'btn-small';
-          btn.textContent = 'Marcar leído';
-          btn.addEventListener('click', () => marcarLeido(r.id));
-          tdAccion.appendChild(btn);
-        } else {
-          tdAccion.textContent = '-';
-        }
-        tr.appendChild(tdAccion);
 
         tbody.appendChild(tr);
       });
+    }
+
+    async function guardarEstadoReporte(id, estado, nota, boton) {
+      boton.disabled = true;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/admin/reportes/${id}/estado`, {
+          method: 'POST',
+          body: JSON.stringify({ estado, nota: nota.trim() })
+        });
+        if (!res.ok) { alert(await leerError(res)); return; }
+        await cargarReportes();
+        mostrarHoy();
+      } catch (error) {
+        avisarErrorConexion(error);
+      } finally {
+        boton.disabled = false;
+      }
     }
 
     async function marcarLeido(id) {
