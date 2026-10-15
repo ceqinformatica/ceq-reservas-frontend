@@ -125,7 +125,10 @@
     .calendar-day.partial .calendar-day-number { color: #B07A0B; }
     .calendar-day.full { background: #E4E9F1; }
     .calendar-day.full .calendar-day-number { color: #8C98AC; text-decoration: line-through; text-decoration-thickness: 2px; }
-    .calendar-day.today { border-color: var(--linea); }
+    /* Hoy: borde azul y la etiqueta "HOY", sin tapar el color de su estado (libre, pocos, completo) */
+    .calendar-day.today { border-color: var(--azul); position: relative; }
+    .calendar-day.today::after { content: "HOY"; position: absolute; top: 6px; right: 6px; font-size: 9px; font-weight: 800; letter-spacing: .06em; color: var(--blanco); background: var(--azul); border-radius: 4px; padding: 1px 5px; line-height: 1.4; }
+    .calendar-day.today.selected::after { background: var(--blanco); color: var(--marino); }
     .calendar-day.disabled { background: transparent; cursor: default; }
     .calendar-day.disabled:hover { border-color: transparent; }
     .calendar-day.disabled .calendar-day-number { color: #9AAAC2; }
@@ -542,6 +545,23 @@
 
     // Para un día de Frente, devuelve un true/false por turno (ocupado o no), considerando
     // reservas activas, bloqueos de administración y turnos de hoy que ya empezaron.
+    // ¿Queda algún turno (Frente) o bloque de 1 hora (Altillo) que se pueda reservar hoy?
+    // Un bloque del Altillo se puede tomar mientras no haya terminado (igual que en el servidor).
+    function quedaLugarHoy(fecha) {
+      if (espacioSeleccionado === 3) return turnosOcupadosFrente(fecha).some(ocupado => !ocupado);
+      const ahora = minutosAhoraEnAsuncion();
+      const ocupaciones = [
+        ...reservasActuales.filter(r => r.espacio_id === espacioSeleccionado && r.fecha === fecha),
+        ...bloqueosCargados.filter(b => b.espacio_id === espacioSeleccionado && b.fecha === fecha)
+      ];
+      for (let h = ALTILLO.hora_desde; h < ALTILLO.hora_hasta; h++) {
+        const ini = `${String(h).padStart(2, '0')}:00`, fin = `${String(h + 1).padStart(2, '0')}:00`;
+        if ((h + 1) * 60 <= ahora) continue;
+        if (!ocupaciones.some(o => seSuperponen(o.hora_inicio.substring(0, 5), o.hora_fin.substring(0, 5), ini, fin))) return true;
+      }
+      return false;
+    }
+
     function turnosOcupadosFrente(fecha) {
       const ocupaciones = [
         ...reservasActuales.filter(r => r.espacio_id === 3 && r.fecha === fecha),
@@ -1139,9 +1159,9 @@
         
         // Determinar estado del día
 
-        if (fecha === hoyStr) {
-          dayEl.classList.add('today'); // Gris - Hoy
-        } else if (esPasado || esFinDeSemana || esFueraDelRango || hayBloqueCompleto) {
+        // Hoy se calcula como cualquier otro día (con lugar, pocos lugares o completo) y además
+        // lleva la marca "HOY". Antes se pintaba siempre blanco y parecía libre aunque no lo estuviera.
+        if (esPasado || esFinDeSemana || esFueraDelRango || hayBloqueCompleto) {
           dayEl.classList.add('disabled');
         } else if (reservasDia.length === 0) {
           dayEl.classList.add('available'); // Verde - Sin reservas
@@ -1190,6 +1210,17 @@
             } else {
               dayEl.classList.add('partial'); // Amarillo - Parcial
             }
+          }
+        }
+
+        if (fecha === hoyStr) {
+          dayEl.classList.add('today');
+          // Hoy: los turnos (Frente) o bloques (Altillo) que ya pasaron no cuentan como libres
+          if (!dayEl.classList.contains('disabled') && !quedaLugarHoy(fecha)) {
+            dayEl.classList.remove('available', 'partial');
+            dayEl.classList.add('full');
+          } else if (dayEl.classList.contains('available') && espacioSeleccionado === 3 && turnosOcupadosFrente(fecha).some(Boolean)) {
+            dayEl.classList.replace('available', 'partial');
           }
         }
 
