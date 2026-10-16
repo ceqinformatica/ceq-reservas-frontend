@@ -166,17 +166,18 @@
         <p class="ayuda" id="ayudaEnlace">Estás por cancelar esta reserva:</p>
         <div class="datos-reserva" id="datosReserva"></div>
         <button class="btn-primary" id="btnCancelarEnlace" onclick="cancelarPorEnlace()">Sí, cancelar esta reserva</button>
+        <p class="volver" id="btnOtroCodigo" hidden><a href="#" onclick="usarOtroCodigo(); return false;">No es esta: usar otro código</a></p>
       </div>
 
       <div id="formCodigo">
-        <p class="ayuda">Ingresá el código que te mostramos al confirmar la reserva. También está en el email de confirmación.</p>
+        <p class="ayuda">Ingresá el código de cancelación que te llegó en el email de confirmación. Antes de cancelar te mostramos la reserva para que la revises.</p>
 
         <div class="form-group">
           <label for="codigo">Código de cancelación</label>
           <input type="text" id="codigo" placeholder="Ej: 02ADDC1537AD1323" autocomplete="off" autocapitalize="characters" spellcheck="false" autofocus>
         </div>
 
-        <button class="btn-primary" id="btnCancelar" onclick="cancelarReserva()">Cancelar reserva</button>
+        <button class="btn-primary" id="btnCancelar" onclick="cancelarReserva()">Buscar mi reserva</button>
       </div>
 
       <p class="ayuda perdido">¿Perdiste el código y no encontrás el email? Revisá la carpeta de spam o escribinos por <a class="whatsapp-frente" href="https://wa.me/595972753471" target="_blank" rel="noopener">WhatsApp</a> y te ayudamos a cancelar.</p>
@@ -246,6 +247,42 @@
       return linea;
     }
 
+    // Con qué se va a cancelar: el enlace del correo o el código que escribió la persona
+    let codigoConsultado = '';
+
+    // Muestra los datos de la reserva y el botón para confirmar (igual con el enlace o con el código)
+    function mostrarReservaParaConfirmar(datos) {
+      document.getElementById('tituloCancelar').textContent = 'Cancelar tu reserva';
+      document.getElementById('datosReserva').replaceChildren(
+        filaDato('Reserva', `#${datos.id}`),
+        filaDato('Espacio', datos.espacio),
+        filaDato('Día', datos.fecha_larga),
+        filaDato('Horario', datos.horario)
+      );
+      document.getElementById('formCodigo').hidden = true;
+      document.getElementById('cancelarEnlace').hidden = false;
+      document.getElementById('btnOtroCodigo').hidden = !codigoConsultado;
+      const boton = document.getElementById('btnCancelarEnlace');
+      const ayuda = document.getElementById('ayudaEnlace');
+      boton.hidden = false;
+      if (datos.whatsapp) whatsappFrente = datos.whatsapp;
+      // Saludo con el primer nombre (textContent: el nombre lo escribió la persona, no se toma como HTML)
+      const saludo = datos.nombre ? `Hola, ${datos.nombre}. ` : '';
+      ayuda.textContent = saludo + 'Estás a punto de cancelar esta reserva. Revisá que sea la correcta y confirmá:';
+
+      if (datos.estado !== 'activa') {
+        ayuda.textContent = saludo + 'Esta reserva ya está cancelada. No tenés que hacer nada más.';
+        boton.hidden = true;
+      } else if (datos.ya_paso) {
+        ayuda.textContent = saludo + 'Esta reserva ya pasó, así que no hace falta cancelarla.';
+        boton.hidden = true;
+      } else if (datos.plazo_vencido) {
+        ayuda.textContent = saludo + 'El período para cancelar gratis ya terminó (es hasta 2 días antes).';
+        boton.hidden = true;
+        mostrarMensaje(`Si igual necesitás cancelarla, escribinos por ${enlaceWhatsapp(whatsappFrente)}.`, 'error', true, true);
+      }
+    }
+
     async function cargarReservaDelEnlace() {
       if (!enlace.r || !enlace.t) return;
       document.getElementById('tituloCancelar').textContent = 'Cancelar tu reserva';
@@ -257,48 +294,34 @@
           mostrarMensaje(datos.error || 'El enlace no es válido. Usá el código de tu correo de confirmación.', 'error', true);
           return;
         }
-        const caja = document.getElementById('datosReserva');
-        caja.replaceChildren(
-          filaDato('Reserva', `#${datos.id}`),
-          filaDato('Espacio', datos.espacio),
-          filaDato('Día', datos.fecha_larga),
-          filaDato('Horario', datos.horario)
-        );
-        document.getElementById('formCodigo').hidden = true;
-        document.getElementById('cancelarEnlace').hidden = false;
-        const boton = document.getElementById('btnCancelarEnlace');
-        const ayuda = document.getElementById('ayudaEnlace');
-        if (datos.whatsapp) whatsappFrente = datos.whatsapp;
-
-        if (datos.estado !== 'activa') {
-          ayuda.textContent = 'Esta reserva ya está cancelada. No tenés que hacer nada más.';
-          boton.hidden = true;
-        } else if (datos.ya_paso) {
-          ayuda.textContent = 'Esta reserva ya pasó, así que no hace falta cancelarla.';
-          boton.hidden = true;
-        } else if (datos.plazo_vencido) {
-          ayuda.textContent = 'El período para cancelar gratis ya terminó (es hasta 2 días antes).';
-          boton.hidden = true;
-          mostrarMensaje(`Si igual necesitás cancelarla, escribinos por ${enlaceWhatsapp(whatsappFrente)}.`, 'error', true, true);
-        }
+        mostrarReservaParaConfirmar(datos);
       } catch (error) {
         console.error('Error:', error);
         mostrarMensaje('Error de conexión. Revisá tu internet y volvé a intentar.', 'error', true);
       }
     }
 
+    // Paso 2 (con el enlace o con el código): la persona ya vio los datos y confirmó
     async function cancelarPorEnlace() {
       const boton = document.getElementById('btnCancelarEnlace');
       boton.disabled = true;
       try {
-        const res = await fetch(`${API_BASE}/cancelar-por-enlace`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ r: enlace.r, t: enlace.t })
-        });
+        const res = codigoConsultado
+          ? await fetch(`${API_BASE}/cancelar-por-codigo`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ codigo: codigoConsultado })
+            })
+          : await fetch(`${API_BASE}/cancelar-por-enlace`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ r: enlace.r, t: enlace.t })
+            });
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           boton.hidden = true;
+          document.getElementById('btnOtroCodigo').hidden = true;
+          codigoConsultado = '';
           document.getElementById('ayudaEnlace').textContent = data.mensaje === 'La reserva ya se encontraba cancelada'
             ? 'Esta reserva ya estaba cancelada.'
             : 'Listo, tu reserva quedó cancelada. ¡Gracias por avisar! Te llega la confirmación por correo.';
@@ -334,6 +357,7 @@
       }
     }
 
+    // Paso 1 con el código: se buscan los datos de la reserva (todavía no se cancela nada)
     async function cancelarReserva() {
       const codigo = document.getElementById('codigo').value.trim().toUpperCase();
 
@@ -345,7 +369,7 @@
       document.getElementById('btnCancelar').disabled = true;
 
       try {
-        const res = await fetch(`${API_BASE}/cancelar-por-codigo`, {
+        const res = await fetch(`${API_BASE}/cancelar-por-codigo/consultar`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ codigo })
@@ -354,23 +378,13 @@
         const data = await res.json().catch(() => ({}));
 
         if (res.ok) {
-          mostrarMensaje('✓ Reserva cancelada exitosamente. Te llevamos de vuelta al calendario…', 'success', true);
-          document.getElementById('codigo').value = '';
-          setTimeout(() => {
-            window.location.href = 'https://reservas.ceq-una.com';
-          }, 2000);
+          document.getElementById('statusMessage').style.display = 'none';
+          codigoConsultado = codigo;
+          mostrarReservaParaConfirmar(data);
         } else if (res.status === 429) {
           mostrarMensaje('Hiciste demasiados intentos seguidos. Esperá unos minutos y volvé a probar.', 'error', true);
         } else {
-          // Mostrar error específico del servidor
-          if (data.error && data.error.includes('PERIODO DE CANCELACION')) {
-            mostrarMensaje(
-              `El período de cancelación gratuita ya terminó. Si igual necesitás cancelar, escribinos por ${enlaceWhatsapp(whatsappFrente)}.`,
-              'error', true, true
-            );
-          } else {
-            mostrarMensaje(data.error || 'No se pudo cancelar la reserva.', 'error');
-          }
+          mostrarMensaje(data.error || 'No se pudo buscar la reserva.', 'error');
         }
       } catch (error) {
         console.error('Error:', error);
@@ -378,6 +392,16 @@
       } finally {
         document.getElementById('btnCancelar').disabled = false;
       }
+    }
+
+    // "Usar otro código": vuelve al formulario sin cancelar nada
+    function usarOtroCodigo() {
+      codigoConsultado = '';
+      document.getElementById('cancelarEnlace').hidden = true;
+      document.getElementById('formCodigo').hidden = false;
+      document.getElementById('statusMessage').style.display = 'none';
+      document.getElementById('tituloCancelar').textContent = 'Tu código de cancelación';
+      document.getElementById('codigo').focus();
     }
 
     // Permitir Enter

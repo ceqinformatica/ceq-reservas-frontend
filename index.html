@@ -1863,7 +1863,7 @@
       document.getElementById('confEspacio').textContent = espacios[espacioId];
       document.getElementById('confFecha').textContent = `${dia}/${mes}/${anio}`;
       document.getElementById('confHorario').textContent = descripcionHorario(espacioId, horaInicio, horaFin);
-      document.getElementById('confCodigo').textContent = codigo || '(te llega por email)';
+      // El código de cancelación ya no se muestra en pantalla: solo va en el correo (lo pidió el CEQ)
       document.getElementById('confEmail').textContent = email;
       const regla = document.getElementById('confReglaCancelacion');
       regla.innerHTML = espacioId === 3 ? reglaCancelacionFrente(fecha) : '';
@@ -1998,9 +1998,7 @@
         <div><strong>Fecha:</strong> <span id="confFecha"></span></div>
         <div><strong>Turno:</strong> <span id="confHorario"></span></div>
       </div>
-      <p>Tu código de cancelación:</p>
-      <p id="confCodigo" class="codigo"></p>
-      <p style="font-size:14px;">También te lo enviamos por email a <strong id="confEmail"></strong>. Puede tardar unos minutos; revisá la carpeta de spam. <strong>No hace falta volver a reservar.</strong></p>
+      <p style="font-size:14px;">Te enviamos la confirmación por email a <strong id="confEmail"></strong>, con tu <strong>código de cancelación</strong> y un enlace para cancelar. Puede tardar unos minutos; revisá la carpeta de spam. <strong>No hace falta volver a reservar.</strong></p>
       <p id="confReglaCancelacion" class="regla-cancelacion" style="display:none;"></p>
       <a id="confCalendario" class="btn-secundario btn-calendario" href="#" target="_blank" rel="noopener">Agregar a Google Calendar</a>
       <button class="btn-primary" onclick="cerrarConfirmacionReserva()">Entendido</button>
