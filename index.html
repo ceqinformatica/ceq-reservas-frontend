@@ -1319,6 +1319,11 @@
       const grid = document.getElementById('hoursGrid');
       grid.innerHTML = '';
       horasSeleccionadas = [];
+      // Al cambiar de día se borra el turno elegido: también hay que quitar el cartel "Elegiste…"
+      // y volver a revisar el formulario. Antes el cartel quedaba con el turno del día anterior,
+      // parecía que ya había un turno elegido y el botón "Crear reserva" seguía deshabilitado.
+      document.getElementById('selectedRange').style.display = 'none';
+      validarFormulario();
 
       // Si es Frente, mostrar un botón por turno
       if (espacioSeleccionado === 3) {
