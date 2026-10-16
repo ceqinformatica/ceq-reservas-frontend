@@ -2999,8 +2999,14 @@
           botones.className = 'novedades-botones';
           const descargar = document.createElement('button');
           descargar.className = 'btn-small';
-          descargar.textContent = 'Descargar sus datos (archivo)';
-          descargar.addEventListener('click', () => {
+          descargar.textContent = 'Descargar sus datos (PDF)';
+          descargar.title = 'Abre un documento con sus datos para guardarlo como PDF y mandárselo';
+          descargar.addEventListener('click', () => abrirDatosPersonaPdf(datos.entrega || {}));
+          // El archivo técnico (.json) queda por si alguien lo pide en ese formato
+          const json = document.createElement('button');
+          json.className = 'btn-small';
+          json.textContent = 'Archivo técnico (.json)';
+          json.addEventListener('click', () => {
             const blob = new Blob([JSON.stringify({ generado: new Date().toISOString(), ...(datos.entrega || {}) }, null, 2)], { type: 'application/json' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -3012,13 +3018,90 @@
           borrar.className = 'btn-peligro';
           borrar.textContent = 'Borrar sus datos';
           borrar.addEventListener('click', borrarPersona);
-          botones.append(descargar, borrar);
+          botones.append(descargar, json, borrar);
           cont.appendChild(botones);
         }
       } catch (error) {
         cont.replaceChildren(vacioHoy('No se pudo conectar con el servidor.'));
         avisarErrorConexion(error);
       }
+    }
+
+    // Documento con los datos de una persona (Privacidad, art. 11) para guardarlo como PDF y
+    // mandárselo: se abre en una ventana nueva con la ventana de imprimir ("Guardar como PDF").
+    // Usa solo la "entrega" del servidor (sus datos, sin datos de otras personas). Todo lo que
+    // escribió la gente se escapa: no se interpreta como HTML.
+    function abrirDatosPersonaPdf(entrega) {
+      const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const fecha = f => f ? String(f).split('-').reverse().join('/') : '-';
+      const cuando = v => v ? fechaHoraAsuncion(v) : '-';
+      const estado = e => e === 'cancelada' ? 'Cancelada' : e === 'activa' ? 'Activa' : esc(e || '-');
+      const asistencia = a => a === 'vino' ? 'Vino' : a === 'no_vino' ? 'No vino' : '-';
+      const reservas = entrega.reservas || [];
+      const acomp = entrega.como_acompanante || [];
+      const espera = entrega.lista_espera || [];
+      const nombre = (reservas.find(r => r.nombre && r.nombre !== '(datos eliminados)') || {}).nombre
+        || (espera.find(l => l.nombre) || {}).nombre || '';
+      const tabla = (titulo, cabeza, filas, vacio) => `
+        <h2>${titulo}</h2>
+        ${filas.length ? `<table><thead><tr>${cabeza.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+          <tbody>${filas.map(f => `<tr>${f.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+          : `<p class="vacio">${vacio}</p>`}`;
+      const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="color-scheme" content="light">
+        <title>Datos personales${nombre ? ' - ' + esc(nombre) : ''} - Reservas CEQ</title>
+        <style>
+          @page { size: A4; margin: 16mm 14mm; }
+          * { box-sizing: border-box; }
+          html { background: #fff; color-scheme: light; }
+          body { font-family: "Segoe UI", Arial, sans-serif; color: #1c2b4a; background: #fff; font-size: 11pt; margin: 0 auto; max-width: 1000px; padding: 16px; }
+          @media print { body { padding: 0; max-width: none; } }
+          .cabeza { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #1c3f7a; padding-bottom: 10px; margin-bottom: 14px; }
+          .cabeza img { width: 54px; height: 54px; }
+          .cabeza h1 { font-size: 16pt; margin: 0; color: #1c3f7a; }
+          .cabeza p { margin: 2px 0 0; color: #55627a; font-size: 9.5pt; }
+          .intro { background: #eef4fc; border-left: 4px solid #3a73c9; padding: 10px 12px; margin: 0 0 12px; font-size: 10pt; }
+          h2 { font-size: 12pt; color: #1c3f7a; margin: 16px 0 6px; }
+          table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+          th, td { border: 1px solid #c9d4e5; padding: 4px 6px; text-align: left; vertical-align: top; }
+          th { background: #e3ecf8; }
+          tr { page-break-inside: avoid; }
+          .vacio { color: #55627a; font-style: italic; font-size: 10pt; }
+          .pie { margin-top: 18px; font-size: 8.5pt; color: #55627a; border-top: 1px solid #c9d4e5; padding-top: 8px; }
+          .aviso { display: block; margin: 0 0 12px; padding: 8px 10px; background: #fff7d6; border: 1px solid #e8d68a; font-size: 9.5pt; }
+          @media print { .aviso { display: none; } }
+        </style></head><body>
+        <p class="aviso">En la ventana de imprimir, elegí <b>"Guardar como PDF"</b> como destino. Después mandale el archivo a la persona y borralo de tu computadora.</p>
+        <div class="cabeza">
+          <img src="${location.origin}/logo-ceq.png" alt="">
+          <div><h1>Datos personales en el Sistema de Reservas</h1>
+          <p>Centro de Estudiantes de Química · Facultad de Ciencias Químicas (UNA) · reservas@ceq-una.com</p></div>
+        </div>
+        <p class="intro">${nombre ? `Titular: <b>${esc(nombre)}</b><br>` : ''}Generado el ${esc(cuando(new Date().toISOString()))} en respuesta a una solicitud de acceso (Política de Privacidad, art. 11).
+          Incluye todos los datos guardados sobre esta persona. No incluye datos de otras personas: de sus reservas se indica solo cuántos acompañantes tenía.</p>
+        ${tabla('Sus reservas', ['N.º', 'Espacio', 'Fecha', 'Horario', 'Nombre', 'Contacto', 'Motivo', 'Acomp.', 'Estado', 'Asistencia', 'Creada', 'Cancelada'],
+          reservas.map(r => [esc(r.numero), esc(r.espacio), fecha(r.fecha), `${esc(r.hora_inicio)} - ${esc(r.hora_fin)}`, esc(r.nombre), esc(r.contacto), esc(r.motivo || '-'),
+            esc(r.cantidad_acompanantes), estado(r.estado) + (r.hecha_desde_el_panel ? ' (desde el panel)' : ''), asistencia(r.asistencia), esc(cuando(r.creada)),
+            r.cancelada_en ? esc(cuando(r.cancelada_en)) + (r.motivo_cancelacion ? `<br>Motivo: ${esc(r.motivo_cancelacion)}` : '') : '-']),
+          'No hay reservas a su nombre.')}
+        ${tabla('Reservas donde figura como acompañante', ['N.º', 'Espacio', 'Fecha', 'Horario', 'Estado', 'Cómo figura'],
+          acomp.map(r => [esc(r.numero), esc(r.espacio), fecha(r.fecha), `${esc(r.hora_inicio)} - ${esc(r.hora_fin)}`, estado(r.estado),
+            (r.como_figura || []).map(a => `${esc(a.nombre)}${a.celular ? ' (' + esc(a.celular) + ')' : ''}`).join('<br>') || '-']),
+          'No figura como acompañante en ninguna reserva.')}
+        ${tabla('Lista de espera', ['Espacio', 'Mes', 'Nombre', 'Correo', 'Se anotó', 'Aviso enviado'],
+          espera.map(l => [esc(l.espacio), esc(mesLegible(l.mes)), esc(l.nombre || '-'), esc(l.email), esc(cuando(l.anotada)), esc(cuando(l.avisada))]),
+          'No está anotada en la lista de espera.')}
+        <p class="pie">Las reservas se anonimizan automáticamente a los 6 meses de su fecha y la lista de espera se borra sola (Política de Privacidad, art. 10).
+          Para corregir o borrar estos datos, escribir a reservas@ceq-una.com.</p>
+        </body></html>`;
+      const ventana = window.open('', '_blank');
+      if (!ventana) { alert('El navegador bloqueó la ventana nueva. Permití las ventanas emergentes para este sitio y volvé a tocar el botón.'); return; }
+      ventana.document.open();
+      ventana.document.write(html);
+      ventana.document.close();
+      // Se imprime cuando cargó el logo (o enseguida si no carga)
+      const imprimir = () => { try { ventana.focus(); ventana.print(); } catch (e) { /* la persona puede imprimir a mano */ } };
+      const logo = ventana.document.querySelector('img');
+      if (logo && !logo.complete) { logo.addEventListener('load', imprimir); logo.addEventListener('error', imprimir); } else { setTimeout(imprimir, 200); }
     }
 
     async function borrarPersona() {
