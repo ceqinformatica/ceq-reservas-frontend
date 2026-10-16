@@ -215,6 +215,17 @@
       return `<a href="https://wa.me/${numero}" target="_blank" rel="noopener">WhatsApp</a>`;
     }
 
+    // Correo del contacto del Frente (lo manda el servidor, de la Configuración del panel)
+    let correoFrente = '';
+    // "escribí a x@y.com o por WhatsApp". Solo se acepta un correo con caracteres simples, así no
+    // puede meter HTML (el mensaje se arma con innerHTML por el enlace)
+    function contactoFrenteHtml() {
+      const correo = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(correoFrente) ? correoFrente : '';
+      return correo
+        ? `escribí a <a href="mailto:${correo}">${correo}</a> o por ${enlaceWhatsapp(whatsappFrente)}`
+        : `escribinos por ${enlaceWhatsapp(whatsappFrente)}`;
+    }
+
     async function cargarWhatsapp() {
       try {
         const res = await fetch(`${API_BASE}/configuracion`);
@@ -266,6 +277,7 @@
       const ayuda = document.getElementById('ayudaEnlace');
       boton.hidden = false;
       if (datos.whatsapp) whatsappFrente = datos.whatsapp;
+      if (datos.correo_contacto) correoFrente = datos.correo_contacto;
       // Saludo con el primer nombre (textContent: el nombre lo escribió la persona, no se toma como HTML)
       const saludo = datos.nombre ? `Hola, ${datos.nombre}. ` : '';
       ayuda.textContent = saludo + 'Estás a punto de cancelar esta reserva. Revisá que sea la correcta y confirmá:';
@@ -279,7 +291,7 @@
       } else if (datos.plazo_vencido) {
         ayuda.textContent = saludo + 'El período para cancelar gratis ya terminó (es hasta 2 días antes).';
         boton.hidden = true;
-        mostrarMensaje(`Si igual necesitás cancelarla, escribinos por ${enlaceWhatsapp(whatsappFrente)}.`, 'error', true, true);
+        mostrarMensaje(`Si igual necesitás cancelarla, ${contactoFrenteHtml()}.`, 'error', true, true);
       }
     }
 
@@ -331,7 +343,7 @@
           mostrarMensaje('Hiciste demasiados intentos seguidos. Esperá unos minutos y volvé a probar.', 'error', true);
         } else if (data.error && data.error.includes('PERIODO DE CANCELACION')) {
           boton.hidden = true;
-          mostrarMensaje(`El período de cancelación gratuita ya terminó. Si igual necesitás cancelar, escribinos por ${enlaceWhatsapp(whatsappFrente)}.`, 'error', true, true);
+          mostrarMensaje(`El período de cancelación gratuita ya terminó. Si igual necesitás cancelar, ${contactoFrenteHtml()}.`, 'error', true, true);
         } else {
           mostrarMensaje(data.error || 'No se pudo cancelar la reserva.', 'error', true);
         }
