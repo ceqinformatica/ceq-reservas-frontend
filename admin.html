@@ -847,10 +847,10 @@
           <div id="statsContenido" class="stats-grupo"></div>
 
           <h3 class="mt">Lista de espera</h3>
-          <p class="nota">Quiénes esperan que se libere un turno. Cuando alguien cancela, se les avisa una sola vez; a los 7 días del aviso (o a los 60 días sin aviso) salen solos de la lista.</p>
+          <p class="nota">Quiénes esperan que se libere un turno, y para qué mes. Cuando alguien cancela una reserva de ese mes, se les avisa una sola vez; a los 7 días del aviso (o a los 60 días sin aviso) salen solos de la lista.</p>
           <div class="table-wrapper tabla-seleccion">
             <table>
-              <thead><tr><th>Espacio</th><th>Correo</th><th>Se anotó</th><th>Estado</th><th></th></tr></thead>
+              <thead><tr><th>Espacio</th><th>Mes</th><th>Nombre</th><th>Correo</th><th>Se anotó</th><th>Estado</th><th></th></tr></thead>
               <tbody id="listaEsperaBody"></tbody>
             </table>
           </div>
@@ -2929,10 +2929,10 @@
         if (!res.ok) throw new Error(await leerError(res));
         listaEsperaActual = await res.json();
         tbody.replaceChildren();
-        if (listaEsperaActual.length === 0) { filaVacia(tbody, 5, 'No hay nadie en la lista de espera.'); return; }
+        if (listaEsperaActual.length === 0) { filaVacia(tbody, 7, 'No hay nadie en la lista de espera.'); return; }
         listaEsperaActual.forEach(l => {
           const tr = tbody.insertRow();
-          [espacios[l.espacio_id] || '-', l.email, fechaHoraAsuncion(l.creado_en),
+          [espacios[l.espacio_id] || '-', mesLegible(l.mes), l.nombre || '-', l.email, fechaHoraAsuncion(l.creado_en),
             l.avisado_en ? `Avisado el ${fechaHoraAsuncion(l.avisado_en)}` : 'Esperando'].forEach(t => { tr.insertCell().textContent = t; });
           const btn = document.createElement('button');
           btn.className = 'btn-small btn-cancel';
@@ -2949,8 +2949,16 @@
         });
       } catch (error) {
         tbody.replaceChildren();
-        filaVacia(tbody, 5, 'No se pudo cargar la lista de espera.');
+        filaVacia(tbody, 7, 'No se pudo cargar la lista de espera.');
       }
+    }
+
+    // '2026-11' -> 'Noviembre 2026' ('-' si no hay)
+    function mesLegible(mes) {
+      const m = String(mes || '').match(/^(\d{4})-(\d{2})$/);
+      if (!m) return '-';
+      const nombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      return `${nombres[Number(m[2]) - 1]} ${m[1]}`;
     }
 
     // --- Datos de una persona ---
@@ -2983,8 +2991,8 @@
             datos.como_acompanante.map(r => [r.fecha.split('-').reverse().join('/'), espacios[r.espacio_id], r.titular])));
         }
         if (datos.lista_espera.length) {
-          cont.appendChild(tablaStats('Lista de espera', ['Espacio', 'Se anotó'],
-            datos.lista_espera.map(l => [espacios[l.espacio_id], fechaHoraAsuncion(l.creado_en)])));
+          cont.appendChild(tablaStats('Lista de espera', ['Espacio', 'Mes', 'Nombre', 'Se anotó'],
+            datos.lista_espera.map(l => [espacios[l.espacio_id], mesLegible(l.mes), l.nombre || '-', fechaHoraAsuncion(l.creado_en)])));
         }
         if (total > 0) {
           const botones = document.createElement('div');

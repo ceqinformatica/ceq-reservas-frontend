@@ -104,7 +104,7 @@
     .lista-espera label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--marino); font-weight: 600; cursor: pointer; }
     .lista-espera input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--azul); }
     .lista-espera .le-fila { display: flex; gap: 8px; flex-wrap: wrap; }
-    .lista-espera input[type="email"] { flex: 1 1 200px; min-width: 0; padding: 10px 12px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font-size: 15px; }
+    .lista-espera input[type="email"], .lista-espera input[type="text"] { flex: 1 1 200px; min-width: 0; padding: 10px 12px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font-size: 15px; }
     .lista-espera button { border: 0; background: var(--marino); color: var(--blanco); border-radius: 5px; padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; }
     .lista-espera button:disabled { opacity: .6; cursor: default; }
     .lista-espera .le-mensaje { font-size: 14px; font-weight: 600; }
@@ -1446,10 +1446,10 @@
       }
     }
 
-    // ===== Lista de espera (general) =====
-    // Si en el espacio elegido ya no queda NINGÚN lugar libre en los meses habilitados, se muestra
-    // "Ya no hay reservas disponibles" arriba del calendario, con la opción de dejar el correo para
-    // que avisen cuando alguien cancele (cualquier día y turno). Si queda aunque sea un lugar, no se muestra.
+    // ===== Lista de espera (por mes) =====
+    // Si en algún mes habilitado ya no queda NINGÚN lugar libre en el espacio elegido, se muestra
+    // "Ya no hay lugares" arriba del calendario, con la opción de anotarse (nombre y correo) para que
+    // avisen cuando alguien cancele una reserva de ese mes. Si todos los meses tienen lugar, no se muestra.
 
     // true si ese día tiene algún turno (Frente) o bloque de una hora (Altillo) libre
     function diaTieneLugar(fecha) {
@@ -1466,51 +1466,68 @@
       return false;
     }
 
-    // true: no queda ningún lugar; false: queda alguno; null: no hay días para reservar (ningún
-    // mes habilitado o ya no quedan días hábiles), y ahí no corresponde el aviso
-    function sinLugaresEnGeneral() {
+    // Meses habilitados ('2026-11') en los que ya no queda ningún lugar en el espacio elegido (solo
+    // los que todavía tienen días hábiles por delante). null si los meses no se pudieron cargar.
+    function mesesSinLugar() {
       if (!mesesCargadosOk) return null;
       const hoy = hoyEnAsuncionStr();
-      let diasHabiles = 0;
-      for (const clave of mesesHabilitadosSet) {
+      const llenos = [];
+      for (const clave of [...mesesHabilitadosSet].sort()) {
         const [anio, mes] = clave.split('-').map(Number);
         const ultimo = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
-        for (let d = 1; d <= ultimo; d++) {
+        let diasHabiles = 0, hayLugar = false;
+        for (let d = 1; d <= ultimo && !hayLugar; d++) {
           const fecha = `${anio}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
           const diaSemana = new Date(fecha + 'T12:00:00Z').getUTCDay();
           if (fecha < hoy || diaSemana === 0 || diaSemana === 6) continue;
           diasHabiles++;
-          if (diaTieneLugar(fecha)) return false;
+          if (diaTieneLugar(fecha)) hayLugar = true;
         }
+        if (diasHabiles > 0 && !hayLugar) llenos.push(`${anio}-${String(mes).padStart(2, '0')}`);
       }
-      return diasHabiles > 0 ? true : null;
+      return llenos;
+    }
+
+    // '2026-11' -> 'noviembre de 2026'
+    function nombreDelMes(clave) {
+      const [anio, mes] = clave.split('-').map(Number);
+      return `${['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][mes - 1]} de ${anio}`;
     }
 
     let claveListaEspera = '';
 
     function actualizarListaEspera() {
       const caja = document.getElementById('listaEspera');
-      const lleno = espaciosPublicos[espacioSeleccionado] === true && sinLugaresEnGeneral() === true;
-      // Si ya está armado para este espacio no se vuelve a armar (el refresco automático no le
-      // borra a la persona lo que está escribiendo)
-      const clave = lleno ? String(espacioSeleccionado) : '';
+      const llenos = espaciosPublicos[espacioSeleccionado] === true ? (mesesSinLugar() || []) : [];
+      // Si ya está armado para este espacio y estos meses no se vuelve a armar (el refresco
+      // automático no le borra a la persona lo que está escribiendo)
+      const clave = llenos.length ? `${espacioSeleccionado}:${llenos.join(',')}` : '';
       if (clave === claveListaEspera) return;
       claveListaEspera = clave;
       caja.replaceChildren();
-      if (!lleno) {
+      if (!llenos.length) {
         caja.style.display = 'none';
         return;
       }
 
       const espacioId = espacioSeleccionado;
+      // Se habilita un solo mes a la vez: la inscripción es para ese mes (no hay que elegirlo)
+      const mesLleno = llenos[0];
       const titulo = document.createElement('h3');
-      titulo.textContent = 'Ya no hay reservas disponibles';
+      titulo.textContent = `Ya no hay lugares en ${nombreDelMes(mesLleno)}`;
       const texto = document.createElement('p');
-      texto.textContent = `Todos los lugares del ${espacios[espacioId]} están ocupados. Si alguien cancela, te avisamos por correo para que puedas reservar. El lugar es de quien reserve primero.`;
+      texto.textContent = `Todos los lugares del ${espacios[espacioId]} de ese mes están ocupados. Anotate y, si alguien cancela una reserva de ese mes, te avisamos por correo para que puedas reservar. El lugar es de quien reserve primero.`;
       caja.append(titulo, texto);
 
       const fila = document.createElement('div');
       fila.className = 'le-fila';
+      const nombre = document.createElement('input');
+      nombre.type = 'text';
+      nombre.placeholder = 'Tu nombre y apellido';
+      nombre.autocomplete = 'name';
+      nombre.maxLength = 100;
+      nombre.setAttribute('aria-label', 'Nombre para el aviso');
+      nombre.value = document.getElementById('nombre').value.trim();
       const correo = document.createElement('input');
       correo.type = 'email';
       correo.placeholder = 'Tu correo';
@@ -1520,7 +1537,7 @@
       const boton = document.createElement('button');
       boton.type = 'button';
       boton.textContent = 'Avisarme si se libera';
-      fila.append(correo, boton);
+      fila.append(nombre, correo, boton);
       const mensaje = document.createElement('p');
       mensaje.className = 'le-mensaje';
       mensaje.setAttribute('role', 'status');
@@ -1528,7 +1545,12 @@
 
       boton.addEventListener('click', async () => {
         const email = correo.value.trim();
+        const nombreTexto = nombre.value.trim();
         mensaje.className = 'le-mensaje error';
+        if (nombreTexto.length < 2) {
+          mensaje.textContent = 'Escribí tu nombre.';
+          return;
+        }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
           mensaje.textContent = 'Escribí un correo válido.';
           return;
@@ -1539,13 +1561,13 @@
           const res = await fetch(`${API_BASE}/lista-espera`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ espacio_id: espacioId, email })
+            body: JSON.stringify({ espacio_id: espacioId, email, nombre: nombreTexto, mes: mesLleno })
           });
           const datos = await res.json().catch(() => ({}));
           if (res.ok) {
             const okMsg = document.createElement('p');
             okMsg.className = 'le-mensaje ok';
-            okMsg.textContent = `✓ Listo: si se libera un lugar en el ${espacios[espacioId]}, te avisamos a ${email}.`;
+            okMsg.textContent = `✓ Listo, ${nombreTexto.split(/\s+/)[0]}: si se libera un lugar en el ${espacios[espacioId]} en ${nombreDelMes(mesLleno)}, te avisamos a ${email}.`;
             caja.replaceChildren(titulo, okMsg);
             return;
           }
