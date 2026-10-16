@@ -2964,12 +2964,15 @@
         const datos = await res.json().catch(() => ({}));
         if (!res.ok) { cont.replaceChildren(vacioHoy(datos.error || 'No se pudo buscar.')); return; }
         personaActual = { q, datos };
-        const total = datos.reservas.length + datos.como_acompanante.length + datos.lista_espera.length;
+        const enCola = datos.correos_en_cola || 0;
+        const total = datos.reservas.length + datos.como_acompanante.length + datos.lista_espera.length + enCola;
         cont.replaceChildren();
         const resumen = document.createElement('p');
         resumen.className = 'nota';
         resumen.textContent = total === 0 ? 'No hay nada guardado con ese correo o celular.'
-          : `${datos.reservas.length} reserva(s) propias, ${datos.como_acompanante.length} como acompañante y ${datos.lista_espera.length} inscripción(es) en la lista de espera.`;
+          : `${datos.reservas.length} reserva(s) propias, ${datos.como_acompanante.length} como acompañante y ${datos.lista_espera.length} inscripción(es) en la lista de espera.` +
+            (enCola ? ` Además hay ${enCola} correo(s) para ella todavía guardados en la cola.` : '') +
+            (datos.correos_en_cola === null ? ' (No se pudo revisar la cola de correos.)' : '');
         cont.appendChild(resumen);
         if (datos.reservas.length) {
           cont.appendChild(tablaStats('Sus reservas', ['Fecha', 'Espacio', 'Horario', 'Nombre', 'Estado'],
@@ -2990,7 +2993,7 @@
           descargar.className = 'btn-small';
           descargar.textContent = 'Descargar sus datos (archivo)';
           descargar.addEventListener('click', () => {
-            const blob = new Blob([JSON.stringify({ busqueda: q, fecha: new Date().toISOString(), ...datos }, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify({ generado: new Date().toISOString(), ...(datos.entrega || {}) }, null, 2)], { type: 'application/json' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = `datos-${q.replace(/[^\w@.-]/g, '_')}.json`;
@@ -3012,17 +3015,17 @@
 
     async function borrarPersona() {
       if (!personaActual) return;
-      const escrito = prompt(`Se van a borrar los datos de "${personaActual.q}": sus reservas quedan sin nombre ni contacto y sale de la lista de espera. No se puede deshacer.\n\nPara confirmar, escribí BORRAR:`);
+      const escrito = prompt(`Se van a borrar los datos de "${personaActual.q}": sus reservas quedan sin nombre ni contacto, sale de las listas de acompañantes y de la lista de espera, y se borran los correos para ella que estén en la cola. No se puede deshacer.\n\nPara confirmar, escribí BORRAR:`);
       if (escrito !== 'BORRAR') return;
       try {
         const res = await fetchConJWT(`${API_BASE}/superadmin/persona/borrar`, { method: 'POST', body: JSON.stringify({ q: personaActual.q, confirmar: 'BORRAR' }) });
         const datos = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const extra = (datos.reservas || []).map(r => `- ${r.fecha.split('-').reverse().join('/')} · ${r.espacio}`).join('\n');
+          const extra = (Array.isArray(datos.reservas) ? datos.reservas : []).map(r => `- ${r.fecha.split('-').reverse().join('/')} · ${r.espacio}`).join('\n');
           alert((datos.error || 'No se pudo borrar.') + (extra ? '\n\n' + extra : ''));
           return;
         }
-        alert(`✓ Listo: ${datos.reservas} reserva(s) anonimizada(s), ${datos.como_acompanante} como acompañante, ${datos.lista_espera} en lista de espera.`);
+        alert(`✓ Listo: ${datos.reservas} reserva(s) anonimizada(s), ${datos.como_acompanante} como acompañante, ${datos.lista_espera} en lista de espera, ${datos.correos || 0} correo(s) de la cola.`);
         await cargarDatos();
         buscarPersona();
         cargarActividad();

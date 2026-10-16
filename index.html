@@ -703,10 +703,22 @@
 
     // fetch para los endpoints de lectura: si el servidor responde 429, activa la pausa
     // del auto-refresco y lanza un error con un mensaje claro para el usuario.
+    // Segundos que el servidor pide esperar después de un 429 (Retry-After o RateLimit-Reset).
+    // null si no lo dice.
+    function segundosDeEspera(res) {
+      const s = Number(res.headers.get('Retry-After') || res.headers.get('RateLimit-Reset'));
+      return Number.isFinite(s) && s > 0 ? Math.min(s, 3600) : null;
+    }
+    function textoEspera(seg) {
+      if (!seg) return 'unos minutos';
+      return seg < 90 ? 'un minuto' : `unos ${Math.ceil(seg / 60)} minutos`;
+    }
+
     async function fetchLectura(url) {
       const res = await fetch(url);
       if (res.status === 429) {
-        pausaHasta = Date.now() + PAUSA_POR_429_MS;
+        const seg = segundosDeEspera(res);
+        pausaHasta = Date.now() + (seg ? Math.max(seg * 1000, 10000) : PAUSA_POR_429_MS);
         const err = new Error('Hay mucha gente usando el sistema en este momento. Los datos se actualizan solos en un minuto, no hace falta recargar la página.');
         err.esLimite = true;
         throw err;
@@ -1782,7 +1794,7 @@
         btnReservar.textContent = textoOriginalBtn;
         if (!res.ok) {
           if (res.status === 429) {
-            mostrarError('Hiciste demasiados intentos de reserva seguidos. Esperá unos minutos antes de volver a intentar.', true);
+            mostrarError(`Hubo demasiados intentos de reserva seguidos desde esta conexión. Esperá ${textoEspera(segundosDeEspera(res))} antes de volver a intentar.`, true);
           } else if (res.status === 409) {
             // Alguien tomó ese turno mientras se completaba el formulario (pasa mucho el
             // día que se habilita un mes). Se recarga el día al toque para que el turno
