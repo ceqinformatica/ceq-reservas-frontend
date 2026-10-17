@@ -97,6 +97,9 @@
     .aviso { padding: 12px 14px; border-radius: var(--radio-chico); font-size: 14px; margin-bottom: 12px; background: var(--blanco); color: var(--marino); border-left: 4px solid var(--azul); }
     #avisoMesDeshabilitado { border-left-color: var(--parcial); }
     .aviso-apertura { border-left-color: var(--marino); font-weight: 600; }
+    .aviso-quedan { font-weight: 600; }
+    .aviso-quedan.pocos { border-left-color: #C77700; background: #FFF8EC; }
+    .aviso-pausa { border-left-color: #B2392F; background: #FDF1F0; font-weight: 600; white-space: pre-line; }
     .lista-espera { margin: 0 0 14px; background: var(--blanco); border: 1px solid var(--linea); border-left: 4px solid var(--azul); border-radius: var(--radio-chico); padding: 14px; display: grid; gap: 10px; }
     .lista-espera h3 { font-size: 16px; color: var(--marino); }
     .lista-espera p { font-size: 14px; color: var(--suave); }
@@ -357,6 +360,8 @@
       <div id="avisoCargando" class="aviso" style="display:none;">
         Cargando los horarios… si el sistema estuvo sin uso un rato, puede tardar hasta un minuto en responder. No hace falta recargar la página.
       </div>
+      <div id="avisoPausa" class="aviso aviso-pausa" style="display:none;" role="status"></div>
+      <div id="quedanTurnos" class="aviso aviso-quedan" style="display:none;" role="status"></div>
       <div id="listaEspera" class="lista-espera" style="display:none;" role="region" aria-label="Lista de espera"></div>
       <div id="avisoMesDeshabilitado" class="aviso" style="display:none;">
         Este mes todavía no está habilitado para reservas. Probá con "Hoy" o consultá con un moderador.
@@ -516,6 +521,8 @@
       { nombre: 'Merienda', inicio: '14:00', fin: '18:00' }
     ];
     let configuracionPublica = { max_reservas_por_persona_mes: 2, whatsapp: '595972753471' };
+    // Mensaje de la pausa general (admin supremo): si hay uno, no se puede reservar
+    let pausaReservas = '';
     // Motivos del Frente (el servidor solo acepta estos), horario del Altillo y tope de
     // acompañantes. También vienen de /api/configuracion; estos son los de respaldo.
     let MOTIVOS_FRENTE = [
@@ -601,6 +608,8 @@
         if (Number.isInteger(datos.max_acompanantes) && datos.max_acompanantes >= 0) MAX_ACOMPANANTES = datos.max_acompanantes;
         const v = datos.ventana_novedades;
         ventanaNovedades = v && typeof v.titulo === 'string' && typeof v.version === 'string' ? v : null;
+        const p = datos.pausa_reservas;
+        pausaReservas = p && p.activa === true && typeof p.mensaje === 'string' ? p.mensaje : '';
       } catch (error) {
         console.error('Error al cargar la configuración:', error);
       }
@@ -954,6 +963,7 @@
     // Contador de arriba: reservas activas del espacio elegido en el mes que se está mostrando
     // (cambia al pasar de mes o de espacio). Se calcula con las reservas ya cargadas, sin pedir nada.
     function actualizarEstadisticas() {
+      actualizarQuedanTurnos();
       const mes = `${mesCalendario.getFullYear()}-${String(mesCalendario.getMonth() + 1).padStart(2, '0')}`;
       const cantidad = reservasActuales.filter(r => r.espacio_id === espacioSeleccionado && r.fecha.startsWith(mes)).length;
       const nombreMes = new Intl.DateTimeFormat('es-PY', { month: 'long' }).format(mesCalendario);
@@ -961,6 +971,57 @@
       pastilla.textContent = `${cantidad} reserva${cantidad !== 1 ? 's' : ''}`;
       pastilla.title = `Reservas en el ${espacios[espacioSeleccionado]} en ${nombreMes}`;
       pastilla.setAttribute('aria-label', `${pastilla.textContent} en el ${espacios[espacioSeleccionado]} en ${nombreMes}`);
+    }
+
+    // Cuántos lugares quedan en el mes que se está mostrando (desde hoy, días hábiles): en el Frente,
+    // turnos; en el Altillo, horas. Solo para meses habilitados y si queda alguno (si no queda
+    // ninguno, se ve la lista de espera). Con pocos lugares se resalta.
+    function lugaresLibresDelDia(fecha) {
+      if (espacioSeleccionado === 3) return turnosOcupadosFrente(fecha).filter(ocupado => !ocupado).length;
+      const ocupaciones = [
+        ...reservasActuales.filter(r => r.espacio_id === espacioSeleccionado && r.fecha === fecha),
+        ...bloqueosCargados.filter(b => b.espacio_id === espacioSeleccionado && b.fecha === fecha)
+      ];
+      let libres = 0;
+      for (let h = ALTILLO.hora_desde; h < ALTILLO.hora_hasta; h++) {
+        const ini = `${String(h).padStart(2, '0')}:00`, fin = `${String(h + 1).padStart(2, '0')}:00`;
+        if (bloqueYaTermino(fecha, ini)) continue;
+        if (!ocupaciones.some(o => seSuperponen(o.hora_inicio.substring(0, 5), o.hora_fin.substring(0, 5), ini, fin))) libres++;
+      }
+      return libres;
+    }
+
+    function actualizarQuedanTurnos() {
+      const caja = document.getElementById('quedanTurnos');
+      // Pausa general: se muestra el mensaje en lugar del contador
+      const pausa = document.getElementById('avisoPausa');
+      pausa.textContent = pausaReservas ? `Las reservas están pausadas por el momento. ${pausaReservas}` : '';
+      pausa.style.display = pausaReservas ? 'block' : 'none';
+      const anio = mesCalendario.getFullYear(), mes = mesCalendario.getMonth() + 1;
+      const clave = `${anio}-${String(mes).padStart(2, '0')}`;
+      if (pausaReservas || !mesesCargadosOk || !mesesHabilitadosSet.has(clave) || espaciosPublicos[espacioSeleccionado] !== true) {
+        caja.style.display = 'none';
+        return;
+      }
+      const hoy = hoyEnAsuncionStr();
+      const ultimo = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+      let libres = 0;
+      for (let d = 1; d <= ultimo; d++) {
+        const fecha = `${clave}-${String(d).padStart(2, '0')}`;
+        const diaSemana = new Date(fecha + 'T12:00:00Z').getUTCDay();
+        if (fecha < hoy || diaSemana === 0 || diaSemana === 6) continue;
+        libres += lugaresLibresDelDia(fecha);
+      }
+      if (libres === 0) {
+        caja.style.display = 'none';
+        return;
+      }
+      const nombreMes = new Intl.DateTimeFormat('es-PY', { month: 'long' }).format(mesCalendario);
+      const unidad = espacioSeleccionado === 3 ? (libres === 1 ? 'turno libre' : 'turnos libres') : (libres === 1 ? 'hora libre' : 'horas libres');
+      const pocos = espacioSeleccionado === 3 ? libres <= 5 : libres <= 10;
+      caja.textContent = `${pocos ? 'Quedan solo' : 'Quedan'} ${libres} ${unidad} en el ${espacios[espacioSeleccionado]} en ${nombreMes}.`;
+      caja.classList.toggle('pocos', pocos);
+      caja.style.display = 'block';
     }
 
     // Qué espacios se pueden reservar desde la página y el aviso de los que no. Si falla, o si
@@ -1502,7 +1563,7 @@
 
     function actualizarListaEspera() {
       const caja = document.getElementById('listaEspera');
-      const llenos = espaciosPublicos[espacioSeleccionado] === true ? (mesesSinLugar() || []) : [];
+      const llenos = espaciosPublicos[espacioSeleccionado] === true && !pausaReservas ? (mesesSinLugar() || []) : [];
       // Si ya está armado para este espacio y estos meses no se vuelve a armar (el refresco
       // automático no le borra a la persona lo que está escribiendo)
       const clave = llenos.length ? `${espacioSeleccionado}:${llenos.join(',')}` : '';
@@ -1765,7 +1826,7 @@
       document.getElementById('acompAviso').textContent = errorAcompanantes ? errorAcompanantes + ' (o quitá la fila con ×)' : '';
 
       document.getElementById('btnReservar').disabled = !(
-        nombre && celularValido && emailValido && motivo && acompanantesOk && diaSeleccionado && horasSeleccionadas.length > 0
+        nombre && celularValido && emailValido && motivo && acompanantesOk && diaSeleccionado && horasSeleccionadas.length > 0 && !pausaReservas
       );
     }
 

@@ -102,6 +102,20 @@
     .subtab-btn.active { background: var(--marino); border-color: var(--marino); color: var(--blanco); }
     .sub-seccion[hidden] { display: none !important; }
     .sub-seccion > h3:first-child { margin-top: 0; }
+    .estado-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .estado-tarjeta { background: var(--blanco); border: 1px solid var(--linea); border-left: 5px solid #2E8B57; border-radius: 8px; padding: 12px 14px; display: grid; gap: 4px; }
+    .estado-tarjeta.estado-aviso { border-left-color: #C77700; }
+    .estado-tarjeta.estado-mal { border-left-color: #B2392F; background: #FDF1F0; }
+    .estado-titulo { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--suave); }
+    .estado-tarjeta strong { font-size: 17px; color: var(--marino); }
+    .estado-tarjeta small { font-size: 12px; color: var(--suave); }
+    .mt-chico { margin-top: 14px; }
+    .feriados-lista { display: grid; gap: 6px; margin: 8px 0 12px; }
+    .respuesta-texto { width: 100%; min-height: 220px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: 8px; font: inherit; font-size: 14px; margin: 8px 0; }
+    .super-acciones { margin-top: 6px; flex-wrap: wrap; }
+    .historial-lista { display: grid; gap: 6px; padding-left: 20px; margin: 8px 0; font-size: 14px; max-height: 50vh; overflow: auto; }
+    .modal-ancho { max-width: 640px; }
+    .btn-azul { background: var(--azul) !important; }
 
     .tab-content h3 { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--marino); line-height: 1.2; margin-bottom: 16px; }
     .tab-content h3::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; flex: none; }
@@ -240,7 +254,7 @@
     /* Modal de cancelación */
     .modal { position: fixed; inset: 0; background: rgba(23,56,116,.55); display: none; justify-content: center; align-items: center; z-index: 999; padding: 16px; }
     .modal.active { display: flex; }
-    .modal-content { background: var(--blanco); border-radius: var(--radio); padding: 28px; width: 100%; max-width: 480px; }
+    .modal-content { background: var(--blanco); border-radius: var(--radio); padding: 28px; width: 100%; max-width: 480px; max-height: calc(100vh - 32px); overflow-y: auto; }
     .modal-content h3 { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--marino); margin-bottom: 16px; }
     .modal-content h3::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; }
     .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
@@ -948,6 +962,60 @@
             <p class="config-mensaje" id="configMensaje" role="status"></p>
           </div>
 
+          <h3 class="mt">Estado del sistema</h3>
+          <p class="nota">Lo que hay que mirar para saber si todo anda bien. Si algo aparece en rojo, revisalo o avisá a la Secretaría de Informática.</p>
+          <div id="estadoSistema" class="estado-grid"></div>
+          <div class="acciones-lista"><span class="nota" id="estadoActualizado"></span><button class="btn-small" type="button" onclick="cargarEstado()">Actualizar</button></div>
+
+          <h3 class="mt">Herramientas</h3>
+          <div class="espacio-card">
+            <span class="etiqueta">Pausar las reservas</span>
+            <p class="nota">Mientras está pausado, la página muestra tu mensaje y nadie puede reservar ni anotarse en la lista de espera. Se puede seguir cancelando, y desde el panel se pueden hacer reservas de prioridad. Sirve para un imprevisto o mientras se arregla algo.</p>
+            <label class="check"><input type="checkbox" id="pausaActiva"> Reservas pausadas</label>
+            <label class="etiqueta" for="pausaMensaje">Mensaje para la gente</label>
+            <textarea id="pausaMensaje" class="corto" maxlength="300" placeholder="Ej: Volvemos a habilitar las reservas el lunes 20."></textarea>
+            <div class="novedades-botones"><button class="btn-small" type="button" onclick="guardarPausa()">Guardar</button></div>
+            <p class="config-mensaje" id="pausaMensajeEstado" role="status"></p>
+          </div>
+          <div class="espacio-card mt-chico">
+            <span class="etiqueta">Copia de seguridad en el momento</span>
+            <p class="nota">Baja ahora el mismo archivo que llega por correo el día 1 de cada mes (todas las reservas, con todos sus datos). Tiene datos personales: guardalo solo donde corresponde y borralo cuando ya no haga falta.</p>
+            <div class="novedades-botones"><button class="btn-small" type="button" onclick="descargarCopia()">Descargar copia (.csv)</button></div>
+            <p class="config-mensaje" id="copiaMensaje" role="status"></p>
+          </div>
+
+          <h3 class="mt">Feriados</h3>
+          <p class="nota">Bloquea de una vez los feriados nacionales del año, todo el día. Revisá la lista antes: algunos feriados se trasladan por decreto (Héroes, Paz del Chaco, Boquerón), así que destildá los que no correspondan y bloquealos a mano en la fecha correcta. Si un día ya tiene reservas, no se bloquea y te avisa.</p>
+          <div class="filters">
+            <select id="feriadosAnio" aria-label="Año" onchange="armarFeriados()"></select>
+            <label class="check"><input type="checkbox" id="feriadosFrente" checked> Frente</label>
+            <label class="check"><input type="checkbox" id="feriadosAltillo" checked> Altillo</label>
+          </div>
+          <div id="feriadosLista" class="feriados-lista"></div>
+          <div class="novedades-botones"><button class="btn-small" type="button" onclick="aplicarFeriados()">Bloquear los marcados</button></div>
+          <p class="config-mensaje" id="feriadosMensaje" role="status" style="white-space: pre-line;"></p>
+
+          <h3 class="mt">Respuestas listas para copiar</h3>
+          <p class="nota">Textos para responder por correo desde reservas@ceq-una.com. Elegí uno, completá el nombre y tocá "Copiar"; después pegalo en Gmail y revisalo antes de enviar.</p>
+          <div class="filters">
+            <select id="respuestaTipo" aria-label="Tipo de respuesta" onchange="armarRespuesta()"></select>
+            <input type="text" id="respuestaNombre" placeholder="Nombre de la persona" aria-label="Nombre de la persona" oninput="armarRespuesta()">
+          </div>
+          <textarea id="respuestaTexto" class="respuesta-texto" aria-label="Texto de la respuesta"></textarea>
+          <div class="novedades-botones"><button class="btn-small" type="button" onclick="copiarRespuesta()">Copiar</button></div>
+          <p class="config-mensaje" id="respuestaMensaje" role="status"></p>
+
+          <h3 class="mt">Contraseña de los admins</h3>
+          <p class="nota">Cambia la contraseña con la que entran los admins (no la tuya de admin supremo). Usalo cuando un moderador deja el cargo o si la contraseña se filtró. Al guardarla se cierran todas las sesiones, incluida la tuya: después entrá de nuevo con tu contraseña y pasales la nueva a los admins. Mínimo 10 caracteres.</p>
+          <div class="espacio-card">
+            <div class="config-campos">
+              <label>Contraseña nueva <input type="password" id="claveAdminNueva" autocomplete="new-password" minlength="10" maxlength="200"></label>
+              <label>Repetila <input type="password" id="claveAdminRepetir" autocomplete="new-password" minlength="10" maxlength="200"></label>
+            </div>
+            <button class="btn-peligro" type="button" onclick="cambiarClaveAdmin()">Cambiar la contraseña de los admins</button>
+            <p class="config-mensaje" id="claveAdminMensaje" role="status"></p>
+          </div>
+
           <h3 class="mt">Seguridad</h3>
           <p class="nota">
             Cierra la sesión de todas las personas que estén en el panel, incluida la tuya. Usalo si la
@@ -986,6 +1054,43 @@
       </div>
     </div>
   </div>
+  <!-- MODAL EDITAR RESERVA (admin supremo) -->
+  <div class="modal" id="modalEditar">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="tituloModalEditar">
+      <h3 id="tituloModalEditar">Editar reserva</h3>
+      <p class="nota" id="editarResumen"></p>
+      <div class="form-group"><label for="editarNombre">Nombre y apellido</label><input type="text" id="editarNombre" maxlength="150"></div>
+      <div class="form-group"><label for="editarCelular">Celular</label><input type="text" id="editarCelular" maxlength="30" inputmode="tel"></div>
+      <div class="form-group"><label for="editarEmail">Correo</label><input type="email" id="editarEmail" maxlength="100"></div>
+      <div class="form-group"><label for="editarFecha">Día</label><input type="date" id="editarFecha"></div>
+      <div class="form-group" id="editarGrupoTurno"><label for="editarTurno">Turno</label><select id="editarTurno"></select></div>
+      <div class="form-group" id="editarGrupoHoras">
+        <label>Horario</label>
+        <div class="config-campos">
+          <label>Desde <select id="editarDesde"></select></label>
+          <label>Hasta <select id="editarHasta"></select></label>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="editarAvisar" checked> Avisarle por correo con los datos nuevos</label>
+      <p class="config-mensaje" id="editarMensaje" role="status"></p>
+      <div class="modal-buttons">
+        <button class="btn-cancel-modal" type="button" onclick="cerrarModalEditar()">Volver</button>
+        <button class="btn-confirm btn-azul" type="button" onclick="guardarEdicion()">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL HISTORIAL DE UNA RESERVA (admin supremo) -->
+  <div class="modal" id="modalHistorial">
+    <div class="modal-content modal-ancho" role="dialog" aria-modal="true" aria-labelledby="tituloModalHistorial">
+      <h3 id="tituloModalHistorial">Historial de la reserva</h3>
+      <div id="historialContenido"></div>
+      <div class="modal-buttons">
+        <button class="btn-cancel-modal" type="button" onclick="document.getElementById('modalHistorial').classList.remove('active')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
 
   <script>
     const API_BASE = 'https://api.ceq-una.com/api';
@@ -1228,15 +1333,17 @@
     // "Avanzado" tiene muchas secciones: se agrupan y se muestra una por vez, con botones arriba.
     // Se arma una sola vez al cargar, a partir de los títulos (h3) que ya están en la página.
     const GRUPOS_AVANZADO = [
+      ['estado', 'Estado', ['Estado del sistema']],
       ['configuracion', 'Configuración', ['Configuración']],
       ['espacios', 'Espacios', ['Espacios']],
       ['novedades', 'Novedades', ['Ventana de novedades']],
+      ['herramientas', 'Herramientas', ['Herramientas', 'Feriados']],
       ['estadisticas', 'Estadísticas', ['Estadísticas']],
       ['espera', 'Lista de espera', ['Lista de espera']],
-      ['persona', 'Datos de una persona', ['Datos de una persona']],
+      ['persona', 'Datos de una persona', ['Datos de una persona', 'Respuestas listas para copiar']],
       ['actividad', 'Actividad', ['Registro de actividad']],
       ['limpieza', 'Limpieza', ['Eliminar reservas canceladas', 'Eliminar reportes de errores']],
-      ['seguridad', 'Seguridad', ['Seguridad']]
+      ['seguridad', 'Seguridad', ['Seguridad', 'Contraseña de los admins']]
     ];
     function armarSubpestanasAvanzado() {
       const tab = document.getElementById('tab-avanzado');
@@ -1269,9 +1376,9 @@
       });
       // Lo que no entró en ningún grupo (si algún día se agrega una sección) queda visible al final
       bloques.filter(b => !GRUPOS_AVANZADO.some(g => g[2].includes(b.titulo))).forEach(b => b.nodos.forEach(n => tab.appendChild(n)));
-      let ultima = 'configuracion';
+      let ultima = 'estado';
       try { ultima = localStorage.getItem('avanzadoSeccion') || ultima; } catch (e) { /* sin almacenamiento */ }
-      mostrarSubpestana(tab.querySelector(`.sub-seccion[data-sub="${ultima}"]`) ? ultima : 'configuracion');
+      mostrarSubpestana(tab.querySelector(`.sub-seccion[data-sub="${ultima}"]`) ? ultima : 'estado');
     }
     function mostrarSubpestana(clave) {
       document.querySelectorAll('#tab-avanzado .sub-seccion').forEach(s => { s.hidden = s.dataset.sub !== clave; });
@@ -1280,6 +1387,7 @@
         b.setAttribute('aria-selected', b.dataset.sub === clave ? 'true' : 'false');
       });
       try { localStorage.setItem('avanzadoSeccion', clave); } catch (e) { /* sin almacenamiento */ }
+      if (clave === 'estado' || clave === 'herramientas') cargarEstado();
     }
 
     function switchTab(tab) {
@@ -1459,6 +1567,7 @@
         linea('Cancelada', textoCancelacion(r));
         if (r.motivo_cancelacion) linea('Motivo', r.motivo_cancelacion);
       }
+      td.appendChild(botonesSuper(r));
       return td;
     }
 
@@ -2866,6 +2975,9 @@
     let reportesActuales = [];
 
     function cargarAvanzado() {
+      cargarEstado();
+      armarFeriados();
+      armarRespuesta();
       cargarEspaciosAdmin();
       mostrarCanceladas();
       mostrarReportesSuper();
@@ -3536,6 +3648,360 @@
     }
 
     // Mensaje de error que manda el servidor (por ejemplo, 403 "Solo el admin supremo puede hacer esto")
+    // ===== Herramientas del admin supremo (octubre 2026) =====
+
+    // --- Editar, reenviar e historial de una reserva ---
+    let reservaEditando = null;
+    const dosDigitos = n => String(n).padStart(2, '0');
+
+    function abrirEditar(r) {
+      reservaEditando = r;
+      const [celular = '', email = ''] = String(r.contacto || '').split('|').map(p => p.trim());
+      document.getElementById('editarResumen').textContent = `Reserva #${r.id} · ${espacios[r.espacio_id]}`;
+      document.getElementById('editarNombre').value = r.nombre_solicitante || '';
+      document.getElementById('editarCelular').value = celular;
+      document.getElementById('editarEmail').value = email;
+      document.getElementById('editarFecha').value = r.fecha;
+      document.getElementById('editarFecha').min = hoyEnAsuncionStr();
+      const ini = r.hora_inicio.substring(0, 5), fin = r.hora_fin.substring(0, 5);
+      const esFrente = Number(r.espacio_id) === 3;
+      document.getElementById('editarGrupoTurno').hidden = !esFrente;
+      document.getElementById('editarGrupoHoras').hidden = esFrente;
+      if (esFrente) {
+        const sel = document.getElementById('editarTurno');
+        sel.replaceChildren(...TURNOS_FRENTE.map(t => new Option(`${t.nombre} (${t.inicio} - ${t.fin})`, `${t.inicio}|${t.fin}`)));
+        sel.value = `${ini}|${fin}`;
+      } else {
+        const desde = document.getElementById('editarDesde'), hasta = document.getElementById('editarHasta');
+        const horas = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => `${dosDigitos(a + i)}:00`);
+        desde.replaceChildren(...horas(ALTILLO_ADMIN.hora_desde, ALTILLO_ADMIN.hora_hasta - 1).map(h => new Option(h, h)));
+        hasta.replaceChildren(...horas(ALTILLO_ADMIN.hora_desde + 1, ALTILLO_ADMIN.hora_hasta).map(h => new Option(h, h)));
+        desde.value = ini;
+        hasta.value = fin;
+      }
+      document.getElementById('editarAvisar').checked = true;
+      document.getElementById('editarMensaje').textContent = '';
+      document.getElementById('modalEditar').classList.add('active');
+    }
+
+    function cerrarModalEditar() {
+      document.getElementById('modalEditar').classList.remove('active');
+      reservaEditando = null;
+    }
+
+    async function guardarEdicion() {
+      if (!reservaEditando) return;
+      const r = reservaEditando;
+      const esFrente = Number(r.espacio_id) === 3;
+      const [hora_inicio, hora_fin] = esFrente
+        ? document.getElementById('editarTurno').value.split('|')
+        : [document.getElementById('editarDesde').value, document.getElementById('editarHasta').value];
+      const cuerpo = {
+        nombre_solicitante: document.getElementById('editarNombre').value.trim(),
+        celular: document.getElementById('editarCelular').value.trim(),
+        email: document.getElementById('editarEmail').value.trim(),
+        fecha: document.getElementById('editarFecha').value,
+        hora_inicio, hora_fin,
+        avisar: document.getElementById('editarAvisar').checked
+      };
+      const mensaje = document.getElementById('editarMensaje');
+      mensaje.className = 'config-mensaje';
+      mensaje.textContent = 'Guardando…';
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/reservas/${r.id}`, { method: 'PUT', body: JSON.stringify(cuerpo) });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          mensaje.className = 'config-mensaje error';
+          mensaje.textContent = datos.error || 'No se pudo guardar.';
+          return;
+        }
+        cerrarModalEditar();
+        alert('✓ ' + datos.mensaje);
+        await cargarDatos();
+        cargarActividad();
+      } catch (error) {
+        mensaje.className = 'config-mensaje error';
+        mensaje.textContent = 'No se pudo conectar con el servidor.';
+      }
+    }
+
+    async function reenviarConfirmacion(r) {
+      const email = String(r.contacto || '').split('|')[1]?.trim() || '';
+      if (!confirm(`¿Reenviar la confirmación de la reserva #${r.id} a ${email || 'su correo'}?\n\nSe genera un código de cancelación nuevo y el anterior deja de servir.`)) return;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/reservas/${r.id}/reenviar`, { method: 'POST' });
+        const datos = await res.json().catch(() => ({}));
+        alert(res.ok ? '✓ ' + datos.mensaje : (datos.error || 'No se pudo reenviar.'));
+        if (res.ok) cargarActividad();
+      } catch (error) {
+        avisarErrorConexion(error);
+      }
+    }
+
+    async function abrirHistorial(id) {
+      const cont = document.getElementById('historialContenido');
+      cont.replaceChildren(vacioHoy('Cargando…'));
+      document.getElementById('modalHistorial').classList.add('active');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/reservas/${id}/historial`);
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) { cont.replaceChildren(vacioHoy(datos.error || 'No se pudo cargar.')); return; }
+        const r = datos.reserva;
+        const resumen = document.createElement('p');
+        resumen.className = 'nota';
+        resumen.textContent = `#${r.id} · ${r.espacio} · ${r.fecha.split('-').reverse().join('/')} · ${r.horario} · ${r.nombre} · ${r.contacto} · ${r.estado}${r.asistencia ? ' · ' + (r.asistencia === 'vino' ? 'Vino' : 'No vino') : ''}`;
+        const lista = document.createElement('ol');
+        lista.className = 'historial-lista';
+        datos.eventos.forEach(e => {
+          const li = document.createElement('li');
+          const cuando = document.createElement('b');
+          cuando.textContent = e.cuando ? fechaHoraAsuncion(e.cuando) : '—';
+          li.append(cuando, document.createTextNode(` · ${e.que}${e.quien ? ` (${e.quien})` : ''}`));
+          lista.appendChild(li);
+        });
+        const aclaracion = document.createElement('p');
+        aclaracion.className = 'nota';
+        aclaracion.textContent = 'Los correos figuran solo los últimos 7 días (después se borran de la cola).';
+        cont.replaceChildren(resumen, lista, aclaracion);
+      } catch (error) {
+        cont.replaceChildren(vacioHoy('No se pudo conectar con el servidor.'));
+      }
+    }
+
+    // Botones de la columna "Registro" (solo admin supremo)
+    function botonesSuper(r) {
+      const caja = document.createElement('div');
+      caja.className = 'acciones-celda super-acciones';
+      const boton = (texto, accion) => {
+        const b = document.createElement('button');
+        b.className = 'btn-small';
+        b.type = 'button';
+        b.textContent = texto;
+        b.addEventListener('click', accion);
+        caja.appendChild(b);
+      };
+      const vigente = r.estado === 'activa' && r.fecha >= hoyEnAsuncionStr();
+      if (vigente) {
+        boton('Editar', () => abrirEditar(r));
+        boton('Reenviar confirmación', () => reenviarConfirmacion(r));
+      }
+      boton('Historial', () => abrirHistorial(r.id));
+      return caja;
+    }
+
+    // --- Estado del sistema ---
+    async function cargarEstado() {
+      const cont = document.getElementById('estadoSistema');
+      if (!cont) return;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/estado`);
+        if (!res.ok) throw new Error(await leerError(res));
+        const e = await res.json();
+        const hace = iso => {
+          if (!iso) return null;
+          const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+          if (min < 60) return `hace ${min} min`;
+          if (min < 48 * 60) return `hace ${Math.round(min / 60)} h`;
+          return `hace ${Math.round(min / 1440)} días`;
+        };
+        const mesActual = hoyEnAsuncionStr().slice(0, 7);
+        const sincronizado = e.ultima_sincronizacion && (Date.now() - new Date(e.ultima_sincronizacion).getTime()) < 3 * 3600000;
+        const tarjetas = [
+          ['Servidor y base de datos', e.base === 'ok' ? 'Funcionando' : 'La base no responde', e.base === 'ok' ? 'ok' : 'mal',
+            `Encendido desde ${fechaHoraAsuncion(e.servidor_desde)}${e.version ? ` · versión ${e.version}` : ''}`],
+          ['Correos de hoy', e.correos ? `${e.correos.hoy} de ${e.limite_correos_dia}` : 'Sin datos', !e.correos ? 'aviso' : e.correos.hoy > e.limite_correos_dia * 0.8 ? 'mal' : 'ok',
+            'Límite diario de Brevo (lo usan el sistema y las respuestas desde reservas@)'],
+          ['Correos trabados', e.correos ? `${e.correos.pendientes} esperando · ${e.correos.fallidos} que no salieron` : 'Sin datos',
+            !e.correos ? 'aviso' : e.correos.fallidos > 0 ? 'mal' : e.correos.pendientes > 5 ? 'aviso' : 'ok',
+            'Los que no salieron se reintentan desde la pestaña "Hoy"'],
+          ['Copia de seguridad mensual', e.copia_mensual ? `Última: ${String(e.copia_mensual).slice(0, 7)}` : 'Todavía ninguna',
+            String(e.copia_mensual || '').startsWith(mesActual) ? 'ok' : 'aviso', 'Llega al correo de alertas el día 1 de cada mes'],
+          ['Planilla de Google', e.ultima_sincronizacion ? `Actualizada ${hace(e.ultima_sincronizacion)}` : 'Sin datos todavía', sincronizado ? 'ok' : 'aviso',
+            'Se actualiza sola cada hora'],
+          ['Plazos de conservación', e.ultima_revision_plazos ? `Revisados el ${e.ultima_revision_plazos.split('-').reverse().join('/')}` : 'Pendiente desde el último reinicio', e.ultima_revision_plazos ? 'ok' : 'aviso',
+            'Anonimiza las reservas de más de 6 meses (una vez por día)'],
+          ['Lista de espera', `${e.lista_espera_pendientes} esperando aviso`, 'ok', ''],
+          ['Reportes nuevos', `${e.reportes_nuevos}`, e.reportes_nuevos > 0 ? 'aviso' : 'ok', 'Se ven en la pestaña "Reportes"'],
+          ['Reservas', e.pausa_reservas && e.pausa_reservas.activa ? 'PAUSADAS' : 'Abiertas', e.pausa_reservas && e.pausa_reservas.activa ? 'mal' : 'ok', 'Se pausan en "Herramientas"'],
+          ['Clave SMTP de Gmail', 'Vence el 16/10/2027', 'ok', 'O a los 90 días sin enviar nada desde reservas@ceq-una.com']
+        ];
+        cont.replaceChildren(...tarjetas.map(([titulo, valor, estado, nota]) => {
+          const t = document.createElement('div');
+          t.className = `estado-tarjeta estado-${estado}`;
+          const h = document.createElement('span'); h.className = 'estado-titulo'; h.textContent = titulo;
+          const v = document.createElement('strong'); v.textContent = valor;
+          t.append(h, v);
+          if (nota) { const n = document.createElement('small'); n.textContent = nota; t.appendChild(n); }
+          return t;
+        }));
+        document.getElementById('estadoActualizado').textContent = `Actualizado: ${fechaHoraAsuncion(new Date().toISOString())}`;
+        // La pausa se muestra también en Herramientas
+        if (e.pausa_reservas) {
+          document.getElementById('pausaActiva').checked = e.pausa_reservas.activa === true;
+          document.getElementById('pausaMensaje').value = e.pausa_reservas.mensaje || '';
+        }
+      } catch (error) {
+        cont.replaceChildren(vacioHoy('No se pudo cargar el estado del sistema.'));
+      }
+    }
+
+    // --- Pausa ---
+    async function guardarPausa() {
+      const activa = document.getElementById('pausaActiva').checked;
+      const mensaje = document.getElementById('pausaMensaje').value.trim();
+      const p = document.getElementById('pausaMensajeEstado');
+      if (activa && !confirm('¿Pausar las reservas? Nadie va a poder reservar desde la página hasta que lo reanudes.')) return;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/pausa`, { method: 'POST', body: JSON.stringify({ activa, mensaje }) });
+        const datos = await res.json().catch(() => ({}));
+        p.className = 'config-mensaje ' + (res.ok ? 'ok' : 'error');
+        p.textContent = res.ok ? (activa ? '✓ Reservas pausadas. La página ya muestra tu mensaje.' : '✓ Reservas reanudadas.') : (datos.error || 'No se pudo guardar.');
+        if (res.ok) { cargarActividad(); cargarEstado(); }
+      } catch (error) {
+        p.className = 'config-mensaje error';
+        p.textContent = 'No se pudo conectar con el servidor.';
+      }
+    }
+
+    // --- Copia de seguridad en el momento ---
+    async function descargarCopia() {
+      const p = document.getElementById('copiaMensaje');
+      p.className = 'config-mensaje';
+      p.textContent = 'Preparando la copia…';
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/copia`);
+        if (!res.ok) throw new Error(await leerError(res));
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `reservas-ceq-${hoyEnAsuncionStr()}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        p.className = 'config-mensaje ok';
+        p.textContent = '✓ Copia descargada. Se abre con Excel o Google Sheets.';
+        cargarActividad();
+      } catch (error) {
+        p.className = 'config-mensaje error';
+        p.textContent = error.message || 'No se pudo descargar la copia.';
+      }
+    }
+
+    // --- Feriados nacionales de Paraguay ---
+    // Fechas fijas por ley y Semana Santa (calculada). Algunos se trasladan por decreto cada año:
+    // por eso se muestran para revisar antes de bloquear.
+    function pascua(anio) {
+      const a = anio % 19, b = Math.floor(anio / 100), c = anio % 100, d = Math.floor(b / 4), e = b % 4;
+      const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+      const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+      const mes = Math.floor((h + l - 7 * m + 114) / 31), dia = ((h + l - 7 * m + 114) % 31) + 1;
+      return new Date(Date.UTC(anio, mes - 1, dia));
+    }
+    function feriadosDelAnio(anio) {
+      const p = pascua(anio);
+      const menos = n => { const d = new Date(p); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); };
+      return [
+        [`${anio}-01-01`, 'Año Nuevo'], [`${anio}-03-01`, 'Día de los Héroes'], [menos(3), 'Jueves Santo'], [menos(2), 'Viernes Santo'],
+        [`${anio}-05-01`, 'Día del Trabajador'], [`${anio}-05-14`, 'Independencia Nacional'], [`${anio}-05-15`, 'Independencia Nacional'],
+        [`${anio}-06-12`, 'Paz del Chaco'], [`${anio}-08-15`, 'Fundación de Asunción'], [`${anio}-09-29`, 'Victoria de Boquerón'],
+        [`${anio}-12-08`, 'Virgen de Caacupé'], [`${anio}-12-25`, 'Navidad']
+      ].sort((x, y) => x[0].localeCompare(y[0]));
+    }
+    function armarFeriados() {
+      const select = document.getElementById('feriadosAnio');
+      if (!select.options.length) {
+        const anio = Number(hoyEnAsuncionStr().slice(0, 4));
+        [anio, anio + 1].forEach(a => select.add(new Option(String(a), String(a))));
+      }
+      const hoy = hoyEnAsuncionStr();
+      const lista = document.getElementById('feriadosLista');
+      const dias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+      const filas = feriadosDelAnio(Number(select.value)).filter(([f]) => f >= hoy).map(([fecha, nombre]) => {
+        const label = document.createElement('label');
+        label.className = 'check';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = fecha;
+        cb.dataset.nombre = nombre;
+        const diaSemana = new Date(fecha + 'T12:00:00Z').getUTCDay();
+        cb.checked = diaSemana !== 0 && diaSemana !== 6; // fin de semana: no hace falta
+        label.append(cb, document.createTextNode(` ${dias[diaSemana]} ${fecha.split('-').reverse().join('/')} · ${nombre}`));
+        return label;
+      });
+      lista.replaceChildren(...(filas.length ? filas : [vacioHoy('No quedan feriados este año.')]));
+    }
+    async function aplicarFeriados() {
+      const marcados = [...document.querySelectorAll('#feriadosLista input:checked')];
+      const espaciosElegidos = [document.getElementById('feriadosFrente').checked && 3, document.getElementById('feriadosAltillo').checked && 1].filter(Boolean);
+      const p = document.getElementById('feriadosMensaje');
+      if (!marcados.length || !espaciosElegidos.length) { p.className = 'config-mensaje error'; p.textContent = 'Marcá al menos un feriado y un espacio.'; return; }
+      if (!confirm(`¿Bloquear ${marcados.length} feriado(s) todo el día en ${espaciosElegidos.map(e => espacios[e]).join(' y ')}?`)) return;
+      p.className = 'config-mensaje';
+      p.textContent = 'Bloqueando…';
+      const lineas = [];
+      for (const cb of marcados) {
+        for (const espacio_id of espaciosElegidos) {
+          const res = await fetchConJWT(`${API_BASE}/bloqueos`, { method: 'POST', body: JSON.stringify({ espacio_id, fecha: cb.value, hora_inicio: '00:00:00', hora_fin: '23:59:00', motivo: `Feriado: ${cb.dataset.nombre}` }) });
+          const datos = await res.json().catch(() => ({}));
+          const dia = cb.value.split('-').reverse().join('/');
+          lineas.push(res.ok ? `✓ ${dia} ${espacios[espacio_id]}` : `✗ ${dia} ${espacios[espacio_id]}: ${datos.error || 'no se pudo'}`);
+        }
+      }
+      p.className = 'config-mensaje ' + (lineas.some(l => l.startsWith('✗')) ? 'error' : 'ok');
+      p.textContent = lineas.join('\n');
+      cargarActividad();
+    }
+
+    // --- Respuestas listas para copiar ---
+    const RESPUESTAS = {
+      acceso: ['Pedido de acceso a sus datos', n => `Hola, ${n}:\n\nRecibimos tu solicitud de acceso a tus datos personales en el sistema de reservas del CEQ. Te enviamos adjunto un PDF con toda la información que tenemos guardada sobre vos: tus reservas, las reservas en las que figurás como acompañante y tus inscripciones en la lista de espera.\n\nSegún nuestra Política de Privacidad, los datos de las reservas se anonimizan automáticamente a los 6 meses.\n\nSi querés corregir algún dato o que borremos tu información, respondé a este correo indicándolo.\n\nSaludos,\nSecretaría de Informática — Centro de Estudiantes de Química`],
+      borrado: ['Datos borrados', n => `Hola, ${n}:\n\nTe confirmamos que borramos tus datos personales del sistema de reservas del CEQ: tus reservas quedaron sin nombre ni contacto, y saliste de las listas de acompañantes y de la lista de espera.\n\nSi en el futuro volvés a reservar, se van a guardar los datos de esa nueva reserva.\n\nSaludos,\nSecretaría de Informática — Centro de Estudiantes de Química`],
+      correccion: ['Datos corregidos', n => `Hola, ${n}:\n\nYa corregimos los datos de tu reserva como pediste. Te llegó (o te va a llegar en unos minutos) un correo con los datos actualizados.\n\nSi ves algo más que no esté bien, respondé a este correo.\n\nSaludos,\nCentro de Estudiantes de Química`],
+      reenvio: ['No le llegó el correo', n => `Hola, ${n}:\n\nTe reenviamos la confirmación de tu reserva, con un código de cancelación nuevo (el anterior ya no sirve). Revisá también la carpeta de spam o "Promociones".\n\nSi querés cancelar, podés usar el enlace "Cancelar mi reserva" de ese correo.\n\nSaludos,\nCentro de Estudiantes de Química`],
+      plazo: ['Pide cancelar fuera de plazo (Frente)', n => `Hola, ${n}:\n\nRecibimos tu pedido para cancelar la reserva. Como faltan menos de 2 días, ya no se puede cancelar desde la página, pero la cancelamos nosotros: te llega la confirmación por correo.\n\nTe pedimos que la próxima vez avises con al menos 2 días de anticipación, así el turno lo puede usar otra persona.\n\nSaludos,\nCentro de Estudiantes de Química`],
+      general: ['Consulta general', n => `Hola, ${n}:\n\nGracias por escribirnos. \n\n[Respuesta]\n\nCualquier otra duda, respondé a este correo.\n\nSaludos,\nCentro de Estudiantes de Química`]
+    };
+    function armarRespuesta() {
+      const select = document.getElementById('respuestaTipo');
+      if (!select.options.length) Object.entries(RESPUESTAS).forEach(([clave, [titulo]]) => select.add(new Option(titulo, clave)));
+      const nombre = document.getElementById('respuestaNombre').value.trim().split(/\s+/)[0] || '[nombre]';
+      document.getElementById('respuestaTexto').value = RESPUESTAS[select.value][1](nombre);
+    }
+    async function copiarRespuesta() {
+      const texto = document.getElementById('respuestaTexto').value;
+      const p = document.getElementById('respuestaMensaje');
+      try {
+        await navigator.clipboard.writeText(texto);
+        p.className = 'config-mensaje ok';
+        p.textContent = '✓ Copiado. Pegalo en Gmail y revisalo antes de enviar.';
+      } catch (e) {
+        document.getElementById('respuestaTexto').select();
+        p.className = 'config-mensaje';
+        p.textContent = 'Seleccioné el texto: copialo con Ctrl+C.';
+      }
+    }
+
+    // --- Contraseña de los admins ---
+    async function cambiarClaveAdmin() {
+      const nueva = document.getElementById('claveAdminNueva').value;
+      const confirmar = document.getElementById('claveAdminRepetir').value;
+      const p = document.getElementById('claveAdminMensaje');
+      if (nueva.length < 10) { p.className = 'config-mensaje error'; p.textContent = 'Tiene que tener al menos 10 caracteres.'; return; }
+      if (nueva !== confirmar) { p.className = 'config-mensaje error'; p.textContent = 'Las dos contraseñas no coinciden.'; return; }
+      if (!confirm('¿Cambiar la contraseña de los admins? Se cierran todas las sesiones, incluida la tuya.')) return;
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/clave-admin`, { method: 'POST', body: JSON.stringify({ nueva, confirmar }) });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) { p.className = 'config-mensaje error'; p.textContent = datos.error || 'No se pudo cambiar.'; return; }
+        document.getElementById('claveAdminNueva').value = '';
+        document.getElementById('claveAdminRepetir').value = '';
+        alert('✓ ' + datos.mensaje);
+        location.reload();
+      } catch (error) {
+        p.className = 'config-mensaje error';
+        p.textContent = 'No se pudo conectar con el servidor.';
+      }
+    }
+
     async function leerError(res) {
       const data = await res.json().catch(() => ({}));
       return data.error || `Error del servidor (${res.status})`;
