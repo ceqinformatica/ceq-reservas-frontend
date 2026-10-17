@@ -1468,10 +1468,13 @@
 
     // Meses habilitados ('2026-11') en los que ya no queda ningún lugar en el espacio elegido (solo
     // los que todavía tienen días hábiles por delante). null si los meses no se pudieron cargar.
+    // Si en algún mes habilitado QUEDA lugar, devuelve [] (no corresponde la lista de espera: por
+    // ejemplo, octubre está lleno pero ya se habilitó noviembre y tiene turnos libres).
     function mesesSinLugar() {
       if (!mesesCargadosOk) return null;
       const hoy = hoyEnAsuncionStr();
       const llenos = [];
+      let algunoConLugar = false;
       for (const clave of [...mesesHabilitadosSet].sort()) {
         const [anio, mes] = clave.split('-').map(Number);
         const ultimo = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
@@ -1484,8 +1487,9 @@
           if (diaTieneLugar(fecha)) hayLugar = true;
         }
         if (diasHabiles > 0 && !hayLugar) llenos.push(`${anio}-${String(mes).padStart(2, '0')}`);
+        if (hayLugar) algunoConLugar = true;
       }
-      return llenos;
+      return algunoConLugar ? [] : llenos;
     }
 
     // '2026-11' -> 'noviembre de 2026'
@@ -1511,8 +1515,9 @@
       }
 
       const espacioId = espacioSeleccionado;
-      // Se habilita un solo mes a la vez: la inscripción es para ese mes (no hay que elegirlo)
-      const mesLleno = llenos[0];
+      // La inscripción es para el mes lleno (no hay que elegirlo). Si hubiera dos meses habilitados y
+      // los dos llenos, se usa el más nuevo, que es el que se está pidiendo.
+      const mesLleno = llenos[llenos.length - 1];
       const titulo = document.createElement('h3');
       titulo.textContent = `Ya no hay lugares en ${nombreDelMes(mesLleno)}`;
       const texto = document.createElement('p');

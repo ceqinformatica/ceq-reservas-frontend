@@ -95,6 +95,13 @@
     .tab-btn.active { color: var(--azul); border-bottom-color: var(--azul); }
     .tab-content { display: none; }
     .tab-content.active { display: block !important; }
+    /* Sub-secciones de "Avanzado": una por vez, con botones arriba (antes era una sola página larga) */
+    .subtabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; padding: 12px; background: var(--blanco); border: 1px solid var(--linea); border-radius: 10px; }
+    .subtab-btn { padding: 8px 14px; border: 1px solid var(--linea); background: var(--blanco); color: var(--marino); border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .subtab-btn:hover { border-color: var(--azul); }
+    .subtab-btn.active { background: var(--marino); border-color: var(--marino); color: var(--blanco); }
+    .sub-seccion[hidden] { display: none !important; }
+    .sub-seccion > h3:first-child { margin-top: 0; }
 
     .tab-content h3 { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--marino); line-height: 1.2; margin-bottom: 16px; }
     .tab-content h3::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; flex: none; }
@@ -1218,7 +1225,65 @@
     };
 
     // TABS
+    // "Avanzado" tiene muchas secciones: se agrupan y se muestra una por vez, con botones arriba.
+    // Se arma una sola vez al cargar, a partir de los títulos (h3) que ya están en la página.
+    const GRUPOS_AVANZADO = [
+      ['configuracion', 'Configuración', ['Configuración']],
+      ['espacios', 'Espacios', ['Espacios']],
+      ['novedades', 'Novedades', ['Ventana de novedades']],
+      ['estadisticas', 'Estadísticas', ['Estadísticas']],
+      ['espera', 'Lista de espera', ['Lista de espera']],
+      ['persona', 'Datos de una persona', ['Datos de una persona']],
+      ['actividad', 'Actividad', ['Registro de actividad']],
+      ['limpieza', 'Limpieza', ['Eliminar reservas canceladas', 'Eliminar reportes de errores']],
+      ['seguridad', 'Seguridad', ['Seguridad']]
+    ];
+    function armarSubpestanasAvanzado() {
+      const tab = document.getElementById('tab-avanzado');
+      if (!tab || tab.querySelector('.subtabs')) return;
+      // Corta el contenido en bloques que empiezan en cada h3
+      const bloques = [];
+      [...tab.children].forEach(nodo => {
+        if (nodo.tagName === 'H3' || bloques.length === 0) bloques.push({ titulo: nodo.tagName === 'H3' ? nodo.textContent.trim() : '', nodos: [] });
+        bloques[bloques.length - 1].nodos.push(nodo);
+      });
+      const nav = document.createElement('div');
+      nav.className = 'subtabs';
+      nav.setAttribute('role', 'tablist');
+      tab.prepend(nav);
+      GRUPOS_AVANZADO.forEach(([clave, nombre, titulos]) => {
+        const propios = bloques.filter(b => titulos.includes(b.titulo));
+        if (!propios.length) return;
+        const seccion = document.createElement('section');
+        seccion.className = 'sub-seccion';
+        seccion.dataset.sub = clave;
+        propios.forEach(b => b.nodos.forEach(n => seccion.appendChild(n)));
+        tab.appendChild(seccion);
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'subtab-btn';
+        boton.dataset.sub = clave;
+        boton.textContent = nombre;
+        boton.addEventListener('click', () => mostrarSubpestana(clave));
+        nav.appendChild(boton);
+      });
+      // Lo que no entró en ningún grupo (si algún día se agrega una sección) queda visible al final
+      bloques.filter(b => !GRUPOS_AVANZADO.some(g => g[2].includes(b.titulo))).forEach(b => b.nodos.forEach(n => tab.appendChild(n)));
+      let ultima = 'configuracion';
+      try { ultima = localStorage.getItem('avanzadoSeccion') || ultima; } catch (e) { /* sin almacenamiento */ }
+      mostrarSubpestana(tab.querySelector(`.sub-seccion[data-sub="${ultima}"]`) ? ultima : 'configuracion');
+    }
+    function mostrarSubpestana(clave) {
+      document.querySelectorAll('#tab-avanzado .sub-seccion').forEach(s => { s.hidden = s.dataset.sub !== clave; });
+      document.querySelectorAll('#tab-avanzado .subtab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.sub === clave);
+        b.setAttribute('aria-selected', b.dataset.sub === clave ? 'true' : 'false');
+      });
+      try { localStorage.setItem('avanzadoSeccion', clave); } catch (e) { /* sin almacenamiento */ }
+    }
+
     function switchTab(tab) {
+      if (tab === 'avanzado') armarSubpestanasAvanzado();
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(`tab-${tab}`).classList.add('active');
