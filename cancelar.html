@@ -170,7 +170,8 @@
       </div>
 
       <div id="formCodigo">
-        <p class="ayuda">Ingresá el código de cancelación que te llegó en el email de confirmación. Antes de cancelar te mostramos la reserva para que la revises.</p>
+        <!-- El texto se puede cambiar desde el admin supremo (Textos de la página) -->
+        <p class="ayuda" id="ayudaCodigo">Ingresá el código de cancelación que te llegó en el email de confirmación. Antes de cancelar te mostramos la reserva para que la revises.</p>
 
         <div class="form-group">
           <label for="codigo">Código de cancelación</label>
@@ -215,12 +216,16 @@
       return `<a href="https://wa.me/${numero}" target="_blank" rel="noopener">WhatsApp</a>`;
     }
 
-    // Correo del contacto del Frente (lo manda el servidor, de la Configuración del panel)
+    // Correo de contacto del espacio de la reserva (lo manda el servidor: en el Frente, el de la
+    // Configuración del panel; en el Altillo, reservas@ceq-una.com)
     let correoFrente = '';
+    // El Altillo no tiene WhatsApp: ahí solo se ofrece el correo
+    let conWhatsapp = true;
     // "escribí a x@y.com o por WhatsApp". Solo se acepta un correo con caracteres simples, así no
     // puede meter HTML (el mensaje se arma con innerHTML por el enlace)
     function contactoFrenteHtml() {
       const correo = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(correoFrente) ? correoFrente : '';
+      if (!conWhatsapp) return `escribí a <a href="mailto:${correo || 'reservas@ceq-una.com'}">${correo || 'reservas@ceq-una.com'}</a>`;
       return correo
         ? `escribí a <a href="mailto:${correo}">${correo}</a> o por ${enlaceWhatsapp(whatsappFrente)}`
         : `escribinos por ${enlaceWhatsapp(whatsappFrente)}`;
@@ -235,6 +240,13 @@
         if (/^\d{8,15}$/.test(numero || '')) {
           whatsappFrente = numero;
           document.querySelectorAll('.whatsapp-frente').forEach(a => { a.href = `https://wa.me/${numero}`; });
+        }
+        // Texto de ayuda (admin supremo > Textos de la página). Vacío = no se muestra
+        const ayuda = datos.textos && datos.textos.cancelar_ayuda;
+        if (typeof ayuda === 'string') {
+          const p = document.getElementById('ayudaCodigo');
+          p.textContent = ayuda;
+          p.hidden = !ayuda;
         }
       } catch (error) {
         // sin conexión o servidor anterior: queda el número de respaldo
@@ -277,6 +289,7 @@
       const ayuda = document.getElementById('ayudaEnlace');
       boton.hidden = false;
       if (datos.whatsapp) whatsappFrente = datos.whatsapp;
+      conWhatsapp = !!datos.whatsapp;
       if (datos.correo_contacto) correoFrente = datos.correo_contacto;
       // Saludo con el primer nombre (textContent: el nombre lo escribió la persona, no se toma como HTML)
       const saludo = datos.nombre ? `Hola, ${datos.nombre}. ` : '';
@@ -289,7 +302,9 @@
         ayuda.textContent = saludo + 'Esta reserva ya pasó, así que no hace falta cancelarla.';
         boton.hidden = true;
       } else if (datos.plazo_vencido) {
-        ayuda.textContent = saludo + 'El período para cancelar gratis ya terminó (es hasta 2 días antes).';
+        // El plazo lo manda el servidor (admin supremo > Reglas); si es un servidor anterior, 2
+        const plazo = Number.isInteger(datos.plazo_dias) && datos.plazo_dias > 0 ? datos.plazo_dias : 2;
+        ayuda.textContent = saludo + `El período para cancelar gratis ya terminó (es hasta ${plazo === 1 ? '1 día' : `${plazo} días`} antes).`;
         boton.hidden = true;
         mostrarMensaje(`Si igual necesitás cancelarla, ${contactoFrenteHtml()}.`, 'error', true, true);
       }
