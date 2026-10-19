@@ -4241,6 +4241,21 @@
         contador.textContent = `${campo.value.length}/${t.max}${campo.value === t.defecto ? ' · texto original' : ''}`;
         const original = crear('button', { type: 'button', className: 'btn-small', textContent: 'Original', onclick: () => { campo.value = t.defecto; actualizar(); } });
         const hijos = [crear('div', { className: 'texto-cab' }, [crear('span', { className: 'etiqueta', textContent: t.nombre }), original]), campo, contador];
+        // Texto de "Crear reserva": casilla para no mostrar nada (se guarda como "{ninguno}")
+        if (clave.startsWith('ayuda_reserva_')) {
+          const casilla = crear('input', { type: 'checkbox', checked: campo.value.trim() === '{ninguno}' });
+          const aplicar = () => {
+            campo.hidden = casilla.checked;
+            contador.hidden = casilla.checked;
+            if (casilla.checked) campo.value = '{ninguno}';
+            else if (campo.value.trim() === '{ninguno}') campo.value = '';
+          };
+          casilla.addEventListener('change', () => { aplicar(); actualizar(); });
+          // "Original" (vacío = se arma con las Reglas) también destilda la casilla
+          original.addEventListener('click', () => { casilla.checked = false; aplicar(); });
+          aplicar();
+          hijos.splice(1, 0, crear('label', { className: 'check' }, [casilla, 'No mostrar ningún texto (queda solo "Al reservar aceptás los términos y condiciones…")']));
+        }
         if (t.ayuda) hijos.push(crear('p', { className: 'ayuda', textContent: t.ayuda }));
         else if (t.comodines.length) hijos.push(crear('p', { className: 'ayuda', textContent: `Podés usar ${t.comodines.map(c => `{${c}}`).join(' y ')}: se reemplazan por el espacio y el mes.` }));
         if (!t.defecto && !t.ayuda) hijos.push(crear('p', { className: 'ayuda', textContent: 'Vacío = no se muestra nada.' }));
@@ -4312,7 +4327,9 @@
         const limite = id === 3 ? personalizacion.max_reservas_por_persona_mes : (r.limite_por_persona_mes || 0);
         const pl = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
         let texto;
-        if (v) {
+        if (v === '{ninguno}') {
+          texto = '';
+        } else if (v) {
           texto = v.replace(/\{plazo\}/g, plazo > 0 ? `${pl(plazo, 'día', 'días')} antes` : 'el inicio de la reserva')
             .replace(/\{limite\}/g, limite ? pl(limite, 'reserva', 'reservas') : 'sin límite');
         } else {
@@ -4323,7 +4340,7 @@
           if (limite) partes.push(`En el ${nombre}, máximo ${pl(limite, 'reserva', 'reservas')} por persona por mes.`);
           texto = partes.join(' ') + ' (armado solo con las Reglas)';
         }
-        const ayuda = crear('div', { className: 'vp-ayuda' }, [texto + ' Al reservar aceptás los ', crear('u', { textContent: 'términos y condiciones' }), ' y la ', crear('u', { textContent: 'política de privacidad' }), '.']);
+        const ayuda = crear('div', { className: 'vp-ayuda' }, [(texto ? texto + ' ' : '') + 'Al reservar aceptás los ', crear('u', { textContent: 'términos y condiciones' }), ' y la ', crear('u', { textContent: 'política de privacidad' }), '.']);
         piezas = [crear('div', { className: 'vp-caja' }, [div('vp-boton', 'Crear reserva'), ayuda])];
       } else {
         piezas = [v ? div('vp-intro', v) : vacio('(vacío)')];

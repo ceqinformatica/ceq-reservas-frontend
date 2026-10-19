@@ -303,6 +303,8 @@
       .calendar-header, .calendar-grid { gap: 5px; }
       .calendar-day { min-height: 60px; padding: 7px; border-radius: 10px; }
       .calendar-day-number { font-size: 19px; }
+      /* En el celular el día es angosto: "HOY" va arriba, sobre el borde, así no tapa el número */
+      .calendar-day.today::after { top: -6px; right: auto; left: 50%; transform: translateX(-50%); font-size: 8px; padding: 1px 4px; }
       .dots { gap: 2px; }
       .form-panel .campos { grid-template-columns: 1fr; }
       .resumen { grid-template-columns: 1fr 1fr; }
@@ -736,7 +738,10 @@
       const propio = plantilla
         .replace(/\{plazo\}/g, r.plazo_cancelacion_dias > 0 ? `${plural(r.plazo_cancelacion_dias, 'día', 'días')} antes` : 'el inicio de la reserva')
         .replace(/\{limite\}/g, r.limite_por_persona_mes ? plural(r.limite_por_persona_mes, 'reserva', 'reservas') : 'sin límite');
-      document.getElementById('ayudaReglas').textContent = propio || partes.join(' ');
+      // "{ninguno}": no se muestra ningún texto, queda solo "Al reservar aceptás…"
+      const ninguno = plantilla.trim() === '{ninguno}';
+      document.getElementById('ayudaReglas').textContent = ninguno ? '' : (propio || partes.join(' '));
+      document.getElementById('ayudaReglas').hidden = ninguno;
 
       const caja = document.getElementById('normasEspacio');
       const tenia = caja.dataset.espacio === String(espacioSeleccionado) && caja.dataset.normas === r.normas;
