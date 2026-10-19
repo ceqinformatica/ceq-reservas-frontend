@@ -386,6 +386,11 @@
     .vista-correo h4 { font-size: 19px; color: var(--marino); margin: 0; }
     .vista-correo .vc-auto { color: var(--suave); font-style: italic; font-size: 13px; border-left: 3px solid var(--linea); padding-left: 8px; }
     .vista-correo pre { white-space: pre-wrap; font-family: inherit; margin: 0; }
+    .vista-correo { padding: 0; gap: 0; overflow: hidden; }
+    .vista-correo .vc-asunto { padding: 12px 16px; background: #F6F8FB; }
+    .vc-marco { width: 100%; height: 420px; border: 0; display: block; background: #fff; }
+    .vista-correo-cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .vista-correo-cab select { padding: 6px 8px; border: 1px solid var(--linea); border-radius: 8px; font-size: 13px; background: var(--blanco); color: var(--marino); }
     .vista-titulo { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--suave); }
     .vista-caja { background: var(--blanco); border-radius: var(--radio); padding: 28px; display: grid; gap: 14px; box-shadow: 0 10px 30px rgba(23,56,116,.15); position: sticky; top: 16px; }
     .vista-caja h4 { display: flex; align-items: center; gap: 10px; font-size: 20px; color: var(--marino); margin: 0; }
@@ -1106,8 +1111,20 @@
               <p class="config-mensaje" id="correoMensajeEstado" role="status"></p>
             </div>
             <div>
-              <p class="vista-titulo">Vista previa (con datos de ejemplo)</p>
-              <div class="vista-correo" id="correoVista"></div>
+              <div class="vista-correo-cab">
+                <p class="vista-titulo">Así llega el correo (datos de ejemplo)</p>
+                <select id="correoVistaEspacio" aria-label="Espacio del ejemplo" onchange="vistaPreviaCorreo()">
+                  <option value="3">Reserva del Frente</option>
+                  <option value="1">Reserva del Altillo</option>
+                </select>
+              </div>
+              <div class="vista-correo">
+                <div class="vc-asunto"><b>Asunto: </b><span id="correoVistaAsunto"></span></div>
+                <!-- sandbox sin permisos: el correo se muestra, pero no puede correr nada ni abrir enlaces -->
+                <iframe id="correoVistaMarco" class="vc-marco" sandbox="allow-same-origin" title="Vista previa del correo" onload="ajustarMarcoCorreo()"></iframe>
+              </div>
+              <p class="config-mensaje" id="correoVistaEstado" role="status"></p>
+              <p class="ayuda">Es el correo real que arma el sistema, con lo que escribiste (aunque no lo hayas guardado). Los enlaces del ejemplo no funcionan.</p>
             </div>
           </div>
 
@@ -4365,23 +4382,13 @@
     }
 
     // --- Correos ---
-    // Datos de ejemplo para la vista previa (la prueba por correo usa los mismos)
+    // Datos de ejemplo de cada comodín (se muestran al pasar el mouse por el botón del comodín)
     const EJEMPLO_CORREO = {
       nombre: 'Ana Pérez', espacio: 'Frente', fecha: 'jueves 19/11/2026', horario: 'Desayuno (07:00 - 10:00)', numero: '1234',
       motivo: 'Mantenimiento del espacio', cambios: 'día u horario', saludo: 'Hola, Ana:', mes: 'noviembre de 2026',
       dia: 'jueves 19/11/2026', dia_corto: 'jueves 19/11', turno: 'Desayuno',
       enlace_quitar: 'https://reservas.ceq-una.com/lista-espera.html?… (enlace para salir de la lista)',
       enlace_reservar: 'https://reservas.ceq-una.com/?fecha=2026-11-19&espacio=3'
-    };
-    // Lo que el sistema agrega solo en cada correo (para que se vea en la vista previa)
-    const PARTES_AUTOMATICAS = {
-      confirmacion: 'Detalles de la reserva (espacio, fecha, horario, motivo, acompañantes y código de cancelación), enlaces para cancelar, hasta cuándo se cancela gratis, Google Calendar, normas de uso y contacto.',
-      reenvio: 'Detalles de la reserva con el código nuevo, enlaces para cancelar, hasta cuándo se cancela gratis, Google Calendar, normas de uso y contacto.',
-      modificada: 'Detalles de la reserva actualizados, enlace para cancelar, hasta cuándo se cancela gratis, Google Calendar, normas de uso y contacto.',
-      recordatorio: 'Botón "Cancelar mi reserva", hasta cuándo se cancela gratis, Google Calendar, normas de uso y contacto.',
-      cancelacion: 'Detalles de la reserva cancelada y contacto.',
-      cancelacion_moderador: 'Detalles de la reserva cancelada y contacto.',
-      plazo_vencido: 'Detalles de la reserva y a quién escribir para cancelarla igual.'
     };
 
     function armarSelectorCorreos() {
@@ -4450,25 +4457,51 @@
       vistaPreviaCorreo();
     }
 
-    function completarEjemplo(texto) {
-      return String(texto || '').replace(/\{([^{}\s]+)\}/g, (todo, n) => (EJEMPLO_CORREO[n] !== undefined ? EJEMPLO_CORREO[n] : todo));
-    }
-
+    // Vista previa: el servidor arma el correo EXACTO que sale (el mismo código que los reales),
+    // con lo escrito y datos de ejemplo, y se muestra en un marco aislado (sin scripts). Se pide
+    // un ratito después de dejar de escribir, para no hacer un pedido por cada letra.
+    let temporizadorVistaCorreo = null;
+    let pedidoVistaCorreo = 0;
     function vistaPreviaCorreo() {
       if (!correoClaveActual) return;
-      const p = personalizacion.plantillas[correoClaveActual];
-      const campos = camposCorreo();
-      const esReserva = p.tipo === 'html';
-      const vista = document.getElementById('correoVista');
-      const asunto = crear('div', { className: 'vc-asunto' }, [crear('b', { textContent: 'Asunto: ' }), completarEjemplo(campos.asunto) + (esReserva ? ' - CEQ #1234' : '')]);
-      if (!esReserva) {
-        vista.replaceChildren(asunto, crear('pre', { textContent: completarEjemplo(campos.texto) }));
-        return;
+      clearTimeout(temporizadorVistaCorreo);
+      document.getElementById('correoVistaEstado').textContent = 'Actualizando…';
+      temporizadorVistaCorreo = setTimeout(pedirVistaCorreo, 450);
+    }
+    async function pedirVistaCorreo() {
+      const numero = ++pedidoVistaCorreo;
+      const estado = document.getElementById('correoVistaEstado');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/plantillas/vista-previa`, {
+          method: 'POST', body: JSON.stringify({ clave: correoClaveActual, espacio_id: Number(document.getElementById('correoVistaEspacio').value), ...camposCorreo() })
+        });
+        const datos = await res.json().catch(() => ({}));
+        if (numero !== pedidoVistaCorreo) return; // llegó una más nueva
+        if (!res.ok) {
+          estado.textContent = `⚠️ ${datos.error || 'No se pudo armar la vista previa.'}`;
+          estado.className = 'config-mensaje error';
+          return;
+        }
+        estado.textContent = '';
+        estado.className = 'config-mensaje';
+        document.getElementById('correoVistaAsunto').textContent = datos.asunto;
+        // Así se ve en el correo: el HTML real, o el texto tal cual si es un correo de solo texto
+        const escapar = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const cuerpo = datos.html != null
+          ? datos.html
+          : `<div style="white-space:pre-wrap">${escapar(datos.texto || '')}</div>`;
+        const marco = document.getElementById('correoVistaMarco');
+        marco.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>body{font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#222;margin:16px;overflow-wrap:anywhere}a{color:#1a5fb4}h2{font-size:22px;margin:0 0 12px}ul{padding-left:22px}hr{border:0;border-top:1px solid #ddd}</style></head><body>${cuerpo}</body></html>`;
+      } catch (error) {
+        if (numero !== pedidoVistaCorreo) return;
+        estado.textContent = '⚠️ No se pudo conectar con el servidor para la vista previa.';
+        estado.className = 'config-mensaje error';
       }
-      const parrafos = completarEjemplo(campos.mensaje).split(/\n\s*\n/).map(t => t.trim()).filter(Boolean)
-        .map(t => crear('p', {}, t.split('\n').flatMap((linea, i) => (i ? [crear('br'), linea] : [linea]))));
-      vista.replaceChildren(asunto, crear('h4', { textContent: completarEjemplo(campos.titulo) }), ...parrafos,
-        crear('p', { className: 'vc-auto', textContent: `Acá el sistema agrega: ${PARTES_AUTOMATICAS[correoClaveActual] || ''}` }));
+    }
+    // El marco se agranda solo para mostrar el correo entero
+    function ajustarMarcoCorreo() {
+      const marco = document.getElementById('correoVistaMarco');
+      try { marco.style.height = Math.max(240, marco.contentDocument.documentElement.scrollHeight + 4) + 'px'; } catch (e) { /* sin acceso */ }
     }
 
     async function guardarPlantilla() {
@@ -4511,7 +4544,7 @@
       mensajePersonalizacion('correoMensajeEstado', 'Mandando la prueba…');
       try {
         const res = await fetchConJWT(`${API_BASE}/superadmin/plantillas/prueba`, {
-          method: 'POST', body: JSON.stringify({ clave: correoClaveActual, espacio_id: 3, ...camposCorreo() })
+          method: 'POST', body: JSON.stringify({ clave: correoClaveActual, espacio_id: Number(document.getElementById('correoVistaEspacio').value), ...camposCorreo() })
         });
         const datos = await res.json().catch(() => ({}));
         mensajePersonalizacion('correoMensajeEstado', res.ok ? `✓ ${datos.mensaje} (no se guardó nada: si te gusta, tocá "Guardar")` : (datos.error || 'No se pudo mandar.'), res.ok ? 'ok' : 'error');
