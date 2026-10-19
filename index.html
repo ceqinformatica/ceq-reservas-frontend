@@ -556,7 +556,10 @@
       intro_inicio: '',
       mes_no_habilitado: 'Este mes todavía no está habilitado para reservas. Probá con "Hoy" o consultá con un moderador.',
       confirmacion_extra: '',
-      lista_espera: 'Todos los lugares del {espacio} de ese mes están ocupados. Anotate y, si alguien cancela una reserva de ese mes, te avisamos por correo para que puedas reservar. El lugar es de quien reserve primero.'
+      lista_espera: 'Todos los lugares del {espacio} de ese mes están ocupados. Anotate y, si alguien cancela una reserva de ese mes, te avisamos por correo para que puedas reservar. El lugar es de quien reserve primero.',
+      // Debajo de "Crear reserva", uno por espacio. Vacío: se arma con las reglas (actualizarAyudaReserva)
+      ayuda_reserva_frente: '',
+      ayuda_reserva_altillo: ''
     };
     let anuncio = null;
     const reglaDe = id => REGLAS[id] || REGLAS[3];
@@ -727,7 +730,13 @@
       if (r.anticipacion_min_dias > 0) partes.push(`Se reserva con al menos ${plural(r.anticipacion_min_dias, 'día', 'días')} de anticipación.`);
       if (r.anticipacion_max_dias > 0) partes.push(`Se puede reservar con hasta ${plural(r.anticipacion_max_dias, 'día', 'días')} de anticipación.`);
       if (r.limite_por_persona_mes) partes.push(`En el ${nombre}, máximo ${plural(r.limite_por_persona_mes, 'reserva', 'reservas')} por persona por mes.`);
-      document.getElementById('ayudaReglas').textContent = partes.join(' ');
+      // Texto propio de este espacio (admin supremo > Textos de la página), con {plazo} y {limite}
+      // completados con sus reglas. Vacío: el armado de arriba.
+      const plantilla = TEXTOS[espacioSeleccionado === 3 ? 'ayuda_reserva_frente' : 'ayuda_reserva_altillo'] || '';
+      const propio = plantilla
+        .replace(/\{plazo\}/g, r.plazo_cancelacion_dias > 0 ? `${plural(r.plazo_cancelacion_dias, 'día', 'días')} antes` : 'el inicio de la reserva')
+        .replace(/\{limite\}/g, r.limite_por_persona_mes ? plural(r.limite_por_persona_mes, 'reserva', 'reservas') : 'sin límite');
+      document.getElementById('ayudaReglas').textContent = propio || partes.join(' ');
 
       const caja = document.getElementById('normasEspacio');
       const tenia = caja.dataset.espacio === String(espacioSeleccionado) && caja.dataset.normas === r.normas;

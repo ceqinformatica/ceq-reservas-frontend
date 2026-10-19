@@ -122,6 +122,24 @@
     /* Cinta de anuncios */
     .anuncio-estado { font-size: 14px; font-weight: 700; padding: 8px 12px; border-radius: 8px; background: #E4E9F1; color: var(--marino); }
     .anuncio-estado.visible { background: var(--ok-bg); color: var(--ok); }
+    /* Vista previa de los textos de la página (imita cada lugar donde aparece) */
+    .vista-textos-col { position: sticky; top: 76px; display: grid; gap: 8px; }
+    .vista-pagina { background: #EAF2FD; border-radius: var(--radio); padding: 18px; display: grid; gap: 12px; box-shadow: 0 10px 30px rgba(23,56,116,.15); overflow-wrap: anywhere; }
+    .vista-pagina .vp-titulo { font-size: 24px; font-weight: 600; text-transform: uppercase; color: var(--marino); line-height: 1.1; }
+    .vista-pagina .vp-intro { font-size: 14px; color: var(--marino); white-space: pre-line; }
+    .vista-pagina .vp-caja { background: var(--blanco); border-radius: 12px; padding: 14px; display: grid; gap: 8px; font-size: 14px; color: var(--texto); }
+    .vista-pagina .vp-aviso { background: var(--blanco); border-left: 4px solid #E9C97A; border-radius: 8px; padding: 10px 12px; font-size: 14px; white-space: pre-line; }
+    .vista-pagina .vp-espera { background: var(--blanco); border: 1px solid var(--linea); border-left: 4px solid var(--azul); border-radius: 8px; padding: 12px; display: grid; gap: 6px; }
+    .vista-pagina .vp-espera b { color: var(--marino); font-size: 15px; }
+    .vista-pagina .vp-espera span, .vista-pagina .vp-suave { color: var(--suave); font-size: 13px; white-space: pre-line; }
+    .vista-pagina .vp-boton { background: var(--marino); color: var(--blanco); text-align: center; font-weight: 700; border-radius: 8px; padding: 10px; font-size: 14px; }
+    .vista-pagina .vp-ayuda { font-size: 12px; color: var(--suave); text-align: center; }
+    .vista-pagina .vp-ayuda u { color: var(--marino); }
+    .vista-pagina .vp-modal h5 { font-size: 16px; color: var(--marino); margin: 0; }
+    .vista-pagina .vp-campo { border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px; color: var(--suave); font-size: 13px; }
+    .vista-pagina .vp-vacio { color: var(--suave); font-style: italic; font-size: 13px; }
+    .textos-pagina .espacio-card.enfocado { box-shadow: 0 0 0 2px var(--azul); }
+    @media (max-width: 860px) { .vista-textos-col { position: static; } }
     .vista-anuncio { font-size: 14px; font-weight: 600; text-align: center; padding: 10px 16px; border-radius: 8px; background: #EAF2FD; color: #173874; border: 1px solid #C9DBF3; min-height: 40px; }
     .vista-anuncio.importante { background: #FDF1F0; color: #8A2A22; border-color: #F0C8C3; }
     .vista-anuncio.vacia { color: var(--suave); font-weight: 400; font-style: italic; }
@@ -1043,7 +1061,14 @@
             para cancelar y el límite por persona se arma solo con las Reglas, así nunca dice algo distinto de
             lo que hace el sistema.
           </p>
-          <div id="textosPagina" class="textos-pagina"></div>
+          <div class="novedades-editor">
+            <div id="textosPagina" class="textos-pagina"></div>
+            <div class="vista-textos-col">
+              <p class="vista-titulo" id="textoVistaDonde">Vista previa</p>
+              <div class="vista-pagina" id="textoVista"></div>
+              <p class="ayuda">Tocá un campo para ver dónde aparece. Se actualiza mientras escribís.</p>
+            </div>
+          </div>
           <div class="barra-guardar">
             <button class="btn-primario-chico" type="button" onclick="guardarTextos()">Guardar textos</button>
             <p class="config-mensaje" id="textosMensaje" role="status"></p>
@@ -4207,15 +4232,103 @@
         if (unaLinea) campo.type = 'text';
         else campo.className = 'corto';
         const contador = crear('span', { className: 'ayuda' });
-        const actualizar = () => { contador.textContent = `${campo.value.length}/${t.max}${campo.value === t.defecto ? ' · texto original' : ''}`; };
+        const actualizar = () => {
+          contador.textContent = `${campo.value.length}/${t.max}${campo.value === t.defecto ? ' · texto original' : ''}`;
+          vistaTexto(clave);
+        };
         campo.addEventListener('input', actualizar);
-        actualizar();
+        campo.addEventListener('focus', () => vistaTexto(clave));
+        contador.textContent = `${campo.value.length}/${t.max}${campo.value === t.defecto ? ' · texto original' : ''}`;
         const original = crear('button', { type: 'button', className: 'btn-small', textContent: 'Original', onclick: () => { campo.value = t.defecto; actualizar(); } });
         const hijos = [crear('div', { className: 'texto-cab' }, [crear('span', { className: 'etiqueta', textContent: t.nombre }), original]), campo, contador];
-        if (t.comodines.length) hijos.push(crear('p', { className: 'ayuda', textContent: `Podés usar ${t.comodines.map(c => `{${c}}`).join(' y ')}: se reemplazan por el espacio y el mes.` }));
-        if (!t.defecto) hijos.push(crear('p', { className: 'ayuda', textContent: 'Vacío = no se muestra nada.' }));
-        return crear('div', { className: 'espacio-card' }, hijos);
+        if (t.ayuda) hijos.push(crear('p', { className: 'ayuda', textContent: t.ayuda }));
+        else if (t.comodines.length) hijos.push(crear('p', { className: 'ayuda', textContent: `Podés usar ${t.comodines.map(c => `{${c}}`).join(' y ')}: se reemplazan por el espacio y el mes.` }));
+        if (!t.defecto && !t.ayuda) hijos.push(crear('p', { className: 'ayuda', textContent: 'Vacío = no se muestra nada.' }));
+        const tarjeta = crear('div', { className: 'espacio-card', dataset: { tarjeta: clave } }, hijos);
+        // Tocar cualquier parte de la tarjeta también muestra su vista previa
+        tarjeta.addEventListener('click', () => vistaTexto(clave));
+        return tarjeta;
       }));
+      vistaTexto('titulo_inicio');
+    }
+
+    // Vista previa del texto que se está editando, imitando el lugar de la página donde aparece.
+    // Todo con textContent (lo escrito nunca se toma como HTML). Ejemplos con el Frente.
+    const DONDE_TEXTO = {
+      titulo_inicio: 'Arriba de la página de reservas',
+      intro_inicio: 'Arriba de la página de reservas',
+      mes_no_habilitado: 'Arriba del calendario, en un mes sin habilitar',
+      confirmacion_extra: 'Ventana "¡Tu reserva quedó confirmada!"',
+      lista_espera: 'Cuadro de la lista de espera (cuando no quedan lugares)',
+      cancelar_ayuda: 'Página "Cancelar reserva"',
+      ayuda_reserva_frente: 'Debajo del botón "Crear reserva", en el Frente',
+      ayuda_reserva_altillo: 'Debajo del botón "Crear reserva", en el Altillo'
+    };
+    function valorTexto(clave) {
+      const campo = document.querySelector(`#textosPagina [data-texto="${clave}"]`);
+      return campo ? campo.value.trim() : '';
+    }
+    function vistaTexto(clave) {
+      const vista = document.getElementById('textoVista');
+      if (!vista || !personalizacion) return;
+      document.querySelectorAll('#textosPagina .espacio-card').forEach(c => c.classList.toggle('enfocado', c.dataset.tarjeta === clave));
+      // En pantallas angostas la vista previa va dentro de la tarjeta que se edita (si no, quedaría
+      // al final de todo); en las anchas, en la columna de la derecha
+      const columna = document.querySelector('.vista-textos-col');
+      const tarjeta = document.querySelector(`#textosPagina [data-tarjeta="${clave}"]`);
+      const destino = window.matchMedia('(max-width: 860px)').matches && tarjeta ? tarjeta : document.querySelector('#textosPagina').parentElement;
+      if (columna && columna.parentElement !== destino) destino.appendChild(columna);
+      document.getElementById('textoVistaDonde').textContent = `Vista previa · ${DONDE_TEXTO[clave] || ''}`;
+      const div = (clase, texto) => crear('div', { className: clase, textContent: texto });
+      const vacio = texto => crear('div', { className: 'vp-vacio', textContent: texto });
+      const v = valorTexto(clave);
+      let piezas;
+      if (clave === 'titulo_inicio' || clave === 'intro_inicio') {
+        const intro = valorTexto('intro_inicio');
+        piezas = [div('vp-titulo', valorTexto('titulo_inicio') || 'Reserva de espacios'),
+          intro ? div('vp-intro', intro) : vacio('(sin texto debajo del título)')];
+      } else if (clave === 'mes_no_habilitado') {
+        piezas = [div('vp-titulo', 'Diciembre de 2026'), v ? div('vp-aviso', v) : vacio('(vacío)')];
+      } else if (clave === 'confirmacion_extra') {
+        piezas = [crear('div', { className: 'vp-caja vp-modal' }, [
+          crear('h5', { textContent: '¡Tu reserva quedó confirmada!' }),
+          div('vp-suave', 'Espacio: Frente · Fecha: 19/11/2026 · Turno: Desayuno (07:00 - 10:00)'),
+          div('vp-suave', 'Te enviamos la confirmación por email, con tu código de cancelación…'),
+          v ? div('vp-intro', v) : vacio('(sin texto extra)'),
+          div('vp-boton', 'Entendido')])];
+      } else if (clave === 'lista_espera') {
+        const texto = v.replace(/\{espacio\}/g, 'Frente').replace(/\{mes\}/g, 'noviembre de 2026');
+        piezas = [crear('div', { className: 'vp-espera' }, [crear('b', { textContent: 'Ya no hay lugares en noviembre de 2026' }),
+          texto ? crear('span', { textContent: texto }) : vacio('(vacío)'), div('vp-campo', 'Tu nombre y apellido'), div('vp-campo', 'Tu correo'), div('vp-boton', 'Avisarme')])];
+      } else if (clave === 'cancelar_ayuda') {
+        piezas = [crear('div', { className: 'vp-caja' }, [crear('h5', { textContent: 'Tu código de cancelación', style: 'margin:0;color:var(--marino);font-size:16px' }),
+          v ? div('vp-suave', v) : vacio('(sin texto de ayuda)'), div('vp-campo', 'Ej: 02ADDC1537AD1323'), div('vp-boton', 'Buscar mi reserva')])];
+      } else if (clave === 'ayuda_reserva_frente' || clave === 'ayuda_reserva_altillo') {
+        // Igual que actualizarAyudaReserva() de la página, con las reglas guardadas de ese espacio
+        const id = clave === 'ayuda_reserva_frente' ? 3 : 1;
+        const nombre = espacios[id];
+        const r = personalizacion.reglas[id] || {};
+        const plazo = r.plazo_cancelacion_dias || 0;
+        const limite = id === 3 ? personalizacion.max_reservas_por_persona_mes : (r.limite_por_persona_mes || 0);
+        const pl = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+        let texto;
+        if (v) {
+          texto = v.replace(/\{plazo\}/g, plazo > 0 ? `${pl(plazo, 'día', 'días')} antes` : 'el inicio de la reserva')
+            .replace(/\{limite\}/g, limite ? pl(limite, 'reserva', 'reservas') : 'sin límite');
+        } else {
+          const partes = ['Te llega un email con tu código para cancelar.'];
+          if (plazo > 0) partes.push(`En el ${nombre}, la cancelación es gratis hasta ${pl(plazo, 'día', 'días')} antes de la fecha; después, solo ${id === 3 ? 'por WhatsApp' : 'escribiendo por correo'}.`);
+          if (r.anticipacion_min_dias > 0) partes.push(`Se reserva con al menos ${pl(r.anticipacion_min_dias, 'día', 'días')} de anticipación.`);
+          if (r.anticipacion_max_dias > 0) partes.push(`Se puede reservar con hasta ${pl(r.anticipacion_max_dias, 'día', 'días')} de anticipación.`);
+          if (limite) partes.push(`En el ${nombre}, máximo ${pl(limite, 'reserva', 'reservas')} por persona por mes.`);
+          texto = partes.join(' ') + ' (armado solo con las Reglas)';
+        }
+        const ayuda = crear('div', { className: 'vp-ayuda' }, [texto + ' Al reservar aceptás los ', crear('u', { textContent: 'términos y condiciones' }), ' y la ', crear('u', { textContent: 'política de privacidad' }), '.']);
+        piezas = [crear('div', { className: 'vp-caja' }, [div('vp-boton', 'Crear reserva'), ayuda])];
+      } else {
+        piezas = [v ? div('vp-intro', v) : vacio('(vacío)')];
+      }
+      vista.replaceChildren(...piezas);
     }
 
     async function guardarTextos() {
