@@ -96,12 +96,35 @@
     .tab-content { display: none; }
     .tab-content.active { display: block !important; }
     /* Sub-secciones de "Avanzado": una por vez, con botones arriba (antes era una sola página larga) */
-    .subtabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; padding: 12px; background: var(--blanco); border: 1px solid var(--linea); border-radius: 10px; }
-    .subtab-btn { padding: 8px 14px; border: 1px solid var(--linea); background: var(--blanco); color: var(--marino); border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-    .subtab-btn:hover { border-color: var(--azul); }
-    .subtab-btn.active { background: var(--marino); border-color: var(--marino); color: var(--blanco); }
+    /* Avanzado: menú por temas a la izquierda y la sección elegida a la derecha */
+    .avz-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 24px; align-items: start; }
+    .avz-menu { position: sticky; top: 76px; background: var(--blanco); border: 1px solid var(--linea); border-radius: 12px; padding: 10px; display: grid; gap: 2px; max-height: calc(100vh - 92px); overflow-y: auto; }
+    .avz-grupo { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); padding: 12px 10px 4px; margin: 0; }
+    .avz-grupo:first-child { padding-top: 4px; }
+    .avz-opcion { display: grid; gap: 1px; text-align: left; padding: 8px 10px; border: 0; border-left: 3px solid transparent; border-radius: 8px; background: transparent; color: var(--marino); cursor: pointer; font-family: inherit; }
+    .avz-opcion span { font-size: 14px; font-weight: 600; }
+    .avz-opcion small { font-size: 12px; color: var(--suave); line-height: 1.3; }
+    .avz-opcion:hover { background: var(--tarjeta); }
+    .avz-opcion.active { background: #E3EDFB; border-left-color: var(--marino); }
+    .avz-select { display: none; width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid var(--linea); border-radius: 10px; font-size: 15px; font-weight: 600; color: var(--marino); background: var(--blanco); }
+    @media (max-width: 860px) {
+      .avz-layout { grid-template-columns: 1fr; }
+      .avz-menu { display: none; }
+      .avz-select { display: block; position: sticky; top: 58px; z-index: 5; box-shadow: 0 4px 12px rgba(23,56,116,.12); }
+    }
     .sub-seccion[hidden] { display: none !important; }
     .sub-seccion > h3:first-child { margin-top: 0; }
+    /* Botón principal de guardar, siempre a la vista al final de las secciones largas */
+    .barra-guardar { position: sticky; bottom: 0; z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; padding: 12px 14px; background: var(--blanco); border: 1px solid var(--linea); border-radius: 12px; box-shadow: 0 -6px 18px rgba(23,56,116,.08); }
+    .barra-guardar .config-mensaje { margin: 0; }
+    .btn-primario-chico { padding: 9px 18px; border-radius: 8px; border: 0; background: var(--marino); color: var(--blanco); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .btn-primario-chico:hover { background: var(--azul); }
+    /* Cinta de anuncios */
+    .anuncio-estado { font-size: 14px; font-weight: 700; padding: 8px 12px; border-radius: 8px; background: #E4E9F1; color: var(--marino); }
+    .anuncio-estado.visible { background: var(--ok-bg); color: var(--ok); }
+    .vista-anuncio { font-size: 14px; font-weight: 600; text-align: center; padding: 10px 16px; border-radius: 8px; background: #EAF2FD; color: #173874; border: 1px solid #C9DBF3; min-height: 40px; }
+    .vista-anuncio.importante { background: #FDF1F0; color: #8A2A22; border-color: #F0C8C3; }
+    .vista-anuncio.vacia { color: var(--suave); font-weight: 400; font-style: italic; }
     .estado-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px; }
     .estado-tarjeta { background: var(--blanco); border: 1px solid var(--linea); border-left: 5px solid #2E8B57; border-radius: 8px; padding: 12px 14px; display: grid; gap: 4px; }
     .estado-tarjeta.estado-aviso { border-left-color: #C77700; }
@@ -949,7 +972,7 @@
 
           <h3 class="mt">Configuración</h3>
           <p class="nota">
-            Turnos del Frente, límite de reservas por persona, contacto del Frente y el correo que recibe
+            Turnos y motivos del Frente, horario del Altillo, contacto del Frente y el correo que recibe
             las alertas del sistema (errores y bloqueos por exceso de pedidos, como máximo un correo por hora).
             Los cambios se aplican al instante en la página.
           </p>
@@ -987,30 +1010,44 @@
           </p>
           <div class="espacios-grid" id="reglasEspacios"><p class="nota">Cargando…</p></div>
           <p class="nota aviso-terminos" id="reglasAvisoTerminos" hidden></p>
-          <div class="novedades-botones mt-chico"><button class="btn-small" type="button" onclick="guardarReglas()">Guardar reglas</button></div>
-          <p class="config-mensaje" id="reglasMensaje" role="status"></p>
+          <div class="barra-guardar">
+            <button class="btn-primario-chico" type="button" onclick="guardarReglas()">Guardar reglas</button>
+            <p class="config-mensaje" id="reglasMensaje" role="status"></p>
+          </div>
 
-          <h3 class="mt">Textos de la página</h3>
-          <p class="nota">
-            Lo que ve la gente en la página. Si dejás un texto igual al original (o tocás "Original"), se usa
-            el de siempre. Los textos que dicen el plazo para cancelar y el límite por persona se arman
-            solos con las Reglas, así nunca dicen algo distinto de lo que hace el sistema.
-          </p>
-          <div class="espacio-card">
-            <span class="etiqueta">Cinta de anuncios</span>
-            <p class="nota">Una franja arriba de todo en la página de reservas, para avisos cortos ("El viernes el Frente cierra a las 16:00"). Deja de verse sola después de la fecha "hasta".</p>
-            <label class="check"><input type="checkbox" id="anuncioActivo"> Mostrar el anuncio</label>
-            <input type="text" id="anuncioTexto" maxlength="200" placeholder="Ej: El viernes 20 el Frente cierra a las 16:00." aria-label="Texto del anuncio">
+          <h3 class="mt">Cinta de anuncios</h3>
+          <p class="nota">Una franja arriba de todo en la página de reservas, para avisos cortos ("El viernes el Frente cierra a las 16:00").</p>
+          <div class="espacio-card anuncio-card">
+            <p class="anuncio-estado" id="anuncioEstado">Cargando…</p>
+            <label class="etiqueta" for="anuncioTexto">Texto del anuncio (hasta 200 caracteres)</label>
+            <input type="text" id="anuncioTexto" maxlength="200" placeholder="Ej: El viernes 20 el Frente cierra a las 16:00." oninput="vistaAnuncio()">
             <div class="config-campos">
               <label>Mostrar hasta (opcional) <input type="date" id="anuncioHasta"></label>
               <label>Color
-                <select id="anuncioTipo"><option value="info">Azul (información)</option><option value="importante">Rojo (importante)</option></select>
+                <select id="anuncioTipo" onchange="vistaAnuncio()"><option value="info">Azul (información)</option><option value="importante">Rojo (importante)</option></select>
               </label>
             </div>
+            <p class="ayuda">"Mostrar hasta": después de ese día se quita solo. Vacío: se ve hasta que lo quites.</p>
+            <span class="vista-titulo">Así se ve arriba de la página</span>
+            <div class="vista-anuncio" id="anuncioVista"></div>
+            <div class="novedades-botones">
+              <button class="btn-primario-chico" type="button" onclick="publicarAnuncio(true)">Publicar anuncio</button>
+              <button class="btn-small btn-cancel" type="button" onclick="publicarAnuncio(false)">Quitar de la página</button>
+            </div>
+            <p class="config-mensaje" id="anuncioMensaje" role="status"></p>
           </div>
-          <div id="textosPagina" class="textos-pagina mt-chico"></div>
-          <div class="novedades-botones mt-chico"><button class="btn-small" type="button" onclick="guardarTextos()">Guardar textos</button></div>
-          <p class="config-mensaje" id="textosMensaje" role="status"></p>
+
+          <h3 class="mt">Textos de la página</h3>
+          <p class="nota">
+            Lo que ve la gente en la página. "Original" vuelve al texto de siempre. El texto que dice el plazo
+            para cancelar y el límite por persona se arma solo con las Reglas, así nunca dice algo distinto de
+            lo que hace el sistema.
+          </p>
+          <div id="textosPagina" class="textos-pagina"></div>
+          <div class="barra-guardar">
+            <button class="btn-primario-chico" type="button" onclick="guardarTextos()">Guardar textos</button>
+            <p class="config-mensaje" id="textosMensaje" role="status"></p>
+          </div>
 
           <h3 class="mt">Correos</h3>
           <p class="nota">
@@ -1417,67 +1454,114 @@
     };
 
     // TABS
-    // "Avanzado" tiene muchas secciones: se agrupan y se muestra una por vez, con botones arriba.
-    // Se arma una sola vez al cargar, a partir de los títulos (h3) que ya están en la página.
-    const GRUPOS_AVANZADO = [
-      ['estado', 'Estado', ['Estado del sistema']],
-      ['configuracion', 'Configuración', ['Configuración']],
-      ['reglas', 'Reglas', ['Reglas de los espacios']],
-      ['textos', 'Textos de la página', ['Textos de la página']],
-      ['correos', 'Correos', ['Correos']],
-      ['espacios', 'Espacios', ['Espacios']],
-      ['novedades', 'Novedades', ['Ventana de novedades']],
-      ['herramientas', 'Herramientas', ['Herramientas', 'Feriados']],
-      ['estadisticas', 'Estadísticas', ['Estadísticas']],
-      ['espera', 'Lista de espera', ['Lista de espera']],
-      ['persona', 'Datos de una persona', ['Datos de una persona', 'Respuestas listas para copiar']],
-      ['actividad', 'Actividad', ['Registro de actividad']],
-      ['limpieza', 'Limpieza', ['Eliminar reservas canceladas', 'Eliminar reportes de errores']],
-      ['seguridad', 'Seguridad', ['Seguridad', 'Contraseña de los admins']]
+    // "Avanzado" tiene muchas secciones: se ordenan por tema en un menú a la izquierda (en el
+    // celular, una lista para elegir) y se muestra una por vez. Se arma una sola vez al cargar, a
+    // partir de los títulos (h3) que ya están en la página. Cada opción: [clave, nombre, para qué
+    // sirve, títulos h3 que muestra].
+    const MENU_AVANZADO = [
+      ['Resumen', [
+        ['estado', 'Estado del sistema', 'Si todo anda bien', ['Estado del sistema']]
+      ]],
+      ['La página de reservas', [
+        ['anuncio', 'Cinta de anuncios', 'Aviso corto arriba de la página', ['Cinta de anuncios']],
+        ['novedades', 'Ventana de novedades', 'La ventana que sale al entrar', ['Ventana de novedades']],
+        ['textos', 'Textos de la página', 'Título, bienvenida y otros textos', ['Textos de la página']],
+        ['espacios', 'Espacios', 'Qué espacios se pueden reservar', ['Espacios']]
+      ]],
+      ['Cómo se reserva', [
+        ['reglas', 'Reglas de los espacios', 'Días, plazos, límites y normas', ['Reglas de los espacios']],
+        ['configuracion', 'Turnos, horarios y contacto', 'Turnos y motivos del Frente, horario del Altillo', ['Configuración']],
+        ['feriados', 'Feriados', 'Bloquear los feriados del año', ['Feriados']],
+        ['herramientas', 'Pausa y copia de seguridad', 'Pausar las reservas, bajar una copia', ['Herramientas']]
+      ]],
+      ['Correos', [
+        ['correos', 'Correos a la gente', 'Asunto y texto de cada correo', ['Correos']],
+        ['respuestas', 'Respuestas listas', 'Textos para responder pedidos', ['Respuestas listas para copiar']]
+      ]],
+      ['Personas y números', [
+        ['espera', 'Lista de espera', 'Quién espera un lugar', ['Lista de espera']],
+        ['persona', 'Datos de una persona', 'Pedidos de privacidad', ['Datos de una persona']],
+        ['estadisticas', 'Estadísticas', 'Reservas por mes, turno y día', ['Estadísticas']],
+        ['actividad', 'Registro de actividad', 'Qué se hizo en el panel', ['Registro de actividad']]
+      ]],
+      ['Mantenimiento', [
+        ['limpieza', 'Limpieza', 'Borrar canceladas y reportes', ['Eliminar reservas canceladas', 'Eliminar reportes de errores']],
+        ['seguridad', 'Seguridad', 'Contraseña de los admins y sesiones', ['Contraseña de los admins', 'Seguridad']]
+      ]]
     ];
+    const OPCIONES_AVANZADO = MENU_AVANZADO.flatMap(([, opciones]) => opciones);
     function armarSubpestanasAvanzado() {
       const tab = document.getElementById('tab-avanzado');
-      if (!tab || tab.querySelector('.subtabs')) return;
+      if (!tab || tab.querySelector('.avz-layout')) return;
       // Corta el contenido en bloques que empiezan en cada h3
       const bloques = [];
       [...tab.children].forEach(nodo => {
         if (nodo.tagName === 'H3' || bloques.length === 0) bloques.push({ titulo: nodo.tagName === 'H3' ? nodo.textContent.trim() : '', nodos: [] });
         bloques[bloques.length - 1].nodos.push(nodo);
       });
-      const nav = document.createElement('div');
-      nav.className = 'subtabs';
-      nav.setAttribute('role', 'tablist');
-      tab.prepend(nav);
-      GRUPOS_AVANZADO.forEach(([clave, nombre, titulos]) => {
-        const propios = bloques.filter(b => titulos.includes(b.titulo));
-        if (!propios.length) return;
-        const seccion = document.createElement('section');
-        seccion.className = 'sub-seccion';
-        seccion.dataset.sub = clave;
-        propios.forEach(b => b.nodos.forEach(n => seccion.appendChild(n)));
-        tab.appendChild(seccion);
-        const boton = document.createElement('button');
-        boton.type = 'button';
-        boton.className = 'subtab-btn';
-        boton.dataset.sub = clave;
-        boton.textContent = nombre;
-        boton.addEventListener('click', () => mostrarSubpestana(clave));
-        nav.appendChild(boton);
+      const layout = document.createElement('div');
+      layout.className = 'avz-layout';
+      const menu = document.createElement('nav');
+      menu.className = 'avz-menu';
+      menu.setAttribute('aria-label', 'Secciones de Avanzado');
+      // En el celular: una lista para elegir la sección
+      const lista = document.createElement('select');
+      lista.className = 'avz-select';
+      lista.setAttribute('aria-label', 'Sección');
+      lista.addEventListener('change', () => mostrarSubpestana(lista.value));
+      const contenido = document.createElement('div');
+      contenido.className = 'avz-contenido';
+      MENU_AVANZADO.forEach(([grupo, opciones]) => {
+        const titulo = document.createElement('p');
+        titulo.className = 'avz-grupo';
+        titulo.textContent = grupo;
+        menu.appendChild(titulo);
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = grupo;
+        opciones.forEach(([clave, nombre, descripcion, titulos]) => {
+          const propios = bloques.filter(b => titulos.includes(b.titulo));
+          if (!propios.length) return;
+          const seccion = document.createElement('section');
+          seccion.className = 'sub-seccion';
+          seccion.dataset.sub = clave;
+          propios.forEach(b => b.nodos.forEach(n => seccion.appendChild(n)));
+          contenido.appendChild(seccion);
+          const boton = document.createElement('button');
+          boton.type = 'button';
+          boton.className = 'avz-opcion';
+          boton.dataset.sub = clave;
+          const n = document.createElement('span');
+          n.textContent = nombre;
+          const d = document.createElement('small');
+          d.textContent = descripcion;
+          boton.append(n, d);
+          boton.addEventListener('click', () => mostrarSubpestana(clave));
+          menu.appendChild(boton);
+          optgroup.appendChild(new Option(nombre, clave));
+        });
+        lista.appendChild(optgroup);
       });
-      // Lo que no entró en ningún grupo (si algún día se agrega una sección) queda visible al final
-      bloques.filter(b => !GRUPOS_AVANZADO.some(g => g[2].includes(b.titulo))).forEach(b => b.nodos.forEach(n => tab.appendChild(n)));
+      // Lo que no entró en ninguna opción (si algún día se agrega una sección) queda visible al final
+      bloques.filter(b => !OPCIONES_AVANZADO.some(o => o[3].includes(b.titulo))).forEach(b => b.nodos.forEach(n => contenido.appendChild(n)));
+      layout.append(menu, contenido);
+      tab.replaceChildren(lista, layout);
       let ultima = 'estado';
       try { ultima = localStorage.getItem('avanzadoSeccion') || ultima; } catch (e) { /* sin almacenamiento */ }
       mostrarSubpestana(tab.querySelector(`.sub-seccion[data-sub="${ultima}"]`) ? ultima : 'estado');
     }
     function mostrarSubpestana(clave) {
       document.querySelectorAll('#tab-avanzado .sub-seccion').forEach(s => { s.hidden = s.dataset.sub !== clave; });
-      document.querySelectorAll('#tab-avanzado .subtab-btn').forEach(b => {
+      document.querySelectorAll('#tab-avanzado .avz-opcion').forEach(b => {
         b.classList.toggle('active', b.dataset.sub === clave);
-        b.setAttribute('aria-selected', b.dataset.sub === clave ? 'true' : 'false');
+        if (b.dataset.sub === clave) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
       });
+      const lista = document.querySelector('#tab-avanzado .avz-select');
+      if (lista) lista.value = clave;
       try { localStorage.setItem('avanzadoSeccion', clave); } catch (e) { /* sin almacenamiento */ }
       if (clave === 'estado' || clave === 'herramientas') cargarEstado();
+      // Si se eligió desde abajo de una sección larga, volver al principio de la nueva
+      const tab = document.getElementById('tab-avanzado');
+      if (tab && tab.getBoundingClientRect().top < 0) tab.scrollIntoView({ block: 'start' });
     }
 
     function switchTab(tab) {
@@ -3965,6 +4049,7 @@
         if (!res.ok) throw new Error(await leerError(res));
         personalizacion = await res.json();
         armarReglas();
+        armarAnuncio();
         armarTextos();
         armarSelectorCorreos();
       } catch (error) {
@@ -4069,12 +4154,52 @@
     }
 
     // --- Textos de la página y cinta de anuncios ---
-    function armarTextos() {
+    // Cinta de anuncios: estado, vista previa, publicar y quitar
+    function fechaDMYAdmin(iso) {
+      const [a, m, d] = String(iso).split('-');
+      return `${d}/${m}/${a}`;
+    }
+    function armarAnuncio() {
       const a = personalizacion.anuncio || {};
-      document.getElementById('anuncioActivo').checked = a.activo === true;
       document.getElementById('anuncioTexto').value = a.texto || '';
       document.getElementById('anuncioHasta').value = a.hasta || '';
       document.getElementById('anuncioTipo').value = a.tipo === 'importante' ? 'importante' : 'info';
+      const estado = document.getElementById('anuncioEstado');
+      const visible = personalizacion.anuncio_visible === true;
+      estado.textContent = visible
+        ? `● Se está mostrando ahora en la página${a.hasta ? ` (hasta el ${fechaDMYAdmin(a.hasta)})` : ''}.`
+        : (a.activo && a.hasta ? `○ No se muestra: la fecha "mostrar hasta" (${fechaDMYAdmin(a.hasta)}) ya pasó.` : '○ No hay ningún anuncio en la página.');
+      estado.classList.toggle('visible', visible);
+      vistaAnuncio();
+    }
+    function vistaAnuncio() {
+      const texto = document.getElementById('anuncioTexto').value.trim();
+      const vista = document.getElementById('anuncioVista');
+      vista.textContent = texto || 'Escribí el texto del anuncio para verlo acá.';
+      vista.className = 'vista-anuncio' + (document.getElementById('anuncioTipo').value === 'importante' ? ' importante' : '') + (texto ? '' : ' vacia');
+    }
+    async function publicarAnuncio(activo) {
+      const cuerpo = activo
+        ? { activo: true, texto: document.getElementById('anuncioTexto').value.trim(), hasta: document.getElementById('anuncioHasta').value || null, tipo: document.getElementById('anuncioTipo').value }
+        : { activo: false };
+      if (!activo && !confirm('¿Quitar el anuncio de la página?')) return;
+      mensajePersonalizacion('anuncioMensaje', activo ? 'Publicando…' : 'Quitando…');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/anuncio`, { method: 'POST', body: JSON.stringify(cuerpo) });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) return mensajePersonalizacion('anuncioMensaje', datos.error || 'No se pudo guardar.', 'error');
+        personalizacion.anuncio = datos.anuncio;
+        personalizacion.anuncio_visible = datos.visible === true;
+        armarAnuncio();
+        mensajePersonalizacion('anuncioMensaje', activo ? '✓ Publicado. Ya se ve arriba de la página de reservas (recargala para verlo).' : '✓ Listo: el anuncio ya no se ve.', 'ok');
+        cargarActividad();
+      } catch (error) {
+        mensajePersonalizacion('anuncioMensaje', 'No se pudo conectar con el servidor.', 'error');
+        avisarErrorConexion(error);
+      }
+    }
+
+    function armarTextos() {
       const contenedor = document.getElementById('textosPagina');
       contenedor.replaceChildren(...Object.entries(personalizacion.textos).map(([clave, t]) => {
         const unaLinea = clave === 'titulo_inicio';
@@ -4096,15 +4221,9 @@
     async function guardarTextos() {
       const textos = {};
       document.querySelectorAll('#textosPagina [data-texto]').forEach(c => { textos[c.dataset.texto] = c.value; });
-      const anuncio = {
-        activo: document.getElementById('anuncioActivo').checked,
-        texto: document.getElementById('anuncioTexto').value.trim(),
-        hasta: document.getElementById('anuncioHasta').value || null,
-        tipo: document.getElementById('anuncioTipo').value
-      };
       mensajePersonalizacion('textosMensaje', 'Guardando…');
       try {
-        const res = await fetchConJWT(`${API_BASE}/superadmin/textos`, { method: 'POST', body: JSON.stringify({ textos, anuncio }) });
+        const res = await fetchConJWT(`${API_BASE}/superadmin/textos`, { method: 'POST', body: JSON.stringify({ textos }) });
         const datos = await res.json().catch(() => ({}));
         if (!res.ok) return mensajePersonalizacion('textosMensaje', datos.error || 'No se pudo guardar.', 'error');
         mensajePersonalizacion('textosMensaje', datos.mensaje === 'No había cambios' ? 'No había cambios para guardar.' : '✓ Textos guardados. Ya se ven en la página.', 'ok');
