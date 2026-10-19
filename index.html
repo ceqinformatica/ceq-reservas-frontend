@@ -2084,6 +2084,8 @@
         document.getElementById('email').value = '';
         document.getElementById('motivo').value = '';
         document.getElementById('motivoFrente').value = '';
+        // La próxima reserva tiene que volver a aceptar las normas
+        document.getElementById('aceptaNormas').checked = false;
         document.getElementById('acompLista').replaceChildren();
         actualizarBotonAcompanantes();
         document.getElementById('fecha').value = '';
