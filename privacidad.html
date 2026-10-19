@@ -146,6 +146,18 @@
     .texto strong { color: var(--marino); }
     .texto .nota { background: var(--blanco); border-left: 4px solid var(--azul); border-radius: var(--radio-chico); padding: 12px 14px; margin: 14px 0; }
     @media (max-width: 640px) { .texto { padding: 22px 16px 26px; border-radius: 16px; } }
+    .acciones-legal { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 14px; font-size: 13px; color: var(--suave); }
+    .acciones-legal button { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--linea); background: var(--blanco); color: var(--marino); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; }
+    .acciones-legal button:hover { border-color: var(--azul); }
+    /* Para imprimir o guardar como PDF: solo el texto */
+    @media print {
+      .topbar, .pie, .acciones-legal, .volver { display: none !important; }
+      body, .portada { background: #fff !important; }
+      .texto { background: #fff; padding: 0; border-radius: 0; }
+      .texto h2 { break-after: avoid; }
+      .texto p, .texto li { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
   </style>
 </head>
 <body>
@@ -171,7 +183,12 @@
   </section>
 
   <main>
+    <div class="acciones-legal">
+      <button type="button" onclick="window.print()">Descargar en PDF</button>
+      <span>En la ventana que se abre, elegí <strong>Guardar como PDF</strong>.</span>
+    </div>
     <article class="texto">
+      <div id="textoLegal">
       <p class="fecha">Versión 1.2 · Vigente desde el 16 de octubre de 2026</p>
       <p>La presente Política de Privacidad (en adelante, la «Política») informa de qué manera el <strong>Centro de Estudiantes de Química de la Facultad de Ciencias Químicas de la Universidad Nacional de Asunción</strong> (en adelante, el «CEQ») recolecta, utiliza, almacena, comunica y protege los datos personales de las personas que utilizan el sistema de reservas disponible en <strong>reservas.ceq-una.com</strong> (en adelante, el «Sistema»), así como los derechos que les asisten. Los términos con mayúscula inicial tienen el significado que les asignan los <a href="terminos.html">Términos y Condiciones</a>.</p>
 
@@ -257,6 +274,7 @@
       <h2>Artículo 16. Contacto</h2>
       <p>Para cualquier consulta sobre esta Política o sobre el tratamiento de sus datos: <a href="mailto:reservas@ceq-una.com?subject=Consulta%20sobre%20la%20Pol%C3%ADtica%20de%20Privacidad%20-%20Reservas%20CEQ&amp;body=Hola%2C%0A%0ATengo%20una%20consulta%20sobre%20el%20tratamiento%20de%20mis%20datos%20personales%20en%20el%20sistema%20de%20reservas.%0A%0ANombre%20y%20apellido%3A%0ACorreo%20o%20celular%20que%20us%C3%A9%20en%20la%20reserva%3A%0AN%C3%BAmero%20de%20reserva%20(si%20lo%20tengo)%3A%0A%0AMi%20consulta%3A%0A%0A%0AGracias.">reservas@ceq-una.com</a>. Centro de Estudiantes de Química, Facultad de Ciencias Químicas, Universidad Nacional de Asunción, Campus Universitario, San Lorenzo, Paraguay.</p>
 
+      </div>
       <p class="volver" style="margin-top:26px"><a href="https://reservas.ceq-una.com">← Volver a reservas</a></p>
     </article>
   </main>
@@ -280,5 +298,20 @@
     </div>
   </footer>
   <script>document.getElementById('anioCopy').textContent = new Date().getFullYear();</script>
+  <script>
+    // El texto vigente se edita desde el panel (admin supremo > Términos y privacidad) y lo da el
+    // servidor. Si no responde, queda el que está escrito arriba (el de la última versión de esta página).
+    (async () => {
+      try {
+        const res = await fetch('https://api.ceq-una.com/api/legal/privacidad');
+        if (!res.ok) return;
+        const datos = await res.json();
+        // El servidor arma este HTML desde texto simple y escapa todo: no trae código
+        if (datos && typeof datos.html === 'string' && datos.html.startsWith('<p class="fecha">')) {
+          document.getElementById('textoLegal').innerHTML = datos.html;
+        }
+      } catch (e) { /* sin conexión: queda el texto de la página */ }
+    })();
+  </script>
 </body>
 </html>

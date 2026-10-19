@@ -140,6 +140,33 @@
     .vista-pagina .vp-vacio { color: var(--suave); font-style: italic; font-size: 13px; }
     .textos-pagina .espacio-card.enfocado { box-shadow: 0 0 0 2px var(--azul); }
     @media (max-width: 860px) { .vista-textos-col { position: static; } }
+    /* Términos y privacidad */
+    .legal-editor { display: grid; gap: 12px; min-width: 0; }
+    .legal-articulos { display: grid; gap: 10px; }
+    .legal-texto { min-height: 140px !important; font-family: inherit; line-height: 1.5; }
+    .legal-cab { display: flex; gap: 6px; align-items: center; }
+    .legal-cab input { flex: 1; font-weight: 600; }
+    .legal-cab .btn-small { padding: 6px 9px; }
+    .legal-ayuda summary { cursor: pointer; }
+    .legal-ayuda ul { margin: 8px 0 0 18px; font-size: 13.5px; color: var(--texto); display: grid; gap: 4px; }
+    .legal-ayuda code, .espacio-card .ayuda code { background: var(--tarjeta); border-radius: 4px; padding: 0 4px; font-size: 12.5px; }
+    .legal-plantilla { display: grid; gap: 6px; border-left: 3px solid var(--azul); background: var(--tarjeta); border-radius: 10px; padding: 10px 12px; }
+    .legal-plantilla input, .legal-plantilla textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font-size: 13.5px; font-family: inherit; background: var(--blanco); }
+    .legal-plantilla textarea { min-height: 110px; resize: vertical; }
+    .legal-historial-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13.5px; padding: 8px 0; border-top: 1px solid var(--linea); }
+    .legal-historial-item:first-child { border-top: 0; }
+    .vista-legal { background: var(--blanco); border-radius: var(--radio); padding: 22px; box-shadow: 0 10px 30px rgba(23,56,116,.15); max-height: calc(100vh - 140px); overflow-y: auto; font-size: 14px; color: var(--texto); overflow-wrap: anywhere; }
+    .vista-legal .fecha { color: var(--suave); font-size: 13px; }
+    .vista-legal h2 { font-size: 16px; color: var(--marino); margin: 20px 0 6px; }
+    .vista-legal p { margin: 6px 0; }
+    .vista-legal ul { margin: 6px 0 6px 20px; }
+    .vista-legal ul.letras { list-style: none; margin-left: 2px; }
+    .vista-legal a { color: var(--marino); font-weight: 600; }
+    .vista-legal strong { color: var(--marino); }
+    .legal-publicar { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; flex-basis: 100%; }
+    .legal-publicar label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--marino); }
+    .legal-publicar input, .legal-publicar select { padding: 8px 10px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font-size: 14px; background: var(--blanco); }
+    .legal-publicar .legal-resumen { flex: 1; min-width: 220px; }
     .vista-anuncio { font-size: 14px; font-weight: 600; text-align: center; padding: 10px 16px; border-radius: 8px; background: #EAF2FD; color: #173874; border: 1px solid #C9DBF3; min-height: 40px; }
     .vista-anuncio.importante { background: #FDF1F0; color: #8A2A22; border-color: #F0C8C3; }
     .vista-anuncio.vacia { color: var(--suave); font-weight: 400; font-style: italic; }
@@ -1014,7 +1041,7 @@
               <label>Cierra a las <select id="configAltilloHasta"></select></label>
               <label>Máximo de horas por reserva <input type="number" id="configAltilloMax" min="1" max="12"></label>
             </div>
-            <p class="nota">Se reserva por bloques de 1 hora: el último bloque empieza 1 hora antes del cierre. Si lo cambiás, el artículo 5.2 de los Términos menciona el horario: avisá para actualizarlo.</p>
+            <p class="nota">Se reserva por bloques de 1 hora: el último bloque empieza 1 hora antes del cierre. Los Términos (art. 5.2) dicen el horario con el comodín {horario_altillo}, así que se actualizan solos.</p>
             <p class="nota">El límite de reservas por persona ahora está en <strong>Reglas</strong>, junto con las demás reglas de cada espacio.</p>
             <div class="config-campos">
               <label>Correo de contacto del Frente <input type="email" id="configEmailFrente"></label>
@@ -1125,6 +1152,79 @@
               </div>
               <p class="config-mensaje" id="correoVistaEstado" role="status"></p>
               <p class="ayuda">Es el correo real que arma el sistema, con lo que escribiste (aunque no lo hayas guardado). Los enlaces del ejemplo no funcionan.</p>
+            </div>
+          </div>
+
+          <h3 class="mt">Términos y privacidad</h3>
+          <p class="nota">
+            Los Términos y condiciones y la Política de privacidad que ve la gente (reservas.ceq-una.com/terminos.html y
+            /privacidad.html). Para un error de tipeo usá <strong>Guardar corrección</strong> (queda la misma versión);
+            para un cambio de verdad, <strong>Publicar versión nueva</strong>: sube el número de versión, pone la fecha de
+            vigencia y la versión anterior queda guardada en el historial.
+          </p>
+          <div class="filters">
+            <select id="legalDoc" aria-label="Documento" onchange="cambiarDocumentoLegal()">
+              <option value="terminos">Términos y condiciones</option>
+              <option value="privacidad">Política de privacidad</option>
+            </select>
+            <span class="status-badge status-bloqueada" id="legalVersion"></span>
+            <button class="btn-small" type="button" onclick="descargarLegalesPdf()">Descargar los dos en PDF</button>
+          </div>
+          <div class="novedades-editor">
+            <div class="legal-editor">
+              <details class="espacio-card legal-ayuda">
+                <summary class="etiqueta">Cómo se escribe (tocá para ver)</summary>
+                <ul>
+                  <li>Una <strong>línea en blanco</strong> separa párrafos.</li>
+                  <li>Las líneas que empiezan con <code>- </code> (guion y espacio) forman una lista con viñetas.</li>
+                  <li>Las que empiezan con <code>a) </code>, <code>b) </code>… forman una lista con letras.</li>
+                  <li><code>**así**</code> va en <strong>negrita</strong>.</li>
+                  <li><code>[texto](destino)</code> es un enlace. Destino: <code>terminos.html</code>, <code>privacidad.html</code>, <code>https://…</code>, <code>mailto:correo@…</code> o <code>plantilla:nombre</code> (un correo con mensaje armado de abajo).</li>
+                  <li>Los <code>{comodines}</code> se completan solos con las reglas del sistema: si cambiás una regla, el texto cambia solo.</li>
+                </ul>
+              </details>
+              <div class="espacio-card">
+                <label class="etiqueta" for="legalIntro">Introducción (antes del artículo 1)</label>
+                <textarea id="legalIntro" class="legal-texto" oninput="legalCambio()" onfocus="campoLegalActivo = this"></textarea>
+              </div>
+              <div id="legalArticulos" class="legal-articulos"></div>
+              <button class="btn-small" type="button" onclick="agregarArticuloLegal()">+ Agregar artículo al final</button>
+              <div class="espacio-card">
+                <span class="etiqueta">Comodines (tocá uno para insertarlo donde está el cursor)</span>
+                <div class="comodines" id="legalComodines"></div>
+              </div>
+              <div class="espacio-card">
+                <span class="etiqueta">Correos con mensaje armado</span>
+                <p class="ayuda">Al tocar el enlace, se abre el correo de la persona con este asunto y mensaje ya escritos. En el texto se usan con <code>[reservas@ceq-una.com](plantilla:nombre)</code>.</p>
+                <div id="legalPlantillas" class="legal-articulos"></div>
+                <button class="btn-small" type="button" onclick="agregarPlantillaLegal()">+ Agregar correo con mensaje armado</button>
+              </div>
+              <div class="espacio-card">
+                <span class="etiqueta">Historial de versiones</span>
+                <div id="legalHistorial"></div>
+              </div>
+            </div>
+            <div class="vista-textos-col">
+              <p class="vista-titulo">Vista previa (así se ve en la página)</p>
+              <div class="vista-legal" id="legalVista"></div>
+              <p class="config-mensaje" id="legalVistaEstado" role="status"></p>
+            </div>
+          </div>
+          <div class="barra-guardar">
+            <button class="btn-small" type="button" onclick="guardarLegal('correccion')">Guardar corrección</button>
+            <button class="btn-primario-chico" type="button" onclick="mostrarPublicarLegal()">Publicar versión nueva…</button>
+            <p class="config-mensaje" id="legalMensaje" role="status"></p>
+            <div id="legalPublicar" class="legal-publicar" hidden>
+              <label>Tipo de cambio
+                <select id="legalTipo" onchange="mostrarPublicarLegal(true)">
+                  <option value="menor">Cambio común</option>
+                  <option value="mayor">Cambio grande (reescritura)</option>
+                </select>
+              </label>
+              <label>Vigente desde <input type="date" id="legalVigencia"></label>
+              <label class="legal-resumen">Qué cambió (queda en el historial) <input type="text" id="legalResumen" maxlength="300" placeholder="Ej: Se agrega el plazo para cancelar el Altillo"></label>
+              <button class="btn-primario-chico" type="button" onclick="guardarLegal(document.getElementById('legalTipo').value)" id="legalBotonPublicar">Publicar</button>
+              <button class="btn-small" type="button" onclick="document.getElementById('legalPublicar').hidden = true">Cancelar</button>
             </div>
           </div>
 
@@ -1508,7 +1608,8 @@
         ['anuncio', 'Cinta de anuncios', 'Aviso corto arriba de la página', ['Cinta de anuncios']],
         ['novedades', 'Ventana de novedades', 'La ventana que sale al entrar', ['Ventana de novedades']],
         ['textos', 'Textos de la página', 'Título, bienvenida y otros textos', ['Textos de la página']],
-        ['espacios', 'Espacios', 'Qué espacios se pueden reservar', ['Espacios']]
+        ['espacios', 'Espacios', 'Qué espacios se pueden reservar', ['Espacios']],
+        ['legal', 'Términos y privacidad', 'Editar los textos legales', ['Términos y privacidad']]
       ]],
       ['Cómo se reserva', [
         ['reglas', 'Reglas de los espacios', 'Días, plazos, límites y normas', ['Reglas de los espacios']],
@@ -3200,6 +3301,7 @@
       cargarActividad();
       cargarConfiguracionAdmin();
       cargarPersonalizacion();
+      cargarLegal();
       cargarListaEspera().then(mostrarEstadisticas);
     }
 
@@ -4159,19 +4261,22 @@
       return { reglas, max_reservas_por_persona_mes: max };
     }
 
-    // Los Términos y condiciones (v1.3) describen las reglas de siempre: si las de acá son otras,
-    // se avisa qué artículos hay que actualizar
+    // Los Términos describen estas reglas con comodines ({dias_reserva}, {plazo_cancelacion_frente},
+    // {recordatorio}…) que se completan solos. Si alguien los sacó del texto y la regla cambió, o si
+    // se cambia algo que el texto no menciona (el plazo del Altillo), se avisa qué revisar.
     function avisoTerminosReglas() {
       if (!personalizacion) return;
       const { reglas } = leerReglas();
       const def = personalizacion.reglas_defecto;
+      const usados = personalizacion.legal_comodines_usados || [];
       const articulos = [];
-      if ([3, 1].some(id => [...reglas[id].dias].sort().join() !== [...def[id].dias].sort().join())) articulos.push('5.3 (días en que se reserva)');
-      if (reglas[3].plazo_cancelacion_dias !== def[3].plazo_cancelacion_dias || reglas[1].plazo_cancelacion_dias !== def[1].plazo_cancelacion_dias) articulos.push('7.2 (plazo para cancelar)');
-      if ([3, 1].some(id => reglas[id].recordatorio !== def[id].recordatorio || reglas[id].recordatorio_dias !== def[id].recordatorio_dias)) articulos.push('7.3 (recordatorio)');
+      if (!usados.includes('dias_reserva') && [3, 1].some(id => [...reglas[id].dias].sort().join() !== [...def[id].dias].sort().join())) articulos.push('los días en que se reserva');
+      if (!usados.includes('plazo_cancelacion_frente') && reglas[3].plazo_cancelacion_dias !== def[3].plazo_cancelacion_dias) articulos.push('el plazo para cancelar el Frente');
+      if (!usados.includes('plazo_cancelacion_altillo') && reglas[1].plazo_cancelacion_dias !== def[1].plazo_cancelacion_dias) articulos.push('el plazo para cancelar el Altillo (hoy los Términos solo hablan del Frente)');
+      if (!usados.includes('recordatorio') && [3, 1].some(id => reglas[id].recordatorio !== def[id].recordatorio || reglas[id].recordatorio_dias !== def[id].recordatorio_dias)) articulos.push('el recordatorio');
       const aviso = document.getElementById('reglasAvisoTerminos');
       aviso.textContent = articulos.length
-        ? `⚠️ Con estas reglas, los Términos y condiciones dicen otra cosa en el artículo ${articulos.join(', ')}. Hay que actualizar esos artículos para que coincidan (avisá a la Secretaría de Informática).`
+        ? `⚠️ Con estas reglas, revisá en los Términos y condiciones ${articulos.join(', ')}: el texto no lo dice así. Corregilo en Avanzado → Términos y privacidad (podés usar los comodines, que se completan solos).`
         : '';
       aviso.hidden = !articulos.length;
     }
@@ -4306,7 +4411,7 @@
       document.querySelectorAll('#textosPagina .espacio-card').forEach(c => c.classList.toggle('enfocado', c.dataset.tarjeta === clave));
       // En pantallas angostas la vista previa va dentro de la tarjeta que se edita (si no, quedaría
       // al final de todo); en las anchas, en la columna de la derecha
-      const columna = document.querySelector('.vista-textos-col');
+      const columna = document.getElementById('textoVista').closest('.vista-textos-col');
       const tarjeta = document.querySelector(`#textosPagina [data-tarjeta="${clave}"]`);
       const destino = window.matchMedia('(max-width: 860px)').matches && tarjeta ? tarjeta : document.querySelector('#textosPagina').parentElement;
       if (columna && columna.parentElement !== destino) destino.appendChild(columna);
@@ -4550,6 +4655,253 @@
         mensajePersonalizacion('correoMensajeEstado', res.ok ? `✓ ${datos.mensaje} (no se guardó nada: si te gusta, tocá "Guardar")` : (datos.error || 'No se pudo mandar.'), res.ok ? 'ok' : 'error');
       } catch (error) {
         mensajePersonalizacion('correoMensajeEstado', 'No se pudo conectar con el servidor.', 'error');
+        avisarErrorConexion(error);
+      }
+    }
+
+    // ===== Términos y privacidad =====
+    // El texto se escribe en formato simple (ver "Cómo se escribe"); el servidor lo convierte a la
+    // página escapando todo, así que la vista previa muestra exactamente lo que se va a publicar.
+    let legal = null;
+    let legalDocActual = 'terminos';
+    let legalSucio = false;
+    let campoLegalActivo = null;
+    let temporizadorLegal = null;
+    let pedidoLegal = 0;
+
+    const fechaDMYlegal = iso => { const [a, m, d] = String(iso).split('-'); return `${d}/${m}/${a}`; };
+    const hoyAsuncionIso = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Asuncion' }).format(new Date());
+
+    async function cargarLegal() {
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/legal`);
+        if (!res.ok) throw new Error(await leerError(res));
+        legal = await res.json();
+        armarLegal();
+      } catch (error) {
+        console.error('Error al cargar los textos legales:', error);
+        document.getElementById('legalVista').textContent = 'No se pudieron cargar los textos. Reintentá en unos segundos.';
+      }
+    }
+
+    function tarjetaArticuloLegal(a = { titulo: '', texto: '' }) {
+      const titulo = crear('input', { type: 'text', maxLength: 150, value: a.titulo, placeholder: 'Ej: Artículo 19. Disposiciones finales', dataset: { campo: 'titulo' } });
+      const texto = crear('textarea', { className: 'legal-texto', maxLength: 8000, value: a.texto, dataset: { campo: 'texto' } });
+      [titulo, texto].forEach(c => { c.addEventListener('input', legalCambio); c.addEventListener('focus', () => { campoLegalActivo = c; }); });
+      const tarjeta = crear('div', { className: 'espacio-card legal-articulo' });
+      const mover = paso => {
+        const hermanos = [...tarjeta.parentElement.children];
+        const i = hermanos.indexOf(tarjeta);
+        const destino = hermanos[i + paso];
+        if (!destino) return;
+        if (paso < 0) tarjeta.parentElement.insertBefore(tarjeta, destino);
+        else tarjeta.parentElement.insertBefore(destino, tarjeta);
+        legalCambio();
+      };
+      tarjeta.append(
+        crear('div', { className: 'legal-cab' }, [titulo,
+          crear('button', { type: 'button', className: 'btn-small', textContent: '↑', title: 'Subir', onclick: () => mover(-1) }),
+          crear('button', { type: 'button', className: 'btn-small', textContent: '↓', title: 'Bajar', onclick: () => mover(1) }),
+          crear('button', { type: 'button', className: 'btn-small btn-cancel', textContent: '✕', title: 'Quitar el artículo', onclick: () => {
+            if (!confirm(`¿Quitar "${titulo.value || 'este artículo'}"? Si lo quitás por error, no guardes (o recargá la página).`)) return;
+            tarjeta.remove();
+            legalCambio();
+          } })]),
+        texto);
+      return tarjeta;
+    }
+
+    function tarjetaPlantillaLegal(clave = '', p = { para: 'reservas@ceq-una.com', asunto: '', cuerpo: '' }) {
+      const nombre = crear('input', { type: 'text', maxLength: 30, value: clave, placeholder: 'nombre (ej: consulta)', dataset: { campo: 'clave' } });
+      const para = crear('input', { type: 'email', maxLength: 100, value: p.para, placeholder: 'Para', dataset: { campo: 'para' } });
+      const asunto = crear('input', { type: 'text', maxLength: 150, value: p.asunto, placeholder: 'Asunto', dataset: { campo: 'asunto' } });
+      const cuerpo = crear('textarea', { maxLength: 2000, value: p.cuerpo, placeholder: 'Mensaje que aparece ya escrito', dataset: { campo: 'cuerpo' } });
+      [nombre, para, asunto, cuerpo].forEach(c => c.addEventListener('input', legalCambio));
+      const tarjeta = crear('div', { className: 'legal-plantilla' }, [
+        crear('div', { className: 'legal-cab' }, [nombre, crear('button', { type: 'button', className: 'btn-small btn-cancel', textContent: '✕', title: 'Quitar', onclick: () => { tarjeta.remove(); legalCambio(); } })]),
+        para, asunto, cuerpo]);
+      return tarjeta;
+    }
+
+    function armarLegal() {
+      const d = legal.documentos[legalDocActual];
+      document.getElementById('legalVersion').textContent = `Versión ${d.version} · vigente desde el ${fechaDMYlegal(d.vigente_desde)}`;
+      const intro = document.getElementById('legalIntro');
+      intro.value = d.intro;
+      document.getElementById('legalArticulos').replaceChildren(...d.articulos.map(a => tarjetaArticuloLegal(a)));
+      document.getElementById('legalPlantillas').replaceChildren(...Object.entries(d.plantillas).map(([k, p]) => tarjetaPlantillaLegal(k, p)));
+      document.getElementById('legalComodines').replaceChildren(...legal.comodines.map(c =>
+        crear('button', { type: 'button', className: 'comodin', textContent: `{${c.clave}}`, title: `${c.descripcion}\nHoy dice: ${c.valor}`, onclick: () => insertarComodinLegal(c.clave) })));
+      const historial = document.getElementById('legalHistorial');
+      historial.replaceChildren(...(d.historial.length ? d.historial.map(h => crear('div', { className: 'legal-historial-item' }, [
+        crear('span', { textContent: `Versión ${h.version} · vigente desde el ${fechaDMYlegal(h.vigente_desde)}${h.reemplazada_en ? `, reemplazada el ${fechaDMYlegal(h.reemplazada_en)}` : ''} — ${h.resumen}` }),
+        h.tiene_texto ? crear('button', { type: 'button', className: 'btn-small', textContent: 'Ver / descargar', onclick: () => verVersionLegal(h.indice) }) : crear('span', { className: 'ayuda', textContent: 'sin texto guardado' })
+      ])) : [crear('p', { className: 'ayuda', textContent: 'Todavía no hay versiones anteriores guardadas desde el panel.' })]));
+      document.getElementById('legalPublicar').hidden = true;
+      legalSucio = false;
+      mensajePersonalizacion('legalMensaje', '');
+      vistaLegal(true);
+    }
+
+    function leerLegal() {
+      const plantillas = {};
+      document.querySelectorAll('#legalPlantillas .legal-plantilla').forEach(t => {
+        const v = c => t.querySelector(`[data-campo="${c}"]`).value;
+        plantillas[v('clave').trim()] = { para: v('para').trim(), asunto: v('asunto'), cuerpo: v('cuerpo') };
+      });
+      return {
+        intro: document.getElementById('legalIntro').value,
+        articulos: [...document.querySelectorAll('#legalArticulos .legal-articulo')].map(t => ({
+          titulo: t.querySelector('[data-campo="titulo"]').value, texto: t.querySelector('[data-campo="texto"]').value
+        })),
+        plantillas
+      };
+    }
+
+    function legalCambio() {
+      legalSucio = true;
+      vistaLegal();
+    }
+
+    function vistaLegal(enseguida) {
+      clearTimeout(temporizadorLegal);
+      document.getElementById('legalVistaEstado').textContent = 'Actualizando…';
+      temporizadorLegal = setTimeout(pedirVistaLegal, enseguida ? 0 : 600);
+    }
+    async function pedirVistaLegal() {
+      const numero = ++pedidoLegal;
+      const estado = document.getElementById('legalVistaEstado');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/legal/vista-previa`, { method: 'POST', body: JSON.stringify({ doc: legalDocActual, ...leerLegal() }) });
+        const datos = await res.json().catch(() => ({}));
+        if (numero !== pedidoLegal) return;
+        if (!res.ok) {
+          estado.className = 'config-mensaje error';
+          estado.textContent = `⚠️ ${datos.error || 'No se pudo armar la vista previa.'}`;
+          return;
+        }
+        estado.className = 'config-mensaje';
+        estado.textContent = '';
+        // HTML armado por el servidor desde texto simple, con todo escapado
+        document.getElementById('legalVista').innerHTML = datos.html;
+      } catch (error) {
+        if (numero !== pedidoLegal) return;
+        estado.className = 'config-mensaje error';
+        estado.textContent = '⚠️ No se pudo conectar con el servidor para la vista previa.';
+      }
+    }
+
+    function insertarComodinLegal(nombre) {
+      const campo = campoLegalActivo && document.body.contains(campoLegalActivo) ? campoLegalActivo : document.getElementById('legalIntro');
+      const texto = `{${nombre}}`;
+      const ini = campo.selectionStart ?? campo.value.length;
+      const fin = campo.selectionEnd ?? campo.value.length;
+      campo.value = campo.value.slice(0, ini) + texto + campo.value.slice(fin);
+      campo.focus();
+      campo.setSelectionRange(ini + texto.length, ini + texto.length);
+      legalCambio();
+    }
+
+    function agregarArticuloLegal() {
+      const n = document.querySelectorAll('#legalArticulos .legal-articulo').length + 1;
+      const tarjeta = tarjetaArticuloLegal({ titulo: `Artículo ${n}. `, texto: `${n}.1. ` });
+      document.getElementById('legalArticulos').appendChild(tarjeta);
+      tarjeta.querySelector('input').focus();
+      legalCambio();
+    }
+
+    function agregarPlantillaLegal() {
+      document.getElementById('legalPlantillas').appendChild(tarjetaPlantillaLegal());
+      legalCambio();
+    }
+
+    function cambiarDocumentoLegal() {
+      const select = document.getElementById('legalDoc');
+      if (legalSucio && !confirm('Hay cambios sin guardar en este documento. ¿Descartarlos?')) {
+        select.value = legalDocActual;
+        return;
+      }
+      legalDocActual = select.value;
+      armarLegal();
+    }
+
+    function mostrarPublicarLegal(soloActualizar) {
+      const d = legal.documentos[legalDocActual];
+      const [mayor, menor] = d.version.split('.').map(Number);
+      const tipo = document.getElementById('legalTipo');
+      tipo.options[0].textContent = `Cambio común (pasa a la versión ${mayor}.${menor + 1})`;
+      tipo.options[1].textContent = `Cambio grande, reescritura (pasa a la versión ${mayor + 1}.0)`;
+      if (!soloActualizar) {
+        const vigencia = document.getElementById('legalVigencia');
+        vigencia.min = hoyAsuncionIso();
+        vigencia.value = hoyAsuncionIso();
+        document.getElementById('legalResumen').value = '';
+      }
+      document.getElementById('legalPublicar').hidden = false;
+      if (!soloActualizar) document.getElementById('legalResumen').focus();
+    }
+
+    async function guardarLegal(publicar) {
+      const cuerpo = { ...leerLegal(), publicar };
+      if (publicar !== 'correccion') {
+        cuerpo.resumen = document.getElementById('legalResumen').value;
+        cuerpo.vigente_desde = document.getElementById('legalVigencia').value;
+        if (!confirm(`¿Publicar la versión nueva de ${legal.documentos[legalDocActual].titulo}? La ve todo el mundo al instante y la actual queda en el historial.`)) return;
+      }
+      mensajePersonalizacion('legalMensaje', 'Guardando…');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/legal/${legalDocActual}`, { method: 'POST', body: JSON.stringify(cuerpo) });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) return mensajePersonalizacion('legalMensaje', datos.error || 'No se pudo guardar.', 'error');
+        await cargarLegal();
+        mensajePersonalizacion('legalMensaje', datos.mensaje === 'No había cambios' ? 'No había cambios para guardar.'
+          : publicar === 'correccion' ? '✓ Corrección guardada. Ya se ve en la página.' : `✓ ${datos.mensaje}, vigente desde el ${fechaDMYlegal(datos.vigente_desde)}. Ya se ve en la página.`, 'ok');
+        cargarActividad();
+      } catch (error) {
+        mensajePersonalizacion('legalMensaje', 'No se pudo conectar con el servidor.', 'error');
+        avisarErrorConexion(error);
+      }
+    }
+
+    // Abre una ventana lista para imprimir o "Guardar como PDF" con uno o varios documentos.
+    // partes: [{ titulo, html }] con el HTML que arma el servidor (escapado).
+    function abrirVentanaLegal(tituloVentana, partes) {
+      const ventana = window.open('', '_blank');
+      if (!ventana) { alert('El navegador bloqueó la ventana. Permití las ventanas emergentes para este sitio.'); return; }
+      const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      ventana.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${esc(tituloVentana)}</title><style>
+        body{font-family:Arial,Helvetica,sans-serif;color:#1d2433;max-width:760px;margin:24px auto;padding:0 20px;line-height:1.55;font-size:14px;color-scheme:light;background:#fff}
+        h1{font-size:24px;color:#173874;margin:0 0 4px} h2{font-size:16px;color:#173874;margin:22px 0 6px;break-after:avoid}
+        .fecha{color:#5b6475;font-size:13px} ul{margin:6px 0 6px 22px} ul.letras{list-style:none;margin-left:2px} li,p{break-inside:avoid}
+        a{color:#173874} strong{color:#173874} .doc{break-before:page} .doc:first-of-type{break-before:auto}
+        .barra{position:sticky;top:0;background:#fff;padding:10px 0;border-bottom:1px solid #ddd;margin-bottom:16px;font-size:13px}
+        .barra button{padding:8px 14px;border:0;border-radius:8px;background:#173874;color:#fff;font-weight:700;cursor:pointer;margin-right:10px}
+        .portada{text-align:center;padding:30px 0 10px} .portada p{color:#5b6475}
+        @media print{.barra{display:none}}
+      </style></head><body>
+        <div class="barra"><button onclick="window.print()">Imprimir / Guardar como PDF</button>En la ventana de imprimir, elegí «Guardar como PDF».</div>
+        ${partes.length > 1 ? `<div class="portada"><h1>${esc(tituloVentana)}</h1><p>Sistema de reservas de espacios · Centro de Estudiantes de Química (FCQ-UNA)</p></div>` : ''}
+        ${partes.map(p => `<section class="doc"><h1>${esc(p.titulo)}</h1>${p.html}</section>`).join('')}
+      </body></html>`);
+      ventana.document.close();
+    }
+
+    async function descargarLegalesPdf() {
+      try {
+        const [t, p] = await Promise.all(['terminos', 'privacidad'].map(d => fetch(`${API_BASE}/legal/${d}`).then(r => (r.ok ? r.json() : Promise.reject(new Error('sin respuesta'))))));
+        abrirVentanaLegal('Términos y condiciones y Política de privacidad', [t, p]);
+      } catch (error) {
+        alert('No se pudieron cargar los textos publicados. Reintentá en unos segundos.');
+      }
+    }
+
+    async function verVersionLegal(indice) {
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/legal/${legalDocActual}/historial/${indice}`);
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) return alert(datos.error || 'No se pudo abrir esa versión.');
+        abrirVentanaLegal(`${datos.titulo} — versión ${datos.version}`, [{ titulo: `${datos.titulo} (versión ${datos.version}, ya reemplazada)`, html: datos.html }]);
+      } catch (error) {
         avisarErrorConexion(error);
       }
     }
