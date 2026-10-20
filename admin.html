@@ -95,30 +95,60 @@
     .tab-btn.active { color: var(--azul); border-bottom-color: var(--azul); }
     .tab-content { display: none; }
     .tab-content.active { display: block !important; }
-    /* Sub-secciones de "Avanzado": una por vez, con botones arriba (antes era una sola página larga) */
-    /* Avanzado: menú por temas a la izquierda y la sección elegida a la derecha */
-    .avz-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 24px; align-items: start; }
-    .avz-menu { position: sticky; top: 76px; background: var(--blanco); border: 1px solid var(--linea); border-radius: 12px; padding: 10px; display: grid; gap: 2px; max-height: calc(100vh - 92px); overflow-y: auto; }
-    .avz-grupo { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); padding: 12px 10px 4px; margin: 0; }
-    .avz-grupo:first-child { padding-top: 4px; }
-    .avz-opcion { display: grid; gap: 1px; text-align: left; padding: 8px 10px; border: 0; border-left: 3px solid transparent; border-radius: 8px; background: transparent; color: var(--marino); cursor: pointer; font-family: inherit; }
-    .avz-opcion span { font-size: 14px; font-weight: 600; }
-    .avz-opcion small { font-size: 12px; color: var(--suave); line-height: 1.3; }
+    /* Avanzado: menú por temas a la izquierda y la sección elegida a la derecha, en una hoja blanca */
+    .avz-layout { display: grid; grid-template-columns: 244px minmax(0, 1fr); gap: 20px; align-items: start; }
+    /* Al cambiar de sección se vuelve al principio sin quedar tapado por la barra de arriba */
+    #tab-avanzado { scroll-margin-top: 64px; }
+    .avz-menu { position: sticky; top: 76px; background: var(--blanco); border: 1px solid var(--linea); border-radius: 14px; padding: 8px; display: grid; gap: 1px; max-height: calc(100vh - 92px); overflow-y: auto; scrollbar-width: thin; }
+    .avz-grupo { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--suave); padding: 14px 10px 5px; margin: 0; }
+    .avz-grupo:first-child { padding-top: 6px; }
+    .avz-opcion { display: block; width: 100%; text-align: left; padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--marino); cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 500; line-height: 1.35; }
     .avz-opcion:hover { background: var(--tarjeta); }
-    .avz-opcion.active { background: #E3EDFB; border-left-color: var(--marino); }
-    .avz-select { display: none; width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid var(--linea); border-radius: 10px; font-size: 15px; font-weight: 600; color: var(--marino); background: var(--blanco); }
+    .avz-opcion.active { background: var(--marino); color: var(--blanco); font-weight: 600; }
+    .avz-select { display: none; width: 100%; padding: 12px; margin-bottom: 14px; border: 1px solid var(--linea); border-radius: 10px; font-size: 15px; font-weight: 600; color: var(--marino); background: var(--blanco); }
+    .sub-seccion { background: var(--blanco); border: 1px solid var(--linea); border-radius: 16px; padding: 26px 28px 28px; min-width: 0; }
+    .sub-seccion[hidden] { display: none !important; }
+    .avz-migas { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--azul); margin: 0 0 6px; }
+    #tab-avanzado .sub-seccion > h3:first-of-type { margin-top: 0; font-size: 22px; }
+    .sub-seccion > h3:first-of-type::before { display: none; }
+    /* Un segundo título dentro de la misma sección (Limpieza, Contraseña y sesiones): separador */
+    .sub-seccion > h3.mt:not(:first-of-type) { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--linea); font-size: 18px; }
+    .sub-seccion > .nota { max-width: 78ch; }
+    /* Dentro de la hoja blanca, las tarjetas son recuadros con borde (no blanco sobre blanco) */
+    .sub-seccion .espacio-card { border: 1px solid var(--linea); }
+    .sub-seccion .table-wrapper { border: 1px solid var(--linea); }
+    .sub-seccion .stats-tabla { border: 1px solid var(--linea); }
+    .sub-seccion .estado-tarjeta { background: #FAFCFF; }
+    .sub-seccion .estado-tarjeta.estado-mal { background: #FDF1F0; }
+    .sub-seccion .vista-caja, .sub-seccion .vista-pagina, .sub-seccion .vista-legal, .sub-seccion .vista-correo { box-shadow: 0 6px 20px rgba(23,56,116,.10); border: 1px solid var(--linea); }
+    .tarjeta-titulo { font-size: 15px; font-weight: 700; color: var(--marino); margin: 0; }
+    .grupo-tarjetas { display: grid; gap: 14px; }
+    .etiqueta .ayuda { font-weight: 400; }
+    .correo-elegir { align-items: center; }
+    .correo-elegir select { flex: 1 1 200px; min-width: 0; max-width: 420px; }
+    .filters .status-badge { align-self: center; text-transform: none; }
+    .espacio-card .filters input[type="text"] { width: auto; flex: 1 1 220px; }
+    .sub-seccion .filters input[type="search"] { flex: 1 1 260px; max-width: 460px; }
+    .btn-secundario-chico { padding: 9px 16px; border-radius: 8px; font-size: 14px; }
     @media (max-width: 860px) {
       .avz-layout { grid-template-columns: 1fr; }
       .avz-menu { display: none; }
       .avz-select { display: block; position: sticky; top: 58px; z-index: 5; box-shadow: 0 4px 12px rgba(23,56,116,.12); }
+      .sub-seccion { padding: 18px 14px 20px; border-radius: 14px; }
     }
-    .sub-seccion[hidden] { display: none !important; }
-    .sub-seccion > h3:first-child { margin-top: 0; }
+    @media (max-width: 640px) {
+      /* .filters pasa a columna: los tamaños de fila no sirven */
+      .correo-elegir { align-items: stretch; }
+      .correo-elegir select { flex: none; max-width: none; }
+      .filters .status-badge { align-self: flex-start; }
+      .espacio-card .filters input[type="text"], .sub-seccion .filters input[type="search"] { flex: none; max-width: none; }
+    }
     /* Botón principal de guardar, siempre a la vista al final de las secciones largas */
     .barra-guardar { position: sticky; bottom: 0; z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; padding: 12px 14px; background: var(--blanco); border: 1px solid var(--linea); border-radius: 12px; box-shadow: 0 -6px 18px rgba(23,56,116,.08); }
     .barra-guardar .config-mensaje { margin: 0; }
     .btn-primario-chico { padding: 9px 18px; border-radius: 8px; border: 0; background: var(--marino); color: var(--blanco); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
     .btn-primario-chico:hover { background: var(--azul); }
+    .btn-primario-chico:disabled { opacity: .6; cursor: wait; }
     /* Cinta de anuncios */
     .anuncio-estado { font-size: 14px; font-weight: 700; padding: 8px 12px; border-radius: 8px; background: #E4E9F1; color: var(--marino); }
     .anuncio-estado.visible { background: var(--ok-bg); color: var(--ok); }
@@ -374,6 +404,9 @@
     .barra { height: 8px; border-radius: 4px; background: var(--azul); display: inline-block; vertical-align: middle; margin-right: 6px; }
     .stats-grupo { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
     .stats-grupo h4 { margin: 0 0 6px; }
+    /* En el celular, una tabla ancha se desliza dentro de su recuadro en vez de salirse */
+    .stats-grupo > * { min-width: 0; overflow-x: auto; }
+    @media (max-width: 640px) { .stats-grupo { grid-template-columns: minmax(0, 1fr); } }
     .persona-resultado { display: grid; gap: 10px; }
     .vacio-celda { text-align: center; color: var(--suave); padding: 18px 12px; }
     .espacio-card button { justify-self: start; }
@@ -895,7 +928,7 @@
 
         <!-- TAB: AVANZADO (admin supremo) -->
         <div id="tab-avanzado" class="tab-content">
-          <h3>Espacios</h3>
+          <h3>Espacios disponibles</h3>
           <p class="nota">
             Elegí qué espacios se pueden reservar desde la página. Cuando uno no está disponible,
             su botón aparece como "No disponible" y, si marcás "Mostrar este aviso al entrar", aparece
@@ -934,7 +967,7 @@
               <label class="check"><input type="checkbox" id="novVolver" checked> Mostrarla de nuevo a quienes ya la cerraron</label>
               <p class="ayuda">Desmarcalo si solo corregís un error de tipeo y no querés que la vean otra vez.</p>
               <div class="novedades-botones">
-                <button class="btn-small" type="button" onclick="guardarNovedades(true)">Publicar</button>
+                <button class="btn-primario-chico" type="button" onclick="guardarNovedades(true)">Publicar</button>
                 <button class="btn-small btn-cancel" type="button" onclick="guardarNovedades(false)">Quitar de la página</button>
               </div>
               <p class="config-mensaje" id="novedadesMensaje" role="status"></p>
@@ -975,7 +1008,7 @@
           <p class="nota">Para responder un pedido de la Política de Privacidad (art. 11): buscá por correo o celular para ver todo lo que hay guardado de esa persona, descargarlo o borrarlo. Borrar deja sus reservas sin nombre ni contacto (como a los 6 meses) y la saca de la lista de espera. No se puede deshacer.</p>
           <div class="filters">
             <input type="search" id="personaBuscar" placeholder="Correo o celular" aria-label="Correo o celular de la persona">
-            <button class="btn-small" onclick="buscarPersona()">Buscar</button>
+            <button class="btn-primario-chico" onclick="buscarPersona()">Buscar</button>
           </div>
           <div id="personaResultado" class="persona-resultado"></div>
 
@@ -1025,39 +1058,50 @@
             </table>
           </div>
 
-          <h3 class="mt">Configuración</h3>
+          <h3 class="mt">Turnos, horarios y contacto</h3>
           <p class="nota">
-            Turnos y motivos del Frente, horario del Altillo, contacto del Frente y el correo que recibe
-            las alertas del sistema (errores y bloqueos por exceso de pedidos, como máximo un correo por hora).
-            Los cambios se aplican al instante en la página.
+            Los turnos y motivos del Frente, el horario del Altillo y los datos de contacto. Se guarda todo junto
+            con el botón de abajo y se aplica al instante en la página. El límite por persona y los días están en
+            <strong>Reglas de cada espacio</strong>.
           </p>
-          <div class="espacio-card">
-            <span class="etiqueta">Turnos del Frente</span>
-            <div class="config-turnos" id="configTurnos"></div>
-            <button class="btn-small" type="button" onclick="agregarTurnoConfig()">+ Agregar turno</button>
-            <p class="nota">Cambiar un turno no toca las reservas que ya existen: se siguen mostrando con su horario.</p>
-            <span class="etiqueta">Motivos del Frente</span>
-            <p class="nota">La lista que eligen al reservar el Frente (entre 1 y 10). Quitar uno no cambia las reservas que ya lo usan.</p>
-            <div class="config-turnos" id="configMotivos"></div>
-            <button class="btn-small" type="button" onclick="agregarMotivoConfig()">+ Agregar motivo</button>
-            <span class="etiqueta">Horario del Altillo</span>
-            <div class="config-campos">
-              <label>Abre a las <select id="configAltilloDesde"></select></label>
-              <label>Cierra a las <select id="configAltilloHasta"></select></label>
-              <label>Máximo de horas por reserva <input type="number" id="configAltilloMax" min="1" max="12"></label>
+          <div class="grupo-tarjetas">
+            <div class="espacio-card">
+              <p class="tarjeta-titulo">Turnos del Frente</p>
+              <div class="config-turnos" id="configTurnos"></div>
+              <button class="btn-small" type="button" onclick="agregarTurnoConfig()">+ Agregar turno</button>
+              <p class="ayuda">Cambiar un turno no toca las reservas que ya existen: se siguen mostrando con su horario.</p>
             </div>
-            <p class="nota">Se reserva por bloques de 1 hora: el último bloque empieza 1 hora antes del cierre. Los Términos (art. 5.2) dicen el horario con el comodín {horario_altillo}, así que se actualizan solos.</p>
-            <p class="nota">El límite de reservas por persona ahora está en <strong>Reglas</strong>, junto con las demás reglas de cada espacio.</p>
-            <div class="config-campos">
-              <label>Correo de contacto del Frente <input type="email" id="configEmailFrente"></label>
-              <label>WhatsApp del Frente (con código de país) <input type="text" id="configWhatsapp" inputmode="numeric" placeholder="595981123456"></label>
-              <label>Correo que recibe las alertas <input type="email" id="configEmailAlertas"></label>
+            <div class="espacio-card">
+              <p class="tarjeta-titulo">Motivos del Frente</p>
+              <p class="ayuda">La lista que eligen al reservar el Frente (entre 1 y 10). Quitar uno no cambia las reservas que ya lo usan.</p>
+              <div class="config-turnos" id="configMotivos"></div>
+              <button class="btn-small" type="button" onclick="agregarMotivoConfig()">+ Agregar motivo</button>
             </div>
-            <button class="btn-small" type="button" onclick="guardarConfiguracion()">Guardar configuración</button>
+            <div class="espacio-card">
+              <p class="tarjeta-titulo">Horario del Altillo</p>
+              <div class="config-campos">
+                <label>Abre a las <select id="configAltilloDesde"></select></label>
+                <label>Cierra a las <select id="configAltilloHasta"></select></label>
+                <label>Máximo de horas por reserva <input type="number" id="configAltilloMax" min="1" max="12"></label>
+              </div>
+              <p class="ayuda">Se reserva por bloques de 1 hora: el último bloque empieza 1 hora antes del cierre. Los Términos (art. 5.2) dicen el horario con el comodín {horario_altillo}, así que se actualizan solos.</p>
+            </div>
+            <div class="espacio-card">
+              <p class="tarjeta-titulo">Contacto y alertas</p>
+              <div class="config-campos">
+                <label>Correo de contacto del Frente <input type="email" id="configEmailFrente"></label>
+                <label>WhatsApp del Frente (con código de país) <input type="text" id="configWhatsapp" inputmode="numeric" placeholder="595981123456"></label>
+                <label>Correo que recibe las alertas <input type="email" id="configEmailAlertas"></label>
+              </div>
+              <p class="ayuda">Las alertas avisan de errores del sistema y de bloqueos por exceso de pedidos (como máximo un correo por hora).</p>
+            </div>
+          </div>
+          <div class="barra-guardar">
+            <button class="btn-primario-chico" type="button" onclick="guardarConfiguracion()">Guardar turnos, horarios y contacto</button>
             <p class="config-mensaje" id="configMensaje" role="status"></p>
           </div>
 
-          <h3 class="mt">Reglas de los espacios</h3>
+          <h3 class="mt">Reglas de cada espacio</h3>
           <p class="nota">
             Qué días se reserva cada espacio, hasta cuándo se cancela gratis, el recordatorio, con cuánta
             anticipación se reserva, el límite por persona y las normas de uso. Se aplica al instante en la
@@ -1111,16 +1155,16 @@
             <p class="config-mensaje" id="textosMensaje" role="status"></p>
           </div>
 
-          <h3 class="mt">Correos</h3>
+          <h3 class="mt">Correos automáticos</h3>
           <p class="nota">
-            El asunto, el título y el mensaje de cada correo que le llega a la gente. Los datos de la reserva,
-            el código, los enlaces para cancelar, la regla de cancelación, las normas y el contacto los agrega
-            el sistema siempre, así no se pueden borrar sin querer. Tocá un comodín para insertarlo donde está
-            el cursor: al mandarse se reemplaza por el dato de cada persona. A los correos de una reserva se
-            les agrega siempre " - CEQ #número" al final del asunto.
+            El asunto, el título y el mensaje de cada correo que manda el sistema. Los datos de la reserva,
+            el código, los enlaces para cancelar, las normas y el contacto los agrega el sistema siempre, así
+            no se pueden borrar sin querer. A los correos de una reserva se les agrega " - CEQ #número" al
+            final del asunto.
           </p>
-          <div class="filters">
-            <select id="correoClave" aria-label="Correo para editar" onchange="mostrarPlantilla()"></select>
+          <div class="filters correo-elegir">
+            <label class="etiqueta-form" for="correoClave">Correo para editar</label>
+            <select id="correoClave" onchange="mostrarPlantilla()"></select>
             <span class="status-badge" id="correoEstado"></span>
           </div>
           <details class="espacio-card mt-chico avisos-destinatarios">
@@ -1144,9 +1188,10 @@
               <label class="etiqueta" for="correoMensaje" id="correoEtiquetaMensaje">Mensaje</label>
               <textarea id="correoMensaje" maxlength="3000" oninput="vistaPreviaCorreo()" onfocus="campoCorreoActivo = this"></textarea>
               <p class="ayuda" id="correoAyuda"></p>
+              <span class="etiqueta" id="correoComodinesEtiqueta">Comodines <span class="ayuda">(tocá uno para insertarlo donde está el cursor; al mandarse se reemplaza por el dato de cada persona)</span></span>
               <div class="comodines" id="correoComodines"></div>
               <div class="novedades-botones">
-                <button class="btn-small" type="button" onclick="guardarPlantilla()">Guardar</button>
+                <button class="btn-primario-chico" type="button" onclick="guardarPlantilla()">Guardar</button>
                 <button class="btn-small btn-secundario-chico" type="button" onclick="enviarPruebaCorreo()">Enviarme una prueba</button>
                 <button class="btn-small btn-secundario-chico" type="button" onclick="restaurarPlantilla()">Volver al original</button>
               </div>
@@ -1163,7 +1208,7 @@
               <div class="vista-correo">
                 <div class="vc-asunto"><b>Asunto: </b><span id="correoVistaAsunto"></span></div>
                 <!-- sandbox sin permisos: el correo se muestra, pero no puede correr nada ni abrir enlaces -->
-                <iframe id="correoVistaMarco" class="vc-marco" sandbox="allow-same-origin" title="Vista previa del correo" onload="ajustarMarcoCorreo()"></iframe>
+                <iframe id="correoVistaMarco" class="vc-marco" sandbox="allow-same-origin" title="Vista previa del correo" onload="if (typeof ajustarMarcoCorreo === 'function') ajustarMarcoCorreo()"></iframe>
               </div>
               <p class="config-mensaje" id="correoVistaEstado" role="status"></p>
               <p class="ayuda">Es el correo real que arma el sistema, con lo que escribiste (aunque no lo hayas guardado). Los enlaces del ejemplo no funcionan.</p>
@@ -1248,43 +1293,47 @@
           <div id="estadoSistema" class="estado-grid"></div>
           <div class="acciones-lista"><span class="nota" id="estadoActualizado"></span><button class="btn-small" type="button" onclick="cargarEstado()">Actualizar</button></div>
 
-          <h3 class="mt">Herramientas</h3>
+          <h3 class="mt">Pausar las reservas</h3>
+          <p class="nota">Mientras está pausado, la página muestra tu mensaje y nadie puede reservar ni anotarse en la lista de espera. Se puede seguir cancelando, y desde el panel se pueden hacer reservas de prioridad. Sirve para un imprevisto o mientras se arregla algo.</p>
           <div class="espacio-card">
-            <span class="etiqueta">Pausar las reservas</span>
-            <p class="nota">Mientras está pausado, la página muestra tu mensaje y nadie puede reservar ni anotarse en la lista de espera. Se puede seguir cancelando, y desde el panel se pueden hacer reservas de prioridad. Sirve para un imprevisto o mientras se arregla algo.</p>
             <label class="check"><input type="checkbox" id="pausaActiva"> Reservas pausadas</label>
             <label class="etiqueta" for="pausaMensaje">Mensaje para la gente</label>
             <textarea id="pausaMensaje" class="corto" maxlength="300" placeholder="Ej: Volvemos a habilitar las reservas el lunes 20."></textarea>
-            <div class="novedades-botones"><button class="btn-small" type="button" onclick="guardarPausa()">Guardar</button></div>
+            <div class="novedades-botones"><button class="btn-primario-chico" type="button" onclick="guardarPausa()">Guardar</button></div>
             <p class="config-mensaje" id="pausaMensajeEstado" role="status"></p>
           </div>
-          <div class="espacio-card mt-chico">
-            <span class="etiqueta">Copia de seguridad en el momento</span>
-            <p class="nota">Baja ahora el mismo archivo que llega por correo el día 1 de cada mes (todas las reservas, con todos sus datos). Tiene datos personales: guardalo solo donde corresponde y borralo cuando ya no haga falta.</p>
-            <div class="novedades-botones"><button class="btn-small" type="button" onclick="descargarCopia()">Descargar copia (.csv)</button></div>
+
+          <h3 class="mt">Copia de seguridad</h3>
+          <p class="nota">Baja ahora el mismo archivo que llega por correo el día 1 de cada mes (todas las reservas, con todos sus datos). Tiene datos personales: guardalo solo donde corresponde y borralo cuando ya no haga falta.</p>
+          <div class="espacio-card">
+            <div class="novedades-botones"><button class="btn-primario-chico" type="button" onclick="descargarCopia()">Descargar copia (.csv)</button></div>
             <p class="config-mensaje" id="copiaMensaje" role="status"></p>
           </div>
 
           <h3 class="mt">Feriados</h3>
           <p class="nota">Bloquea de una vez los feriados nacionales del año, todo el día. Revisá la lista antes: algunos feriados se trasladan por decreto (Héroes, Paz del Chaco, Boquerón), así que destildá los que no correspondan y bloquealos a mano en la fecha correcta. Si un día ya tiene reservas, no se bloquea y te avisa.</p>
-          <div class="filters">
-            <select id="feriadosAnio" aria-label="Año" onchange="armarFeriados()"></select>
-            <label class="check"><input type="checkbox" id="feriadosFrente" checked> Frente</label>
-            <label class="check"><input type="checkbox" id="feriadosAltillo" checked> Altillo</label>
+          <div class="espacio-card">
+            <div class="filters">
+              <select id="feriadosAnio" aria-label="Año" onchange="armarFeriados()"></select>
+              <label class="check"><input type="checkbox" id="feriadosFrente" checked> Frente</label>
+              <label class="check"><input type="checkbox" id="feriadosAltillo" checked> Altillo</label>
+            </div>
+            <div id="feriadosLista" class="feriados-lista"></div>
+            <div class="novedades-botones"><button class="btn-primario-chico" type="button" onclick="aplicarFeriados()">Bloquear los marcados</button></div>
+            <p class="config-mensaje" id="feriadosMensaje" role="status" style="white-space: pre-line;"></p>
           </div>
-          <div id="feriadosLista" class="feriados-lista"></div>
-          <div class="novedades-botones"><button class="btn-small" type="button" onclick="aplicarFeriados()">Bloquear los marcados</button></div>
-          <p class="config-mensaje" id="feriadosMensaje" role="status" style="white-space: pre-line;"></p>
 
-          <h3 class="mt">Respuestas listas para copiar</h3>
+          <h3 class="mt">Respuestas listas</h3>
           <p class="nota">Textos para responder por correo desde reservas@ceq-una.com. Elegí uno, completá el nombre y tocá "Copiar"; después pegalo en Gmail y revisalo antes de enviar.</p>
-          <div class="filters">
-            <select id="respuestaTipo" aria-label="Tipo de respuesta" onchange="armarRespuesta()"></select>
-            <input type="text" id="respuestaNombre" placeholder="Nombre de la persona" aria-label="Nombre de la persona" oninput="armarRespuesta()">
+          <div class="espacio-card">
+            <div class="filters">
+              <select id="respuestaTipo" aria-label="Tipo de respuesta" onchange="armarRespuesta()"></select>
+              <input type="text" id="respuestaNombre" placeholder="Nombre de la persona" aria-label="Nombre de la persona" oninput="armarRespuesta()">
+            </div>
+            <textarea id="respuestaTexto" class="respuesta-texto" aria-label="Texto de la respuesta"></textarea>
+            <div class="novedades-botones"><button class="btn-primario-chico" type="button" onclick="copiarRespuesta()">Copiar</button></div>
+            <p class="config-mensaje" id="respuestaMensaje" role="status"></p>
           </div>
-          <textarea id="respuestaTexto" class="respuesta-texto" aria-label="Texto de la respuesta"></textarea>
-          <div class="novedades-botones"><button class="btn-small" type="button" onclick="copiarRespuesta()">Copiar</button></div>
-          <p class="config-mensaje" id="respuestaMensaje" role="status"></p>
           <details class="espacio-card mt-chico" id="respuestasEditor">
             <summary class="etiqueta" style="cursor:pointer">Editar las respuestas (tocá para ver)</summary>
             <p class="ayuda">{nombre} se completa con el primer nombre que escribas arriba y {plazo_frente} con el plazo para cancelar del Frente (Reglas). El orden de acá es el de la lista.</p>
@@ -1308,13 +1357,15 @@
             <p class="config-mensaje" id="claveAdminMensaje" role="status"></p>
           </div>
 
-          <h3 class="mt">Seguridad</h3>
+          <h3 class="mt">Cerrar todas las sesiones</h3>
           <p class="nota">
             Cierra la sesión de todas las personas que estén en el panel, incluida la tuya. Usalo si la
             contraseña se filtró o alguien dejó la sesión abierta en una computadora ajena; en ese caso,
             cambiá también la contraseña en Render.
           </p>
-          <button class="btn-peligro" onclick="cerrarTodasLasSesiones()">Cerrar todas las sesiones</button>
+          <div class="espacio-card">
+            <button class="btn-peligro" onclick="cerrarTodasLasSesiones()">Cerrar todas las sesiones</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1627,35 +1678,38 @@
     // partir de los títulos (h3) que ya están en la página. Cada opción: [clave, nombre, para qué
     // sirve, títulos h3 que muestra].
     const MENU_AVANZADO = [
-      ['Resumen', [
+      ['Inicio', [
         ['estado', 'Estado del sistema', 'Si todo anda bien', ['Estado del sistema']]
       ]],
       ['La página de reservas', [
         ['anuncio', 'Cinta de anuncios', 'Aviso corto arriba de la página', ['Cinta de anuncios']],
         ['novedades', 'Ventana de novedades', 'La ventana que sale al entrar', ['Ventana de novedades']],
-        ['textos', 'Textos de la página', 'Título, bienvenida y otros textos', ['Textos de la página']],
-        ['espacios', 'Espacios', 'Qué espacios se pueden reservar', ['Espacios']],
+        ['textos', 'Textos de la página', 'Título, bienvenida, mensajes y errores', ['Textos de la página']],
         ['legal', 'Términos y privacidad', 'Editar los textos legales', ['Términos y privacidad']]
       ]],
-      ['Cómo se reserva', [
-        ['reglas', 'Reglas de los espacios', 'Días, plazos, límites y normas', ['Reglas de los espacios']],
-        ['configuracion', 'Turnos, horarios y contacto', 'Turnos y motivos del Frente, horario del Altillo', ['Configuración']],
-        ['feriados', 'Feriados', 'Bloquear los feriados del año', ['Feriados']],
-        ['herramientas', 'Pausa y copia de seguridad', 'Pausar las reservas, bajar una copia', ['Herramientas']]
+      ['Espacios y reglas', [
+        ['espacios', 'Espacios disponibles', 'Qué espacios se pueden reservar', ['Espacios disponibles']],
+        ['reglas', 'Reglas de cada espacio', 'Días, plazos, límites, acompañantes y normas', ['Reglas de cada espacio']],
+        ['configuracion', 'Turnos, horarios y contacto', 'Turnos y motivos del Frente, horario del Altillo, contacto', ['Turnos, horarios y contacto']],
+        ['feriados', 'Feriados', 'Bloquear los feriados del año', ['Feriados']]
       ]],
       ['Correos', [
-        ['correos', 'Correos a la gente', 'Asunto y texto de cada correo', ['Correos']],
-        ['respuestas', 'Respuestas listas', 'Textos para responder pedidos', ['Respuestas listas para copiar']]
+        ['correos', 'Correos automáticos', 'Asunto y texto de cada correo, y quién recibe los avisos', ['Correos automáticos']],
+        ['respuestas', 'Respuestas listas', 'Textos para responder pedidos', ['Respuestas listas']]
       ]],
-      ['Personas y números', [
+      ['Personas', [
         ['espera', 'Lista de espera', 'Quién espera un lugar', ['Lista de espera']],
-        ['persona', 'Datos de una persona', 'Pedidos de privacidad', ['Datos de una persona']],
+        ['persona', 'Datos de una persona', 'Pedidos de privacidad', ['Datos de una persona']]
+      ]],
+      ['Informes', [
         ['estadisticas', 'Estadísticas', 'Reservas por mes, turno y día', ['Estadísticas']],
         ['actividad', 'Registro de actividad', 'Qué se hizo en el panel', ['Registro de actividad']]
       ]],
       ['Mantenimiento', [
+        ['pausa', 'Pausar las reservas', 'Cerrar las reservas por un imprevisto', ['Pausar las reservas']],
+        ['copia', 'Copia de seguridad', 'Bajar todas las reservas', ['Copia de seguridad']],
         ['limpieza', 'Limpieza', 'Borrar canceladas y reportes', ['Eliminar reservas canceladas', 'Eliminar reportes de errores']],
-        ['seguridad', 'Seguridad', 'Contraseña de los admins y sesiones', ['Contraseña de los admins', 'Seguridad']]
+        ['seguridad', 'Contraseña y sesiones', 'Contraseña de los admins y cerrar sesiones', ['Contraseña de los admins', 'Cerrar todas las sesiones']]
       ]]
     ];
     const OPCIONES_AVANZADO = MENU_AVANZADO.flatMap(([, opciones]) => opciones);
@@ -1693,17 +1747,19 @@
           const seccion = document.createElement('section');
           seccion.className = 'sub-seccion';
           seccion.dataset.sub = clave;
+          // Arriba del título, a qué grupo del menú pertenece
+          const migas = document.createElement('p');
+          migas.className = 'avz-migas';
+          migas.textContent = grupo;
+          seccion.appendChild(migas);
           propios.forEach(b => b.nodos.forEach(n => seccion.appendChild(n)));
           contenido.appendChild(seccion);
           const boton = document.createElement('button');
           boton.type = 'button';
           boton.className = 'avz-opcion';
           boton.dataset.sub = clave;
-          const n = document.createElement('span');
-          n.textContent = nombre;
-          const d = document.createElement('small');
-          d.textContent = descripcion;
-          boton.append(n, d);
+          boton.textContent = nombre;
+          boton.title = descripcion;
           boton.addEventListener('click', () => mostrarSubpestana(clave));
           menu.appendChild(boton);
           optgroup.appendChild(new Option(nombre, clave));
@@ -1724,10 +1780,16 @@
         b.classList.toggle('active', b.dataset.sub === clave);
         if (b.dataset.sub === clave) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
       });
+      // Si el menú tiene barra para deslizar, la opción elegida queda a la vista
+      const activa = document.querySelector('#tab-avanzado .avz-opcion.active');
+      const menu = activa && activa.offsetParent;
+      if (menu && menu.classList.contains('avz-menu') && (activa.offsetTop < menu.scrollTop || activa.offsetTop + activa.offsetHeight > menu.scrollTop + menu.clientHeight)) {
+        menu.scrollTop = activa.offsetTop - (menu.clientHeight - activa.offsetHeight) / 2;
+      }
       const lista = document.querySelector('#tab-avanzado .avz-select');
       if (lista) lista.value = clave;
       try { localStorage.setItem('avanzadoSeccion', clave); } catch (e) { /* sin almacenamiento */ }
-      if (clave === 'estado' || clave === 'herramientas') cargarEstado();
+      if (clave === 'estado' || clave === 'pausa') cargarEstado();
       // Si se eligió desde abajo de una sección larga, volver al principio de la nueva
       const tab = document.getElementById('tab-avanzado');
       if (tab && tab.getBoundingClientRect().top < 0) tab.scrollIntoView({ block: 'start' });
@@ -4165,7 +4227,7 @@
             'Anonimiza las reservas de más de 6 meses (una vez por día)'],
           ['Lista de espera', `${e.lista_espera_pendientes} esperando aviso`, 'ok', ''],
           ['Reportes nuevos', `${e.reportes_nuevos}`, e.reportes_nuevos > 0 ? 'aviso' : 'ok', 'Se ven en la pestaña "Reportes"'],
-          ['Reservas', e.pausa_reservas && e.pausa_reservas.activa ? 'PAUSADAS' : 'Abiertas', e.pausa_reservas && e.pausa_reservas.activa ? 'mal' : 'ok', 'Se pausan en "Herramientas"'],
+          ['Reservas', e.pausa_reservas && e.pausa_reservas.activa ? 'PAUSADAS' : 'Abiertas', e.pausa_reservas && e.pausa_reservas.activa ? 'mal' : 'ok', 'Se pausan en Mantenimiento → "Pausar las reservas"'],
           ['Clave SMTP de Gmail', 'Vence el 16/10/2027', 'ok', 'O a los 90 días sin enviar nada desde reservas@ceq-una.com']
         ];
         cont.replaceChildren(...tarjetas.map(([titulo, valor, estado, nota]) => {
@@ -4178,7 +4240,7 @@
           return t;
         }));
         document.getElementById('estadoActualizado').textContent = `Actualizado: ${fechaHoraAsuncion(new Date().toISOString())}`;
-        // La pausa se muestra también en Herramientas
+        // La pausa se muestra también en "Pausar las reservas"
         if (e.pausa_reservas) {
           document.getElementById('pausaActiva').checked = e.pausa_reservas.activa === true;
           document.getElementById('pausaMensaje').value = e.pausa_reservas.mensaje || '';
@@ -4647,6 +4709,7 @@
       const estado = document.getElementById('correoEstado');
       estado.textContent = p.modificada ? 'Modificado' : 'Texto original';
       estado.className = 'status-badge ' + (p.modificada ? 'status-activa' : 'status-bloqueada');
+      document.getElementById('correoComodinesEtiqueta').hidden = !p.comodines.length;
       document.getElementById('correoComodines').replaceChildren(...p.comodines.map(c =>
         crear('button', { type: 'button', className: 'comodin', textContent: `{${c}}`, title: `Ejemplo: ${EJEMPLO_CORREO[c] || ''}`, onclick: () => insertarComodin(c) })));
       campoCorreoActivo = document.getElementById('correoMensaje');
@@ -5325,7 +5388,7 @@
           if (!e.publico && (e.mostrar_aviso === false || !e.aviso)) badge.textContent = 'No disponible · sin aviso';
 
           const btn = document.createElement('button');
-          btn.className = 'btn-small';
+          btn.className = 'btn-primario-chico';
           btn.textContent = 'Guardar';
           btn.addEventListener('click', () => guardarEspacio(id, e.nombre, e.publico === true, btn));
 
