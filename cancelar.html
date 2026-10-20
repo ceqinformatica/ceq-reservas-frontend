@@ -248,6 +248,26 @@
           p.textContent = ayuda;
           p.hidden = !ayuda;
         }
+        // "¿Perdiste el código?": {whatsapp} es el enlace al WhatsApp del Frente. Se arma con nodos
+        // de texto (lo escrito en el panel nunca se toma como HTML). Vacío = no se muestra.
+        const perdido = datos.textos && datos.textos.codigo_perdido;
+        if (typeof perdido === 'string') {
+          const p = document.querySelector('.ayuda.perdido');
+          p.replaceChildren();
+          perdido.split('{whatsapp}').forEach((parte, i) => {
+            if (i > 0) {
+              const a = document.createElement('a');
+              a.className = 'whatsapp-frente';
+              a.href = `https://wa.me/${whatsappFrente}`;
+              a.target = '_blank';
+              a.rel = 'noopener';
+              a.textContent = 'WhatsApp';
+              p.appendChild(a);
+            }
+            if (parte) p.appendChild(document.createTextNode(parte));
+          });
+          p.hidden = !perdido;
+        }
       } catch (error) {
         // sin conexión o servidor anterior: queda el número de respaldo
       }

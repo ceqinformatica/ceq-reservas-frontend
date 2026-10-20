@@ -549,8 +549,8 @@
     // Reglas de cada espacio (admin supremo > Reglas). Vienen de /api/configuracion; estas son las
     // de respaldo (las de siempre). dias: 0 domingo … 6 sábado.
     let REGLAS = {
-      3: { dias: [1, 2, 3, 4, 5], plazo_cancelacion_dias: 2, recordatorio: true, recordatorio_dias: 2, anticipacion_min_dias: 0, anticipacion_max_dias: 0, limite_por_persona_mes: 2, normas: '' },
-      1: { dias: [1, 2, 3, 4, 5], plazo_cancelacion_dias: 0, recordatorio: true, recordatorio_dias: 2, anticipacion_min_dias: 0, anticipacion_max_dias: 0, limite_por_persona_mes: null, normas: '' }
+      3: { dias: [1, 2, 3, 4, 5], plazo_cancelacion_dias: 2, recordatorio: true, recordatorio_dias: 2, anticipacion_min_dias: 0, anticipacion_max_dias: 0, limite_por_persona_mes: 2, acompanantes_max: 0, normas: '' },
+      1: { dias: [1, 2, 3, 4, 5], plazo_cancelacion_dias: 0, recordatorio: true, recordatorio_dias: 2, anticipacion_min_dias: 0, anticipacion_max_dias: 0, limite_por_persona_mes: null, acompanantes_max: 4, normas: '' }
     };
     // Textos de la página que se cambian desde el admin supremo (estos son los de siempre)
     let TEXTOS = {
@@ -560,6 +560,10 @@
       confirmacion_extra: '',
       lista_espera: 'Todos los lugares del {espacio} de ese mes están ocupados. Anotate y, si alguien cancela una reserva de ese mes, te avisamos por correo para que puedas reservar. El lugar es de quien reserve primero.',
       // Debajo de "Crear reserva", uno por espacio. Vacío: se arma con las reglas (actualizarAyudaReserva)
+      confirmacion_titulo: '¡Tu reserva quedó confirmada!',
+      confirmacion_mensaje: 'Te enviamos la confirmación por email a {correo}, con tu **código de cancelación** y un enlace para cancelar. Puede tardar unos minutos; revisá la carpeta de spam. **No hace falta volver a reservar.**',
+      reporte_titulo: 'Reportar un problema',
+      reporte_intro: 'Contanos qué hiciste y qué pasó.',
       ayuda_reserva_frente: '',
       ayuda_reserva_altillo: ''
     };
@@ -597,7 +601,8 @@
       'Recaudación - Congreso o Evento Académico'
     ];
     let ALTILLO = { hora_desde: 7, hora_hasta: 19, max_horas: 2 };
-    let MAX_ACOMPANANTES = 4;
+    // Cuántos acompañantes se pueden anotar en el espacio elegido (Reglas; por defecto Altillo 4, Frente 0)
+    const maxAcompanantes = () => reglaDe(espacioSeleccionado).acompanantes_max || 0;
 
     function aMinutos(hhmm) {
       const [h, m] = hhmm.split(':').map(Number);
@@ -669,7 +674,8 @@
             a.hora_desde >= 0 && a.hora_hasta <= 24 && a.hora_desde < a.hora_hasta && a.max_horas >= 1) {
           ALTILLO = { hora_desde: a.hora_desde, hora_hasta: a.hora_hasta, max_horas: a.max_horas };
         }
-        if (Number.isInteger(datos.max_acompanantes) && datos.max_acompanantes >= 0) MAX_ACOMPANANTES = datos.max_acompanantes;
+        // (servidor anterior, sin acompanantes_max en las reglas: el máximo del Altillo venía aparte)
+        if (Number.isInteger(datos.max_acompanantes) && datos.max_acompanantes >= 0 && !(datos.reglas && datos.reglas[1] && Number.isInteger(datos.reglas[1].acompanantes_max))) REGLAS[1].acompanantes_max = datos.max_acompanantes;
         const v = datos.ventana_novedades;
         ventanaNovedades = v && typeof v.titulo === 'string' && typeof v.version === 'string' ? v : null;
         const p = datos.pausa_reservas;
@@ -690,6 +696,7 @@
             anticipacion_min_dias: entero(r.anticipacion_min_dias, 0),
             anticipacion_max_dias: entero(r.anticipacion_max_dias, 0),
             limite_por_persona_mes: Number.isInteger(r.limite_por_persona_mes) && r.limite_por_persona_mes > 0 ? r.limite_por_persona_mes : null,
+            acompanantes_max: Number.isInteger(r.acompanantes_max) && r.acompanantes_max >= 0 ? r.acompanantes_max : REGLAS[id].acompanantes_max,
             normas: typeof r.normas === 'string' ? r.normas : ''
           };
         });
@@ -706,8 +713,30 @@
       actualizarBotonAcompanantes();
     }
 
+    // Pone en `el` un texto del panel con **negritas** y comodines como {correo} (que van en
+    // negrita), armado con nodos de texto: lo que se escribe nunca se interpreta como HTML
+    function textoConNegritas(el, texto, valores = {}) {
+      el.replaceChildren();
+      String(texto || '').split(/(\*\*[^*]+?\*\*|\{[a-z_]+\})/g).forEach(parte => {
+        if (!parte) return;
+        const negrita = parte.match(/^\*\*([^*]+?)\*\*$/);
+        const comodin = parte.match(/^\{([a-z_]+)\}$/);
+        if (negrita) { const s = document.createElement('strong'); s.textContent = negrita[1]; el.appendChild(s); }
+        else if (comodin && valores[comodin[1]] !== undefined) { const s = document.createElement('strong'); s.textContent = valores[comodin[1]]; el.appendChild(s); }
+        else el.appendChild(document.createTextNode(parte));
+      });
+    }
+
     // Título, texto de bienvenida y cinta de anuncios (textContent: nunca se interpreta como HTML)
     function aplicarTextosPagina() {
+      // La ventana de reportar está escrita más abajo en la página: si todavía no se cargó, se espera
+      if (!document.getElementById('reporteIntro')) {
+        document.addEventListener('DOMContentLoaded', aplicarTextosPagina, { once: true });
+        return;
+      }
+      document.getElementById('tituloReporte').textContent = TEXTOS.reporte_titulo || 'Reportar un problema';
+      document.getElementById('reporteIntro').textContent = TEXTOS.reporte_intro;
+      document.getElementById('reporteIntro').hidden = !TEXTOS.reporte_intro;
       const titulo = TEXTOS.titulo_inicio || 'Reserva de espacios';
       document.getElementById('tituloInicio').textContent = titulo;
       const intro = document.getElementById('introInicio');
@@ -776,18 +805,17 @@
       if (MOTIVOS_FRENTE.includes(elegido)) select.value = elegido;
     }
 
-    // El Frente usa la lista de motivos; el Altillo, texto libre y acompañantes
+    // El Frente usa la lista de motivos; el Altillo, texto libre. Los acompañantes, en el espacio que los permita
     function aplicarCampoMotivo() {
       const esFrente = espacioSeleccionado === 3;
       document.getElementById('motivoFrente').hidden = !esFrente;
       document.getElementById('motivo').hidden = esFrente;
       document.getElementById('etiquetaMotivo').htmlFor = esFrente ? 'motivoFrente' : 'motivo';
-      const conAcompanantes = espacioSeleccionado === 1;
+      const conAcompanantes = maxAcompanantes() > 0;
       document.getElementById('grupoAcomp').hidden = !conAcompanantes;
-      if (!conAcompanantes) {
-        document.getElementById('acompLista').replaceChildren();
-        actualizarBotonAcompanantes();
-      }
+      if (!conAcompanantes) document.getElementById('acompLista').replaceChildren();
+      // El máximo cambia según el espacio: actualiza el "hasta N", el botón y quita filas de más
+      actualizarBotonAcompanantes();
     }
 
     function motivoElegido() {
@@ -796,10 +824,10 @@
         : document.getElementById('motivo').value.trim();
     }
 
-    // ===== Acompañantes (hasta MAX_ACOMPANANTES, nombre + celular) =====
+    // ===== Acompañantes (hasta maxAcompanantes(), nombre + celular) =====
     function agregarAcompanante() {
       const lista = document.getElementById('acompLista');
-      if (lista.children.length >= MAX_ACOMPANANTES) return;
+      if (lista.children.length >= maxAcompanantes()) return;
       const n = lista.children.length + 1;
       const fila = document.createElement('div');
       fila.className = 'acomp-fila';
@@ -836,10 +864,11 @@
     }
 
     function actualizarBotonAcompanantes() {
-      document.getElementById('maxAcomp').textContent = MAX_ACOMPANANTES;
+      const maximo = maxAcompanantes();
+      document.getElementById('maxAcomp').textContent = maximo;
       const lista = document.getElementById('acompLista');
-      while (lista.children.length > MAX_ACOMPANANTES) lista.lastElementChild.remove();
-      document.getElementById('btnAgregarAcomp').hidden = lista.children.length >= MAX_ACOMPANANTES;
+      while (lista.children.length > maximo) lista.lastElementChild.remove();
+      document.getElementById('btnAgregarAcomp').hidden = lista.children.length >= maximo;
     }
 
     // Filas completas como [{nombre, celular}]; las filas vacías se ignoran. `error` explica
@@ -2112,7 +2141,8 @@
       document.getElementById('confFecha').textContent = `${dia}/${mes}/${anio}`;
       document.getElementById('confHorario').textContent = descripcionHorario(espacioId, horaInicio, horaFin);
       // El código de cancelación ya no se muestra en pantalla: solo va en el correo (lo pidió el CEQ)
-      document.getElementById('confEmail').textContent = email;
+      document.getElementById('tituloConfirmacion').textContent = TEXTOS.confirmacion_titulo || '¡Tu reserva quedó confirmada!';
+      textoConNegritas(document.getElementById('confMensaje'), TEXTOS.confirmacion_mensaje, { correo: email });
       const regla = document.getElementById('confReglaCancelacion');
       const textoRegla = reglaCancelacionHtml(espacioId, fecha);
       regla.innerHTML = textoRegla;
@@ -2254,7 +2284,8 @@
         <div><strong>Fecha:</strong> <span id="confFecha"></span></div>
         <div><strong>Turno:</strong> <span id="confHorario"></span></div>
       </div>
-      <p style="font-size:14px;">Te enviamos la confirmación por email a <strong id="confEmail"></strong>, con tu <strong>código de cancelación</strong> y un enlace para cancelar. Puede tardar unos minutos; revisá la carpeta de spam. <strong>No hace falta volver a reservar.</strong></p>
+      <!-- El texto se cambia desde el admin supremo (Textos de la página); {correo} es el correo de la persona -->
+      <p style="font-size:14px;" id="confMensaje">Te enviamos la confirmación por email a <strong id="confEmail"></strong>, con tu <strong>código de cancelación</strong> y un enlace para cancelar. Puede tardar unos minutos; revisá la carpeta de spam. <strong>No hace falta volver a reservar.</strong></p>
       <p id="confReglaCancelacion" class="regla-cancelacion" style="display:none;"></p>
       <p id="confExtra" class="conf-extra" style="font-size:14px;" hidden></p>
       <a id="confCalendario" class="btn-secundario btn-calendario" href="#" target="_blank" rel="noopener">Agregar a Google Calendar</a>
@@ -2266,7 +2297,7 @@
   <div id="modalReporte" class="modal">
     <div class="modal-caja" role="dialog" aria-modal="true" aria-labelledby="tituloReporte">
       <h3 id="tituloReporte">Reportar un problema</h3>
-      <label for="reporteTexto" style="font-size:14px;color:#5A6B85;">Contanos qué hiciste y qué pasó.</label>
+      <label for="reporteTexto" id="reporteIntro" style="font-size:14px;color:#5A6B85;">Contanos qué hiciste y qué pasó.</label>
       <textarea id="reporteTexto" placeholder="Ej: elegí el martes 11, toqué Merienda y no se habilitó el botón"></textarea>
       <div class="modal-botones">
         <button id="btnCancelarReporte" class="btn-secundario" onclick="cerrarModalReporte()">Cancelar</button>

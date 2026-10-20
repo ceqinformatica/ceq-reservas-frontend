@@ -139,6 +139,11 @@
     .vista-pagina .vp-campo { border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px; color: var(--suave); font-size: 13px; }
     .vista-pagina .vp-vacio { color: var(--suave); font-style: italic; font-size: 13px; }
     .textos-pagina .espacio-card.enfocado { box-shadow: 0 0 0 2px var(--azul); }
+    .avisos-destinatarios summary { cursor: pointer; }
+    .avisos-destinatarios textarea { width: 100%; min-height: 80px; padding: 8px 10px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font-size: 13.5px; font-family: inherit; }
+    .textos-grupo { margin: 10px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--suave); }
+    .textos-grupo:first-child { margin-top: 0; }
+    .vista-pagina .vp-error { background: #FDF1F0; border-left: 4px solid #B2392F; color: #8A2A22; border-radius: 8px; padding: 10px 12px; font-size: 14px; font-weight: 600; }
     @media (max-width: 860px) { .vista-textos-col { position: static; } }
     /* Términos y privacidad */
     .legal-editor { display: grid; gap: 12px; min-width: 0; }
@@ -1118,6 +1123,16 @@
             <select id="correoClave" aria-label="Correo para editar" onchange="mostrarPlantilla()"></select>
             <span class="status-badge" id="correoEstado"></span>
           </div>
+          <details class="espacio-card mt-chico avisos-destinatarios">
+            <summary class="etiqueta">Quién recibe los avisos internos (nueva reserva, cancelaciones…) — tocá para ver</summary>
+            <p class="ayuda">Un correo por línea, de 1 a 5 por espacio. "Responder" en un aviso le escribe directo a la persona que reservó.</p>
+            <div class="config-campos">
+              <label>Frente <textarea id="avisosFrente" class="corto" spellcheck="false"></textarea></label>
+              <label>Altillo <textarea id="avisosAltillo" class="corto" spellcheck="false"></textarea></label>
+            </div>
+            <div class="novedades-botones"><button class="btn-small" type="button" onclick="guardarDestinatariosAvisos()">Guardar quién recibe los avisos</button></div>
+            <p class="config-mensaje" id="avisosMensaje" role="status"></p>
+          </details>
           <div class="novedades-editor">
             <div class="espacio-card" id="correoEditor">
               <label class="etiqueta" for="correoAsunto">Asunto</label>
@@ -1270,6 +1285,17 @@
           <textarea id="respuestaTexto" class="respuesta-texto" aria-label="Texto de la respuesta"></textarea>
           <div class="novedades-botones"><button class="btn-small" type="button" onclick="copiarRespuesta()">Copiar</button></div>
           <p class="config-mensaje" id="respuestaMensaje" role="status"></p>
+          <details class="espacio-card mt-chico" id="respuestasEditor">
+            <summary class="etiqueta" style="cursor:pointer">Editar las respuestas (tocá para ver)</summary>
+            <p class="ayuda">{nombre} se completa con el primer nombre que escribas arriba y {plazo_frente} con el plazo para cancelar del Frente (Reglas). El orden de acá es el de la lista.</p>
+            <div id="respuestasLista" class="legal-articulos"></div>
+            <div class="novedades-botones">
+              <button class="btn-small" type="button" onclick="agregarRespuestaLista()">+ Agregar respuesta</button>
+              <button class="btn-primario-chico" type="button" onclick="guardarRespuestasListas()">Guardar respuestas</button>
+              <button class="btn-small btn-cancel" type="button" onclick="guardarRespuestasListas(true)">Volver a las originales</button>
+            </div>
+            <p class="config-mensaje" id="respuestasEstado" role="status"></p>
+          </details>
 
           <h3 class="mt">Contraseña de los admins</h3>
           <p class="nota">Cambia la contraseña con la que entran los admins (no la tuya de admin supremo). Usalo cuando un moderador deja el cargo o si la contraseña se filtró. Al guardarla se cierran todas las sesiones, incluida la tuya: después entrá de nuevo con tu contraseña y pasales la nueva a los admins. Mínimo 10 caracteres.</p>
@@ -4195,6 +4221,8 @@
         armarReglas();
         armarAnuncio();
         armarTextos();
+        armarEditorRespuestas();
+        armarRespuesta(true);
         armarSelectorCorreos();
       } catch (error) {
         console.error('Error al cargar la personalización:', error);
@@ -4232,6 +4260,9 @@
           crear('div', { className: 'regla-fila' }, ['Máximo', campoNumero('max', r.anticipacion_max_dias, 0, 365), 'días antes (0 = sin límite: manda qué meses están habilitados)']),
           crear('span', { className: 'etiqueta', textContent: 'Límite por persona' }),
           limite,
+          crear('span', { className: 'etiqueta', textContent: 'Acompañantes' }),
+          crear('div', { className: 'regla-fila' }, ['Hasta', campoNumero('acompanantes', r.acompanantes_max ?? (esFrente ? 0 : 4), 0, 10), 'acompañantes por reserva (0 = no se piden)']),
+          crear('p', { className: 'ayuda', textContent: 'Cada uno con nombre y celular; se ven en el panel, el Excel y los correos, nunca en la página pública.' }),
           crear('label', { className: 'etiqueta', textContent: 'Normas de uso (opcional)' }),
           crear('textarea', { className: 'corto', maxLength: 1500, value: r.normas, dataset: { campo: 'normas' }, placeholder: 'Ej: Dejá el espacio limpio y con la luz apagada.' }),
           crear('p', { className: 'ayuda', textContent: 'Si escribís normas, se muestran al reservar (hay que tildar que se leyeron) y van en los correos de confirmación y recordatorio.' })
@@ -4254,6 +4285,7 @@
           anticipacion_min_dias: num('min'),
           anticipacion_max_dias: num('max'),
           limite_por_persona_mes: id === 3 ? 0 : num('limite'),
+          acompanantes_max: num('acompanantes'),
           normas: card.querySelector('[data-campo="normas"]').value
         };
         if (id === 3) max = num('limite');
@@ -4273,6 +4305,7 @@
       if (!usados.includes('dias_reserva') && [3, 1].some(id => [...reglas[id].dias].sort().join() !== [...def[id].dias].sort().join())) articulos.push('los días en que se reserva');
       if (!usados.includes('plazo_cancelacion_frente') && reglas[3].plazo_cancelacion_dias !== def[3].plazo_cancelacion_dias) articulos.push('el plazo para cancelar el Frente');
       if (!usados.includes('plazo_cancelacion_altillo') && reglas[1].plazo_cancelacion_dias !== def[1].plazo_cancelacion_dias) articulos.push('el plazo para cancelar el Altillo (hoy los Términos solo hablan del Frente)');
+      if (reglas[3].acompanantes_max > 0) articulos.push('los acompañantes en el Frente (el artículo 6.2 habla solo del Altillo)');
       if (!usados.includes('recordatorio') && [3, 1].some(id => reglas[id].recordatorio !== def[id].recordatorio || reglas[id].recordatorio_dias !== def[id].recordatorio_dias)) articulos.push('el recordatorio');
       const aviso = document.getElementById('reglasAvisoTerminos');
       aviso.textContent = articulos.length
@@ -4348,8 +4381,12 @@
 
     function armarTextos() {
       const contenedor = document.getElementById('textosPagina');
-      contenedor.replaceChildren(...Object.entries(personalizacion.textos).map(([clave, t]) => {
-        const unaLinea = clave === 'titulo_inicio';
+      // Una tarjeta por texto, con un título cada vez que empieza otro lugar de la página (grupo)
+      let grupoAnterior = null;
+      contenedor.replaceChildren(...Object.entries(personalizacion.textos).flatMap(([clave, t]) => {
+        const titulo = t.grupo && t.grupo !== grupoAnterior ? [crear('h4', { className: 'textos-grupo', textContent: t.grupo })] : [];
+        grupoAnterior = t.grupo || grupoAnterior;
+        const unaLinea = ['titulo_inicio', 'confirmacion_titulo', 'reporte_titulo'].includes(clave) || clave.startsWith('error_');
         const campo = crear(unaLinea ? 'input' : 'textarea', { maxLength: t.max, value: t.valor, dataset: { texto: clave } });
         if (unaLinea) campo.type = 'text';
         else campo.className = 'corto';
@@ -4384,7 +4421,7 @@
         const tarjeta = crear('div', { className: 'espacio-card', dataset: { tarjeta: clave } }, hijos);
         // Tocar cualquier parte de la tarjeta también muestra su vista previa
         tarjeta.addEventListener('click', () => vistaTexto(clave));
-        return tarjeta;
+        return [...titulo, tarjeta];
       }));
       vistaTexto('titulo_inicio');
     }
@@ -4399,8 +4436,28 @@
       lista_espera: 'Cuadro de la lista de espera (cuando no quedan lugares)',
       cancelar_ayuda: 'Página "Cancelar reserva"',
       ayuda_reserva_frente: 'Debajo del botón "Crear reserva", en el Frente',
-      ayuda_reserva_altillo: 'Debajo del botón "Crear reserva", en el Altillo'
+      ayuda_reserva_altillo: 'Debajo del botón "Crear reserva", en el Altillo',
+      confirmacion_titulo: 'Ventana "¡Tu reserva quedó confirmada!"',
+      confirmacion_mensaje: 'Ventana "¡Tu reserva quedó confirmada!"',
+      codigo_perdido: 'Página "Cancelar reserva", abajo',
+      reporte_titulo: 'Ventana "Reportar un problema"',
+      reporte_intro: 'Ventana "Reportar un problema"',
+      error_ocupado: 'Mensaje en rojo arriba del formulario (después la página agrega "Se actualizaron los horarios…")',
+      error_bloqueado: 'Mensaje en rojo arriba del formulario',
+      error_horario_pasado: 'Mensaje en rojo arriba del formulario',
+      error_mes_no_habilitado: 'Mensaje en rojo arriba del formulario',
+      error_limite: 'Mensaje en rojo arriba del formulario (ejemplo: Frente, límite 2)'
     };
+    // Texto con **negritas** y {comodines} (en negrita) -> nodos, sin interpretar nada como HTML
+    function nodosConNegritas(texto, valores = {}) {
+      return String(texto || '').split(/(\*\*[^*]+?\*\*|\{[a-z_]+\})/g).filter(Boolean).map(parte => {
+        const negrita = parte.match(/^\*\*([^*]+?)\*\*$/);
+        const comodin = parte.match(/^\{([a-z_]+)\}$/);
+        if (negrita) return crear('strong', { textContent: negrita[1] });
+        if (comodin && valores[comodin[1]] !== undefined) return crear('strong', { textContent: valores[comodin[1]] });
+        return document.createTextNode(parte);
+      });
+    }
     function valorTexto(clave) {
       const campo = document.querySelector(`#textosPagina [data-texto="${clave}"]`);
       return campo ? campo.value.trim() : '';
@@ -4426,13 +4483,28 @@
           intro ? div('vp-intro', intro) : vacio('(sin texto debajo del título)')];
       } else if (clave === 'mes_no_habilitado') {
         piezas = [div('vp-titulo', 'Diciembre de 2026'), v ? div('vp-aviso', v) : vacio('(vacío)')];
-      } else if (clave === 'confirmacion_extra') {
+      } else if (['confirmacion_titulo', 'confirmacion_mensaje', 'confirmacion_extra'].includes(clave)) {
+        const extra = valorTexto('confirmacion_extra');
         piezas = [crear('div', { className: 'vp-caja vp-modal' }, [
-          crear('h5', { textContent: '¡Tu reserva quedó confirmada!' }),
+          crear('h5', { textContent: valorTexto('confirmacion_titulo') || '¡Tu reserva quedó confirmada!' }),
           div('vp-suave', 'Espacio: Frente · Fecha: 19/11/2026 · Turno: Desayuno (07:00 - 10:00)'),
-          div('vp-suave', 'Te enviamos la confirmación por email, con tu código de cancelación…'),
-          v ? div('vp-intro', v) : vacio('(sin texto extra)'),
+          crear('div', { className: 'vp-intro' }, nodosConNegritas(valorTexto('confirmacion_mensaje') || personalizacion.textos.confirmacion_mensaje.defecto, { correo: 'ana.perez@gmail.com' })),
+          div('vp-suave', 'Podés cancelarla gratis con tu código hasta el 17/11/2026 (2 días antes)…'),
+          extra ? div('vp-intro', extra) : vacio('(sin texto extra)'),
           div('vp-boton', 'Entendido')])];
+      } else if (clave === 'codigo_perdido') {
+        const partes = v.split('{whatsapp}');
+        const nodos = partes.flatMap((parte, i) => (i ? [crear('u', { textContent: 'WhatsApp' }), parte] : [parte])).filter(Boolean);
+        piezas = [crear('div', { className: 'vp-caja' }, [crear('h5', { textContent: 'Tu código de cancelación', style: 'margin:0;color:var(--marino);font-size:16px' }),
+          div('vp-campo', 'Ej: 02ADDC1537AD1323'), div('vp-boton', 'Buscar mi reserva'),
+          v ? crear('div', { className: 'vp-suave' }, nodos) : vacio('(no se muestra)')])];
+      } else if (clave === 'reporte_titulo' || clave === 'reporte_intro') {
+        const intro = valorTexto('reporte_intro');
+        piezas = [crear('div', { className: 'vp-caja vp-modal' }, [crear('h5', { textContent: valorTexto('reporte_titulo') || 'Reportar un problema' }),
+          intro ? div('vp-suave', intro) : vacio('(sin texto)'), div('vp-campo', 'Ej: elegí el martes 11, toqué Merienda y no se habilitó el botón'), div('vp-boton', 'Enviar reporte')])];
+      } else if (clave.startsWith('error_')) {
+        const texto = (v || personalizacion.textos[clave].defecto).replace(/\{cantidad\}/g, '2 reservas activas').replace(/\{espacio\}/g, 'Frente').replace(/\{maximo\}/g, '2');
+        piezas = [crear('div', { className: 'vp-error', textContent: texto + (clave === 'error_ocupado' ? '. Se actualizaron los horarios: elegí otro turno.' : '') })];
       } else if (clave === 'lista_espera') {
         const texto = v.replace(/\{espacio\}/g, 'Frente').replace(/\{mes\}/g, 'noviembre de 2026');
         piezas = [crear('div', { className: 'vp-espera' }, [crear('b', { textContent: 'Ya no hay lugares en noviembre de 2026' }),
@@ -4499,11 +4571,42 @@
     function armarSelectorCorreos() {
       const select = document.getElementById('correoClave');
       const elegido = correoClaveActual || select.value || 'confirmacion';
-      select.replaceChildren(...Object.entries(personalizacion.plantillas).map(([clave, p]) =>
-        new Option(`${p.nombre}${p.modificada ? ' (modificado)' : ''}`, clave)));
+      // Separados: los que le llegan a la gente y los avisos internos a los moderadores
+      const grupo = (etiqueta, interno) => {
+        const g = document.createElement('optgroup');
+        g.label = etiqueta;
+        Object.entries(personalizacion.plantillas).filter(([, p]) => !!p.interno === interno)
+          .forEach(([clave, p]) => g.appendChild(new Option(`${p.nombre}${p.modificada ? ' (modificado)' : ''}`, clave)));
+        return g;
+      };
+      select.replaceChildren(grupo('Correos a la gente', false), grupo('Avisos internos (a los moderadores)', true));
       select.value = personalizacion.plantillas[elegido] ? elegido : 'confirmacion';
       correoClaveActual = '';
       mostrarPlantilla();
+      armarDestinatariosAvisos();
+    }
+
+    // Quién recibe los avisos internos de cada espacio (un correo por línea)
+    function armarDestinatariosAvisos() {
+      const d = personalizacion.avisos_destinatarios || {};
+      document.getElementById('avisosFrente').value = (d[3] || []).join('\n');
+      document.getElementById('avisosAltillo').value = (d[1] || []).join('\n');
+    }
+    async function guardarDestinatariosAvisos() {
+      const lista = id => document.getElementById(id).value.split(/[\n,;]+/).map(c => c.trim()).filter(Boolean);
+      mensajePersonalizacion('avisosMensaje', 'Guardando…');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/avisos-destinatarios`, { method: 'POST', body: JSON.stringify({ 3: lista('avisosFrente'), 1: lista('avisosAltillo') }) });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) return mensajePersonalizacion('avisosMensaje', datos.error || 'No se pudo guardar.', 'error');
+        if (datos.avisos_destinatarios) personalizacion.avisos_destinatarios = datos.avisos_destinatarios;
+        armarDestinatariosAvisos();
+        mensajePersonalizacion('avisosMensaje', datos.mensaje === 'No había cambios' ? 'No había cambios para guardar.' : '✓ Guardado. Los próximos avisos ya van a estos correos.', 'ok');
+        cargarActividad();
+      } catch (error) {
+        mensajePersonalizacion('avisosMensaje', 'No se pudo conectar con el servidor.', 'error');
+        avisarErrorConexion(error);
+      }
     }
 
     function camposCorreo() {
@@ -5013,19 +5116,70 @@
     }
 
     // --- Respuestas listas para copiar ---
-    const RESPUESTAS = {
-      acceso: ['Pedido de acceso a sus datos', n => `Hola, ${n}:\n\nRecibimos tu solicitud de acceso a tus datos personales en el sistema de reservas del CEQ. Te enviamos adjunto un PDF con toda la información que tenemos guardada sobre vos: tus reservas, las reservas en las que figurás como acompañante y tus inscripciones en la lista de espera.\n\nSegún nuestra Política de Privacidad, los datos de las reservas se anonimizan automáticamente a los 6 meses.\n\nSi querés corregir algún dato o que borremos tu información, respondé a este correo indicándolo.\n\nSaludos,\nSecretaría de Informática — Centro de Estudiantes de Química`],
-      borrado: ['Datos borrados', n => `Hola, ${n}:\n\nTe confirmamos que borramos tus datos personales del sistema de reservas del CEQ: tus reservas quedaron sin nombre ni contacto, y saliste de las listas de acompañantes y de la lista de espera.\n\nSi en el futuro volvés a reservar, se van a guardar los datos de esa nueva reserva.\n\nSaludos,\nSecretaría de Informática — Centro de Estudiantes de Química`],
-      correccion: ['Datos corregidos', n => `Hola, ${n}:\n\nYa corregimos los datos de tu reserva como pediste. Te llegó (o te va a llegar en unos minutos) un correo con los datos actualizados.\n\nSi ves algo más que no esté bien, respondé a este correo.\n\nSaludos,\nCentro de Estudiantes de Química`],
-      reenvio: ['No le llegó el correo', n => `Hola, ${n}:\n\nTe reenviamos la confirmación de tu reserva, con un código de cancelación nuevo (el anterior ya no sirve). Revisá también la carpeta de spam o "Promociones".\n\nSi querés cancelar, podés usar el enlace "Cancelar mi reserva" de ese correo.\n\nSaludos,\nCentro de Estudiantes de Química`],
-      plazo: ['Pide cancelar fuera de plazo (Frente)', n => `Hola, ${n}:\n\nRecibimos tu pedido para cancelar la reserva. Como faltan menos de 2 días, ya no se puede cancelar desde la página, pero la cancelamos nosotros: te llega la confirmación por correo.\n\nTe pedimos que la próxima vez avises con al menos 2 días de anticipación, así el turno lo puede usar otra persona.\n\nSaludos,\nCentro de Estudiantes de Química`],
-      general: ['Consulta general', n => `Hola, ${n}:\n\nGracias por escribirnos. \n\n[Respuesta]\n\nCualquier otra duda, respondé a este correo.\n\nSaludos,\nCentro de Estudiantes de Química`]
-    };
-    function armarRespuesta() {
+    // Se editan acá mismo ("Editar las respuestas") y se guardan en el servidor; llegan con la
+    // personalización. {nombre} y {plazo_frente} se completan al elegir una.
+    function respuestasListas() {
+      return (personalizacion && personalizacion.respuestas_listas) || [];
+    }
+    // reconstruir: volver a llenar la lista (al cargar o después de guardar)
+    function armarRespuesta(reconstruir) {
       const select = document.getElementById('respuestaTipo');
-      if (!select.options.length) Object.entries(RESPUESTAS).forEach(([clave, [titulo]]) => select.add(new Option(titulo, clave)));
+      const lista = respuestasListas();
+      if (reconstruir || select.options.length !== lista.length) {
+        const elegido = select.selectedIndex;
+        select.replaceChildren(...lista.map((r, i) => new Option(r.titulo, String(i))));
+        if (elegido >= 0 && elegido < lista.length) select.selectedIndex = elegido;
+      }
+      const r = lista[Number(select.value)];
       const nombre = document.getElementById('respuestaNombre').value.trim().split(/\s+/)[0] || '[nombre]';
-      document.getElementById('respuestaTexto').value = RESPUESTAS[select.value][1](nombre);
+      const plazo = (personalizacion && personalizacion.respuestas_valores && personalizacion.respuestas_valores.plazo_frente) || '2 días';
+      document.getElementById('respuestaTexto').value = r ? r.texto.replace(/\{nombre\}/g, nombre).replace(/\{plazo_frente\}/g, plazo) : 'Cargando las respuestas…';
+    }
+
+    function tarjetaRespuestaLista(r = { titulo: '', texto: 'Hola, {nombre}:\n\n\n\nSaludos,\nCentro de Estudiantes de Química' }) {
+      const titulo = crear('input', { type: 'text', maxLength: 80, value: r.titulo, placeholder: 'Nombre de la respuesta (ej: Pide cambiar de turno)', dataset: { campo: 'titulo' } });
+      const texto = crear('textarea', { className: 'legal-texto', maxLength: 4000, value: r.texto, dataset: { campo: 'texto' } });
+      const tarjeta = crear('div', { className: 'espacio-card legal-articulo' });
+      const mover = paso => {
+        const hermanos = [...tarjeta.parentElement.children];
+        const destino = hermanos[hermanos.indexOf(tarjeta) + paso];
+        if (!destino) return;
+        if (paso < 0) tarjeta.parentElement.insertBefore(tarjeta, destino);
+        else tarjeta.parentElement.insertBefore(destino, tarjeta);
+      };
+      tarjeta.append(crear('div', { className: 'legal-cab' }, [titulo,
+        crear('button', { type: 'button', className: 'btn-small', textContent: '↑', title: 'Subir', onclick: () => mover(-1) }),
+        crear('button', { type: 'button', className: 'btn-small', textContent: '↓', title: 'Bajar', onclick: () => mover(1) }),
+        crear('button', { type: 'button', className: 'btn-small btn-cancel', textContent: '✕', title: 'Quitar', onclick: () => tarjeta.remove() })]), texto);
+      return tarjeta;
+    }
+    function armarEditorRespuestas() {
+      document.getElementById('respuestasLista').replaceChildren(...respuestasListas().map(r => tarjetaRespuestaLista(r)));
+    }
+    function agregarRespuestaLista() {
+      const tarjeta = tarjetaRespuestaLista();
+      document.getElementById('respuestasLista').appendChild(tarjeta);
+      tarjeta.querySelector('input').focus();
+    }
+    async function guardarRespuestasListas(restaurar) {
+      if (restaurar && !confirm('¿Volver a las 6 respuestas originales? Se pierden las que agregaste o cambiaste.')) return;
+      const respuestas = [...document.querySelectorAll('#respuestasLista .legal-articulo')].map(t => ({
+        titulo: t.querySelector('[data-campo="titulo"]').value, texto: t.querySelector('[data-campo="texto"]').value
+      }));
+      mensajePersonalizacion('respuestasEstado', 'Guardando…');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/respuestas`, { method: 'POST', body: JSON.stringify(restaurar ? { restaurar: true } : { respuestas }) });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) return mensajePersonalizacion('respuestasEstado', datos.error || 'No se pudo guardar.', 'error');
+        personalizacion.respuestas_listas = datos.respuestas_listas;
+        armarEditorRespuestas();
+        armarRespuesta(true);
+        mensajePersonalizacion('respuestasEstado', datos.mensaje === 'No había cambios' ? 'No había cambios para guardar.' : '✓ Respuestas guardadas.', 'ok');
+        cargarActividad();
+      } catch (error) {
+        mensajePersonalizacion('respuestasEstado', 'No se pudo conectar con el servidor.', 'error');
+        avisarErrorConexion(error);
+      }
     }
     async function copiarRespuesta() {
       const texto = document.getElementById('respuestaTexto').value;
