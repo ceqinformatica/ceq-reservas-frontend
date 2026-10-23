@@ -131,7 +131,8 @@
     .sub-seccion .filters input[type="search"] { flex: 1 1 260px; max-width: 460px; }
     .btn-secundario-chico { padding: 9px 16px; border-radius: 8px; font-size: 14px; }
     @media (max-width: 860px) {
-      .avz-layout { grid-template-columns: 1fr; }
+      /* minmax(0, …): con 1fr, una tabla ancha estiraba toda la hoja y se cortaba a la derecha (AUD-11) */
+      .avz-layout { grid-template-columns: minmax(0, 1fr); }
       .avz-menu { display: none; }
       .avz-select { display: block; position: sticky; top: 58px; z-index: 5; box-shadow: 0 4px 12px rgba(23,56,116,.12); }
       .sub-seccion { padding: 18px 14px 20px; border-radius: 14px; }
@@ -749,6 +750,8 @@
                   <label><input type="checkbox" value="3" checked> Mié</label>
                   <label><input type="checkbox" value="4" checked> Jue</label>
                   <label><input type="checkbox" value="5" checked> Vie</label>
+                  <label><input type="checkbox" value="6"> Sáb</label>
+                  <label><input type="checkbox" value="0"> Dom</label>
                 </div>
               </div>
               <div class="form-group">

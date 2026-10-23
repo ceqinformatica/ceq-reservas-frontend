@@ -2104,7 +2104,6 @@
           fecha: diaSeleccionado,
           horaInicio,
           horaFin,
-          codigo: data.codigo,
           email
         });
 
@@ -2135,7 +2134,7 @@
       }
     }
 
-    function mostrarConfirmacionReserva({ espacioId, fecha, horaInicio, horaFin, codigo, email }) {
+    function mostrarConfirmacionReserva({ espacioId, fecha, horaInicio, horaFin, email }) {
       const [anio, mes, dia] = fecha.split('-');
       document.getElementById('confEspacio').textContent = espacios[espacioId];
       document.getElementById('confFecha').textContent = `${dia}/${mes}/${anio}`;
