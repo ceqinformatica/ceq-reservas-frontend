@@ -35,7 +35,38 @@ if (fs.existsSync(vercel)) {
     const admin = (conf.headers || []).find(h => String(h.source).startsWith('/admin'));
     if (admin && admin.headers.some(h => h.key === 'X-Frame-Options')) ok('vercel.json válido y protege admin.html');
     else falla('vercel.json no tiene la protección de admin.html');
+    // AUD-16: ninguna página se puede mostrar dentro de otro sitio
+    const todas = (conf.headers || []).find(h => h.source === '/(.*)');
+    if (todas && todas.headers.some(h => h.key === 'Content-Security-Policy' && /frame-ancestors 'self'/.test(h.value))) ok("vercel.json: todas las páginas llevan frame-ancestors 'self'");
+    else falla("vercel.json: falta frame-ancestors 'self' para todas las páginas");
   } catch (e) { falla('vercel.json no es JSON válido: ' + e.message); }
+}
+
+// AUD-18: el menú de Avanzado (MENU_AVANZADO en admin.html) arma cada sección buscando el texto
+// EXACTO de sus títulos <h3>. Si se cambia un título y no el menú (o al revés), la sección queda
+// suelta al final o no aparece: se revisa que coincidan.
+const archivoAdmin = path.join(raiz, 'admin.html');
+if (fs.existsSync(archivoAdmin)) {
+  const html = fs.readFileSync(archivoAdmin, 'utf8');
+  const bloque = html.match(/const MENU_AVANZADO = (\[[\s\S]*?\n {4}\]);/);
+  const inicio = html.indexOf('id="tab-avanzado"');
+  const fin = html.indexOf('<footer', inicio);
+  if (!bloque || inicio < 0 || fin < 0) {
+    falla('admin.html: no se encontró MENU_AVANZADO o la pestaña Avanzado');
+  } else {
+    const menu = vm.runInNewContext(bloque[1]);
+    const enMenu = menu.flatMap(([, opciones]) => opciones.flatMap(o => o[3]));
+    const titulos = [...html.slice(inicio, fin).matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/g)].map(m => m[1].replace(/<[^>]+>/g, '').trim());
+    const sinTitulo = enMenu.filter(t => !titulos.includes(t));
+    const sinMenu = titulos.filter(t => !enMenu.includes(t));
+    const claves = menu.flatMap(([, opciones]) => opciones.map(o => o[0]));
+    if (sinTitulo.length) falla(`admin.html: el menú de Avanzado busca títulos que no existen: ${sinTitulo.join(', ')}`);
+    else ok(`admin.html: los ${enMenu.length} títulos del menú de Avanzado existen`);
+    if (sinMenu.length) falla(`admin.html: secciones de Avanzado que no están en el menú: ${sinMenu.join(', ')}`);
+    else ok(`admin.html: las ${titulos.length} secciones de Avanzado están en el menú`);
+    if (new Set(claves).size !== claves.length) falla('admin.html: hay claves repetidas en el menú de Avanzado');
+    else ok(`admin.html: las ${claves.length} opciones del menú tienen claves distintas`);
+  }
 }
 
 console.log(`\n${revisadas - fallas}/${revisadas} pruebas correctas`);
