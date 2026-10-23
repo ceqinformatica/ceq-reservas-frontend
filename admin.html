@@ -1647,9 +1647,11 @@
 
     async function logout() {
       try {
+        // Con el CSRF, como las demás acciones del panel (el servidor lo pide desde AUD-16)
         await fetch(`${ADMIN_API}/api/logout`, {
           method: 'POST',
-          credentials: 'include'
+          credentials: 'include',
+          headers: { 'X-CSRF-Token': leerCookie('csrf_token') }
         });
       } catch (error) {
         console.error('Error al cerrar sesión:', error);
