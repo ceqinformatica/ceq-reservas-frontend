@@ -1307,9 +1307,12 @@
           </div>
 
           <h3 class="mt">Copia de seguridad</h3>
-          <p class="nota">Baja ahora el mismo archivo que llega por correo el día 1 de cada mes (todas las reservas, con todos sus datos). Tiene datos personales: guardalo solo donde corresponde y borralo cuando ya no haga falta.</p>
+          <p class="nota">Baja ahora los mismos archivos que llegan por correo el día 1 de cada mes. El <strong>.csv</strong> tiene todas las reservas con todos sus datos y se abre con Excel. La <strong>copia completa (.json)</strong> tiene la base entera (reservas, bloqueos, meses, lista de espera, reglas, textos, correos y Términos) y sirve para volver a cargarla en una base nueva (ver el README del servidor, "Restaurar la base"). Tienen datos personales: guardalos solo donde corresponde y borralos cuando ya no hagan falta.</p>
           <div class="espacio-card">
-            <div class="novedades-botones"><button class="btn-primario-chico" type="button" onclick="descargarCopia()">Descargar copia (.csv)</button></div>
+            <div class="novedades-botones">
+              <button class="btn-primario-chico" type="button" onclick="descargarCopia()">Descargar copia (.csv)</button>
+              <button class="btn-small btn-secundario-chico" type="button" onclick="descargarCopia(true)">Descargar copia completa (.json)</button>
+            </div>
             <p class="config-mensaje" id="copiaMensaje" role="status"></p>
           </div>
 
@@ -5094,21 +5097,24 @@
     }
 
     // --- Copia de seguridad en el momento ---
-    async function descargarCopia() {
+    // completa: la base entera en .json, para volver a cargarla con restaurar.js (AUD-06)
+    async function descargarCopia(completa = false) {
       const p = document.getElementById('copiaMensaje');
       p.className = 'config-mensaje';
       p.textContent = 'Preparando la copia…';
       try {
-        const res = await fetchConJWT(`${API_BASE}/superadmin/copia`);
+        const res = await fetchConJWT(`${API_BASE}/superadmin/copia${completa ? '?formato=json' : ''}`);
         if (!res.ok) throw new Error(await leerError(res));
         const blob = await res.blob();
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `reservas-ceq-${hoyEnAsuncionStr()}.csv`;
+        a.download = completa ? `reservas-ceq-${hoyEnAsuncionStr()}-completa.json` : `reservas-ceq-${hoyEnAsuncionStr()}.csv`;
         a.click();
         URL.revokeObjectURL(a.href);
         p.className = 'config-mensaje ok';
-        p.textContent = '✓ Copia descargada. Se abre con Excel o Google Sheets.';
+        p.textContent = completa
+          ? '✓ Copia completa descargada. No hace falta abrirla: sirve para restaurar la base con restaurar.js (ver el README del servidor).'
+          : '✓ Copia descargada. Se abre con Excel o Google Sheets.';
         cargarActividad();
       } catch (error) {
         p.className = 'config-mensaje error';
