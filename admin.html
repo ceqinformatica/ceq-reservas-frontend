@@ -1295,6 +1295,12 @@
           <p class="nota">Lo que hay que mirar para saber si todo anda bien. Si algo aparece en rojo, revisalo o avisá a la Secretaría de Informática.</p>
           <div id="estadoSistema" class="estado-grid"></div>
           <div class="acciones-lista"><span class="nota" id="estadoActualizado"></span><button class="btn-small" type="button" onclick="cargarEstado()">Actualizar</button></div>
+          <div class="espacio-card mt-chico">
+            <p class="tarjeta-titulo">Inicio de sesión cerrado</p>
+            <p class="ayuda">Si hay muchos intentos con una contraseña equivocada (30 en una hora), el inicio de sesión se cierra para las redes desde las que nunca se entró bien. Si fuiste vos o ya cambiaste las contraseñas, reabrilo acá.</p>
+            <div class="novedades-botones"><button class="btn-small btn-secundario-chico" type="button" onclick="reabrirLogin()">Reabrir el inicio de sesión</button></div>
+            <p class="config-mensaje" id="reabrirMensaje" role="status"></p>
+          </div>
 
           <h3 class="mt">Pausar las reservas</h3>
           <p class="nota">Mientras está pausado, la página muestra tu mensaje y nadie puede reservar ni anotarse en la lista de espera. Se puede seguir cancelando, y desde el panel se pueden hacer reservas de prioridad. Sirve para un imprevisto o mientras se arregla algo.</p>
@@ -1312,7 +1318,9 @@
             <div class="novedades-botones">
               <button class="btn-primario-chico" type="button" onclick="descargarCopia()">Descargar copia (.csv)</button>
               <button class="btn-small btn-secundario-chico" type="button" onclick="descargarCopia(true)">Descargar copia completa (.json)</button>
+              <button class="btn-small btn-secundario-chico" type="button" onclick="mandarCopiaAhora()">Mandarme la copia ahora</button>
             </div>
+            <p class="ayuda">"Mandarme la copia ahora" manda al correo de alertas el mismo correo que llega el día 1 (con el CSV y la copia completa en .zip). Sirve para comprobar que llega bien, sin esperar al día 1.</p>
             <p class="config-mensaje" id="copiaMensaje" role="status"></p>
           </div>
 
@@ -1648,13 +1656,20 @@
     async function logout() {
       try {
         // Con el CSRF, como las demás acciones del panel (el servidor lo pide desde AUD-16)
-        await fetch(`${ADMIN_API}/api/logout`, {
+        const res = await fetch(`${ADMIN_API}/api/logout`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'X-CSRF-Token': leerCookie('csrf_token') }
         });
+        // N5: si el servidor no la cerró, se avisa (en una computadora compartida la sesión quedaría abierta)
+        if (!res.ok) {
+          alert('No se pudo cerrar la sesión en el servidor. Si esta computadora no es tuya, cerrá el navegador o, como admin supremo, usá "Cerrar todas las sesiones" (Avanzado → Mantenimiento).');
+          return;
+        }
       } catch (error) {
         console.error('Error al cerrar sesión:', error);
+        alert('No se pudo conectar con el servidor para cerrar la sesión. Probá de nuevo en un momento.');
+        return;
       }
       document.getElementById('passwordInput').value = '';
       window.location.href = 'https://reservas.ceq-una.com/';
@@ -4227,8 +4242,15 @@
           ['Correos trabados', e.correos ? `${e.correos.pendientes} esperando · ${e.correos.fallidos} que no salieron` : 'Sin datos',
             !e.correos ? 'aviso' : e.correos.fallidos > 0 ? 'mal' : e.correos.pendientes > 5 ? 'aviso' : 'ok',
             'Los que no salieron se reintentan desde la pestaña "Hoy"'],
-          ['Copia de seguridad mensual', e.copia_mensual ? `Última: ${String(e.copia_mensual).slice(0, 7)}` : 'Todavía ninguna',
-            String(e.copia_mensual || '').startsWith(mesActual) ? 'ok' : 'aviso', 'Llega al correo de alertas el día 1 de cada mes'],
+          // Si la copia de este mes no salió (o salió sin la copia completa), en rojo con el motivo
+          e.copia_mensual_error && e.copia_mensual_error.mes === mesActual
+            ? ['Copia de seguridad mensual', /^No salió/.test(e.copia_mensual_error.problema) ? 'NO SALIÓ' : 'Salió incompleta', 'mal',
+              `${e.copia_mensual_error.problema} · Probá con "Mandarme la copia ahora" (Mantenimiento → Copia de seguridad)`]
+            : ['Copia de seguridad mensual', e.copia_mensual ? `Última: ${String(e.copia_mensual).slice(0, 7)}` : 'Todavía ninguna',
+              String(e.copia_mensual || '').startsWith(mesActual) ? 'ok' : 'aviso', 'Llega al correo de alertas el día 1 de cada mes'],
+          ['Inicio de sesión del panel', e.login_fallidos_hora == null ? 'Sin datos' : e.login_fallidos_hora >= e.login_fallidos_tope ? 'CERRADO' : `${e.login_fallidos_hora} intento(s) fallido(s) en la última hora`,
+            e.login_fallidos_hora == null ? 'aviso' : e.login_fallidos_hora >= e.login_fallidos_tope ? 'mal' : e.login_fallidos_hora >= 10 ? 'aviso' : 'ok',
+            e.login_fallidos_hora >= e.login_fallidos_tope ? 'Solo entran las redes desde las que ya se entró bien. Se puede reabrir con el botón de abajo.' : `Con ${e.login_fallidos_tope} en una hora se cierra para las redes nuevas`],
           ['Planilla de Google', e.ultima_sincronizacion ? `Actualizada ${hace(e.ultima_sincronizacion)}` : 'Sin datos todavía', sincronizado ? 'ok' : 'aviso',
             'Se actualiza sola cada hora'],
           ['Plazos de conservación', e.ultima_revision_plazos ? `Revisados el ${e.ultima_revision_plazos.split('-').reverse().join('/')}` : 'Pendiente desde el último reinicio', e.ultima_revision_plazos ? 'ok' : 'aviso',
@@ -5099,6 +5121,38 @@
     }
 
     // --- Copia de seguridad en el momento ---
+    // El correo de la copia mensual, en el momento (para probar que Brevo lo acepta)
+    async function mandarCopiaAhora() {
+      const p = document.getElementById('copiaMensaje');
+      p.className = 'config-mensaje';
+      p.textContent = 'Armando y mandando la copia…';
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/copia/enviar`, { method: 'POST', body: '{}' });
+        const datos = await res.json().catch(() => ({}));
+        p.className = 'config-mensaje ' + (res.ok && datos.completa ? 'ok' : 'error');
+        p.textContent = res.ok ? (datos.completa ? '✓ ' : '') + datos.mensaje : (datos.error || 'No se pudo mandar la copia.');
+        cargarActividad();
+      } catch (error) {
+        p.className = 'config-mensaje error';
+        p.textContent = 'No se pudo conectar con el servidor.';
+      }
+    }
+
+    async function reabrirLogin() {
+      if (!confirm('¿Reabrir el inicio de sesión? Los intentos fallidos de antes dejan de contar.')) return;
+      const p = document.getElementById('reabrirMensaje');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/login/reabrir`, { method: 'POST', body: '{}' });
+        const datos = await res.json().catch(() => ({}));
+        p.className = 'config-mensaje ' + (res.ok ? 'ok' : 'error');
+        p.textContent = res.ok ? '✓ ' + datos.mensaje : (datos.error || 'No se pudo reabrir.');
+        cargarEstado();
+      } catch (error) {
+        p.className = 'config-mensaje error';
+        p.textContent = 'No se pudo conectar con el servidor.';
+      }
+    }
+
     // completa: la base entera en .json, para volver a cargarla con restaurar.js (AUD-06)
     async function descargarCopia(completa = false) {
       const p = document.getElementById('copiaMensaje');
