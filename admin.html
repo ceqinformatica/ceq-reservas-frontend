@@ -391,7 +391,28 @@
     .config-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
     .config-campos label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--marino); }
     .config-mensaje { font-size: 14px; font-weight: 600; }
-    /* Formularios de "Crear y cambiar espacios" y "Cuentas del panel": una sola columna */
+    /* La tarjeta de un espacio (Avanzado > Espacios): se abre y muestra todo lo suyo en bloques numerados */
+    #espaciosEditor { display: grid; gap: 14px; }
+    .esp-tarjeta > summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+    .esp-tarjeta > summary strong { font-size: 17px; color: var(--marino); }
+    .esp-tarjeta > summary .status-badge { text-transform: none; }
+    .esp-resumen { font-size: 13px; color: var(--suave); }
+    .esp-tarjeta[open] > summary { padding-bottom: 4px; }
+    .esp-form { display: grid; gap: 0; max-width: 760px; min-width: 0; }
+    .esp-bloque { display: grid; gap: 10px; padding: 16px 0; border-top: 1px solid var(--linea); min-width: 0; }
+    .esp-bloque > .tarjeta-titulo { font-size: 15.5px; }
+    .esp-sub { display: grid; gap: 10px; min-width: 0; }
+    .esp-sub[hidden] { display: none; }
+    .esp-campo { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--marino); }
+    .esp-form select, .esp-form input[type="email"], .esp-form input[type="time"] { padding: 9px 10px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font: inherit; font-size: 14px; font-weight: 400; background: var(--blanco); color: inherit; min-width: 0; max-width: 100%; }
+    .esp-bloque > select, .esp-campo > select, .esp-campo > input[type="email"] { width: 100%; }
+    .esp-form .regla-fila input[type="number"] { width: 84px; }
+    .esp-form textarea { font-family: inherit; font-weight: 400; }
+    .esp-form .ayuda { margin-top: 0; font-weight: 400; }
+    .esp-pie { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--linea); }
+    .avz-para-que { font-size: 15px; font-weight: 600; color: var(--marino); margin: 2px 0 12px; max-width: 78ch; }
+    .abusos-periodo { grid-template-columns: repeat(auto-fit, minmax(160px, 220px)); }
+    /* Formulario de "Cuentas del panel": una sola columna */
     /* Detector de abusos: las tablas se desplazan adentro de su tarjeta, sin ensanchar la página */
     #abusosLista, #abusosLista details { min-width: 0; max-width: 100%; }
     #abusosLista details { overflow: hidden; margin-top: 10px; }
@@ -970,21 +991,14 @@
 
         <!-- TAB: AVANZADO (admin supremo) -->
         <div id="tab-avanzado" class="tab-content">
-          <h3>Espacios disponibles</h3>
+          <h3>Espacios</h3>
           <p class="nota">
-            Elegí qué espacios se pueden reservar desde la página. Cuando uno no está disponible,
-            su botón aparece como "No disponible" y, si marcás "Mostrar este aviso al entrar", aparece
-            una ventana con el aviso que escribas acá. Si no, se deshabilita sin ninguna ventana.
+            Una tarjeta por espacio, con <strong>todo lo suyo en un solo lugar</strong>: nombre, publicación, quién
+            reserva, horarios, motivos, contacto, reglas y quién recibe los avisos. Tocá una tarjeta para abrirla;
+            cada una tiene un solo botón Guardar, y lo que guardes se aplica al instante en la página. Al final
+            podés crear un espacio nuevo.
           </p>
-          <div id="espaciosAdmin" class="espacios-grid"></div>
-
-          <h3 class="mt">Crear y cambiar espacios</h3>
-          <p class="nota">
-            Cada espacio se reserva por <strong>bloques de 1 hora</strong> o por <strong>turnos fijos</strong>, y lo
-            puede reservar cualquier persona desde la página o <strong>solo un moderador</strong> (la gente ve qué
-            está libre y a quién escribirle). Tocá un espacio para cambiarlo, o creá uno nuevo al final.
-          </p>
-          <div id="espaciosEditor"></div>
+          <div id="espaciosEditor"><p class="nota">Cargando…</p></div>
 
           <h3 class="mt">Cuentas del panel</h3>
           <p class="nota">
@@ -1036,7 +1050,7 @@
             </div>
           </div>
 
-          <h3 class="mt">Estadísticas</h3>
+          <h3 class="mt">Estadísticas e informe</h3>
           <p class="nota">Calculadas con todas las reservas guardadas (las de hace más de 6 meses ya no tienen nombre, pero se cuentan igual).</p>
           <div class="filters">
             <select id="statsEspacio" onchange="mostrarEstadisticas()" aria-label="Espacio">
@@ -1075,12 +1089,33 @@
           <h3 class="mt">Detector de abusos</h3>
           <p class="nota">
             El límite por persona se controla por correo o por celular, y no se verifica ninguno de los dos. Acá se
-            juntan las reservas de los últimos 90 días que parecen de una misma persona con datos distintos: el mismo
+            juntan las reservas del período que elijas que parecen de una misma persona con datos distintos: el mismo
             celular con varios correos, el mismo correo con varios celulares, el mismo nombre con todo distinto, o la
             misma conexión de internet con varias personas. <strong>No bloquea ni cancela nada:</strong> es para que
             lo mires y decidas. Arriba salen los casos que, juntos, pasan el límite del mes.
           </p>
-          <div class="filters"><button class="btn-primario-chico" type="button" onclick="buscarAbusos()">Buscar casos</button></div>
+          <div class="espacio-card">
+            <div class="config-campos abusos-periodo">
+              <label>Desde <input type="date" id="abusosDesde"></label>
+              <label>Hasta <input type="date" id="abusosHasta"></label>
+            </div>
+            <div class="novedades-botones" role="group" aria-label="Atajos de período">
+              <button class="btn-small" type="button" onclick="periodoAbusos('30')">Últimos 30 días</button>
+              <button class="btn-small" type="button" onclick="periodoAbusos('90')">Últimos 90 días</button>
+              <button class="btn-small" type="button" onclick="periodoAbusos('mes')">Este mes</button>
+              <button class="btn-small" type="button" onclick="periodoAbusos('semestre')">Este semestre</button>
+              <button class="btn-small" type="button" onclick="periodoAbusos('')">Borrar las fechas</button>
+            </div>
+            <p class="ayuda">
+              El período es por la <strong>fecha de la reserva</strong>, hasta un año por búsqueda. Con las dos fechas
+              vacías se revisan los últimos 90 días y lo que ya está reservado para más adelante.
+            </p>
+            <p class="ayuda">
+              Las reservas de hace más de 6 meses ya están anonimizadas (sin nombre, contacto ni huella de red):
+              en ellas no se puede detectar nada.
+            </p>
+            <div class="novedades-botones"><button class="btn-primario-chico" type="button" onclick="buscarAbusos()">Buscar casos</button></div>
+          </div>
           <div id="abusosLista"></div>
 
           <h3 class="mt">Datos de una persona</h3>
@@ -1137,62 +1172,6 @@
             </table>
           </div>
 
-          <h3 class="mt">Turnos, horarios y contacto</h3>
-          <p class="nota">
-            Los turnos y motivos del Frente, el horario del Altillo y los datos de contacto. Se guarda todo junto
-            con el botón de abajo y se aplica al instante en la página. El límite por persona y los días están en
-            <strong>Reglas de cada espacio</strong>.
-          </p>
-          <div class="grupo-tarjetas">
-            <div class="espacio-card">
-              <p class="tarjeta-titulo">Turnos del Frente</p>
-              <div class="config-turnos" id="configTurnos"></div>
-              <button class="btn-small" type="button" onclick="agregarTurnoConfig()">+ Agregar turno</button>
-              <p class="ayuda">Cambiar un turno no toca las reservas que ya existen: se siguen mostrando con su horario.</p>
-            </div>
-            <div class="espacio-card">
-              <p class="tarjeta-titulo">Motivos del Frente</p>
-              <p class="ayuda">La lista que eligen al reservar el Frente (entre 1 y 10). Quitar uno no cambia las reservas que ya lo usan.</p>
-              <div class="config-turnos" id="configMotivos"></div>
-              <button class="btn-small" type="button" onclick="agregarMotivoConfig()">+ Agregar motivo</button>
-            </div>
-            <div class="espacio-card">
-              <p class="tarjeta-titulo">Horario del Altillo</p>
-              <div class="config-campos">
-                <label>Abre a las <select id="configAltilloDesde"></select></label>
-                <label>Cierra a las <select id="configAltilloHasta"></select></label>
-                <label>Máximo de horas por reserva <input type="number" id="configAltilloMax" min="1" max="12"></label>
-              </div>
-              <p class="ayuda">Se reserva por bloques de 1 hora: el último bloque empieza 1 hora antes del cierre. Los Términos (art. 5.2) dicen el horario con el comodín {horario_altillo}, así que se actualizan solos.</p>
-            </div>
-            <div class="espacio-card">
-              <p class="tarjeta-titulo">Contacto y alertas</p>
-              <div class="config-campos">
-                <label>Correo de contacto del Frente <input type="email" id="configEmailFrente"></label>
-                <label>WhatsApp del Frente (con código de país) <input type="text" id="configWhatsapp" inputmode="numeric" placeholder="595981123456"></label>
-                <label>Correo que recibe las alertas <input type="email" id="configEmailAlertas"></label>
-              </div>
-              <p class="ayuda">Las alertas avisan de errores del sistema y de bloqueos por exceso de pedidos (como máximo un correo por hora).</p>
-            </div>
-          </div>
-          <div class="barra-guardar">
-            <button class="btn-primario-chico" type="button" onclick="guardarConfiguracion()">Guardar turnos, horarios y contacto</button>
-            <p class="config-mensaje" id="configMensaje" role="status"></p>
-          </div>
-
-          <h3 class="mt">Reglas de cada espacio</h3>
-          <p class="nota">
-            Qué días se reserva cada espacio, hasta cuándo se cancela gratis, el recordatorio, con cuánta
-            anticipación se reserva, el límite por persona y las normas de uso. Se aplica al instante en la
-            página, al reservar y en los correos. Las reservas que ya existen no cambian.
-          </p>
-          <div class="espacios-grid" id="reglasEspacios"><p class="nota">Cargando…</p></div>
-          <p class="nota aviso-terminos" id="reglasAvisoTerminos" hidden></p>
-          <div class="barra-guardar">
-            <button class="btn-primario-chico" type="button" onclick="guardarReglas()">Guardar reglas</button>
-            <p class="config-mensaje" id="reglasMensaje" role="status"></p>
-          </div>
-
           <h3 class="mt">Cinta de anuncios</h3>
           <p class="nota">Una franja arriba de todo en la página de reservas, para avisos cortos ("El viernes el Frente cierra a las 16:00").</p>
           <div class="espacio-card anuncio-card">
@@ -1218,7 +1197,7 @@
           <h3 class="mt">Textos de la página</h3>
           <p class="nota">
             Lo que ve la gente en la página. "Original" vuelve al texto de siempre. El texto que dice el plazo
-            para cancelar y el límite por persona se arma solo con las Reglas, así nunca dice algo distinto de
+            para cancelar y el límite por persona se arma solo con las reglas de cada espacio, así nunca dice algo distinto de
             lo que hace el sistema.
           </p>
           <div class="novedades-editor">
@@ -1239,20 +1218,14 @@
             El asunto, el título y el mensaje de cada correo que manda el sistema. Los datos de la reserva,
             el código, los enlaces para cancelar, las normas y el contacto los agrega el sistema siempre, así
             no se pueden borrar sin querer. A los correos de una reserva se les agrega " - CEQ #número" al
-            final del asunto.
+            final del asunto. Quién recibe los avisos internos de cada espacio se elige en la tarjeta de ese
+            espacio (Espacios).
           </p>
           <div class="filters correo-elegir">
             <label class="etiqueta-form" for="correoClave">Correo para editar</label>
             <select id="correoClave" onchange="mostrarPlantilla()"></select>
             <span class="status-badge" id="correoEstado"></span>
           </div>
-          <details class="espacio-card mt-chico avisos-destinatarios">
-            <summary class="etiqueta">Quién recibe los avisos internos (nueva reserva, cancelaciones…) — tocá para ver</summary>
-            <p class="ayuda">Un correo por línea, de 1 a 5 por espacio. "Responder" en un aviso le escribe directo a la persona que reservó.</p>
-            <div class="config-campos" id="avisosCampos"></div>
-            <div class="novedades-botones"><button class="btn-small" type="button" onclick="guardarDestinatariosAvisos()">Guardar quién recibe los avisos</button></div>
-            <p class="config-mensaje" id="avisosMensaje" role="status"></p>
-          </details>
           <div class="novedades-editor">
             <div class="espacio-card" id="correoEditor">
               <label class="etiqueta" for="correoAsunto">Asunto</label>
@@ -1289,6 +1262,19 @@
               <p class="config-mensaje" id="correoVistaEstado" role="status"></p>
               <p class="ayuda">Es el correo real que arma el sistema, con lo que escribiste (aunque no lo hayas guardado). Los enlaces del ejemplo no funcionan.</p>
             </div>
+          </div>
+
+          <h3 class="mt">Correo de alertas</h3>
+          <p class="nota">
+            El correo que recibe las alertas del sistema (errores y bloqueos por exceso de pedidos, como máximo
+            una por hora), la copia de seguridad del día 1 y las pruebas de "Enviarme una prueba".
+          </p>
+          <div class="espacio-card">
+            <div class="config-campos">
+              <label>Correo que recibe las alertas <input type="email" id="configEmailAlertas" maxlength="100"></label>
+            </div>
+            <div class="novedades-botones"><button class="btn-primario-chico" type="button" onclick="guardarCorreoAlertas()">Guardar el correo de alertas</button></div>
+            <p class="config-mensaje" id="configMensaje" role="status"></p>
           </div>
 
           <h3 class="mt">Términos y privacidad</h3>
@@ -1422,7 +1408,7 @@
           </div>
           <details class="espacio-card mt-chico" id="respuestasEditor">
             <summary class="etiqueta" style="cursor:pointer">Editar las respuestas (tocá para ver)</summary>
-            <p class="ayuda">{nombre} se completa con el primer nombre que escribas arriba y {plazo_frente} con el plazo para cancelar del Frente (Reglas). El orden de acá es el de la lista.</p>
+            <p class="ayuda">{nombre} se completa con el primer nombre que escribas arriba y {plazo_frente} con el plazo para cancelar del Frente (Espacios → Frente → Reglas). El orden de acá es el de la lista.</p>
             <div id="respuestasLista" class="legal-articulos"></div>
             <div class="novedades-botones">
               <button class="btn-small" type="button" onclick="agregarRespuestaLista()">+ Agregar respuesta</button>
@@ -1835,7 +1821,7 @@
         });
         // N5: si el servidor no la cerró, se avisa (en una computadora compartida la sesión quedaría abierta)
         if (!res.ok) {
-          alert('No se pudo cerrar la sesión en el servidor. Si esta computadora no es tuya, cerrá el navegador o, como admin supremo, usá "Cerrar todas las sesiones" (Avanzado → Mantenimiento).');
+          alert('No se pudo cerrar la sesión en el servidor. Si esta computadora no es tuya, cerrá el navegador o, como admin supremo, usá "Cerrar todas las sesiones" (Avanzado → Cuentas y seguridad).');
           return;
         }
       } catch (error) {
@@ -1871,43 +1857,43 @@
     // "Avanzado" tiene muchas secciones: se ordenan por tema en un menú a la izquierda (en el
     // celular, una lista para elegir) y se muestra una por vez. Se arma una sola vez al cargar, a
     // partir de los títulos (h3) que ya están en la página. Cada opción: [clave, nombre, para qué
-    // sirve, títulos h3 que muestra].
+    // sirve, títulos h3 que muestra]. "Para qué sirve" se muestra como primera línea de la sección,
+    // así todas abren igual. Regla del menú: cada cosa se configura en un solo lugar.
     const MENU_AVANZADO = [
       ['Inicio', [
-        ['estado', 'Estado del sistema', 'Si todo anda bien', ['Estado del sistema']]
+        ['estado', 'Estado del sistema', 'Para ver de un vistazo si todo anda bien.', ['Estado del sistema']]
       ]],
-      ['La página de reservas', [
-        ['anuncio', 'Cinta de anuncios', 'Aviso corto arriba de la página', ['Cinta de anuncios']],
-        ['novedades', 'Ventana de novedades', 'La ventana que sale al entrar', ['Ventana de novedades']],
-        ['textos', 'Textos de la página', 'Título, bienvenida, mensajes y errores', ['Textos de la página']],
-        ['legal', 'Términos y privacidad', 'Editar los textos legales', ['Términos y privacidad']]
+      ['Espacios', [
+        ['espacios', 'Espacios', 'Para crear un espacio y cambiar todo lo suyo: publicación, horarios, reglas y avisos.', ['Espacios']],
+        ['feriados', 'Feriados', 'Para bloquear de una vez los feriados del año.', ['Feriados']]
       ]],
-      ['Espacios y reglas', [
-        ['crearespacios', 'Crear y cambiar espacios', 'Agregar un espacio, su horario y quién lo reserva', ['Crear y cambiar espacios']],
-        ['espacios', 'Espacios disponibles', 'Qué espacios se pueden reservar', ['Espacios disponibles']],
-        ['reglas', 'Reglas de cada espacio', 'Días, plazos, límites, acompañantes y normas', ['Reglas de cada espacio']],
-        ['configuracion', 'Turnos, horarios y contacto', 'Turnos y motivos del Frente, horario del Altillo, contacto', ['Turnos, horarios y contacto']],
-        ['feriados', 'Feriados', 'Bloquear los feriados del año', ['Feriados']]
+      ['Página pública', [
+        ['anuncio', 'Cinta de anuncios', 'Para poner un aviso corto arriba de la página de reservas.', ['Cinta de anuncios']],
+        ['novedades', 'Ventana de novedades', 'Para contar novedades en una ventana al entrar a la página.', ['Ventana de novedades']],
+        ['textos', 'Textos de la página', 'Para cambiar los títulos, las ayudas y los mensajes de error que ve la gente.', ['Textos de la página']],
+        ['legal', 'Términos y privacidad', 'Para corregir los textos legales o publicar una versión nueva.', ['Términos y privacidad']],
+        ['pausa', 'Pausar las reservas', 'Para cerrar las reservas por un imprevisto, con un mensaje para la gente.', ['Pausar las reservas']]
       ]],
       ['Correos', [
-        ['correos', 'Correos automáticos', 'Asunto y texto de cada correo, y quién recibe los avisos', ['Correos automáticos']],
-        ['respuestas', 'Respuestas listas', 'Textos para responder pedidos', ['Respuestas listas']]
+        ['correos', 'Correos automáticos', 'Para cambiar el texto de los correos que manda el sistema y a dónde llegan las alertas.', ['Correos automáticos', 'Correo de alertas']],
+        ['respuestas', 'Respuestas listas', 'Para copiar una respuesta ya escrita y contestar un pedido por correo.', ['Respuestas listas']]
       ]],
       ['Personas', [
-        ['espera', 'Lista de espera', 'Quién espera un lugar', ['Lista de espera']],
-        ['abusos', 'Detector de abusos', 'Quién reserva con varios correos o celulares', ['Detector de abusos']],
-        ['persona', 'Datos de una persona', 'Pedidos de privacidad', ['Datos de una persona']]
+        ['persona', 'Datos de una persona', 'Para responder un pedido de acceso o de borrado de datos.', ['Datos de una persona']],
+        ['espera', 'Lista de espera', 'Para ver quién espera un lugar y quitar a alguien de la lista.', ['Lista de espera']],
+        ['abusos', 'Detector de abusos', 'Para encontrar a quien reserva con varios correos o celulares.', ['Detector de abusos']]
       ]],
       ['Informes', [
-        ['estadisticas', 'Estadísticas', 'Reservas por mes, turno y día', ['Estadísticas']],
-        ['actividad', 'Registro de actividad', 'Qué se hizo en el panel', ['Registro de actividad']]
+        ['estadisticas', 'Estadísticas e informe', 'Para ver cuánto se usa cada espacio y armar el informe del período.', ['Estadísticas e informe']],
+        ['actividad', 'Registro de actividad', 'Para ver qué se hizo en el panel y cuándo.', ['Registro de actividad']]
+      ]],
+      ['Cuentas y seguridad', [
+        ['cuentas', 'Cuentas del panel', 'Para dar a cada moderador su usuario, su contraseña y sus espacios.', ['Cuentas del panel']],
+        ['seguridad', 'Contraseña y sesiones', 'Para cambiar la contraseña compartida de los admins y cerrar las sesiones abiertas.', ['Contraseña de los admins', 'Cerrar todas las sesiones']]
       ]],
       ['Mantenimiento', [
-        ['pausa', 'Pausar las reservas', 'Cerrar las reservas por un imprevisto', ['Pausar las reservas']],
-        ['copia', 'Copia de seguridad', 'Bajar todas las reservas', ['Copia de seguridad']],
-        ['limpieza', 'Limpieza', 'Borrar canceladas y reportes', ['Eliminar reservas canceladas', 'Eliminar reportes de errores']],
-        ['cuentas', 'Cuentas del panel', 'Usuario y contraseña de cada moderador, por espacio', ['Cuentas del panel']],
-        ['seguridad', 'Contraseña y sesiones', 'Contraseña de los admins y cerrar sesiones', ['Contraseña de los admins', 'Cerrar todas las sesiones']]
+        ['copia', 'Copia de seguridad', 'Para bajar o recibir por correo una copia de toda la base.', ['Copia de seguridad']],
+        ['limpieza', 'Limpieza', 'Para borrar definitivamente reservas canceladas y reportes.', ['Eliminar reservas canceladas', 'Eliminar reportes de errores']]
       ]]
     ];
     const OPCIONES_AVANZADO = MENU_AVANZADO.flatMap(([, opciones]) => opciones);
@@ -1951,6 +1937,14 @@
           migas.textContent = grupo;
           seccion.appendChild(migas);
           propios.forEach(b => b.nodos.forEach(n => seccion.appendChild(n)));
+          // Debajo del título, una línea que dice para qué sirve la sección
+          const primerTitulo = seccion.querySelector('h3');
+          if (primerTitulo) {
+            const paraQue = document.createElement('p');
+            paraQue.className = 'avz-para-que';
+            paraQue.textContent = descripcion;
+            primerTitulo.after(paraQue);
+          }
           contenido.appendChild(seccion);
           const boton = document.createElement('button');
           boton.type = 'button';
@@ -3587,7 +3581,6 @@
       cargarEstado();
       armarFeriados();
       armarRespuesta();
-      cargarEspaciosAdmin();
       mostrarCanceladas();
       mostrarReportesSuper();
       cargarActividad();
@@ -3913,88 +3906,12 @@
       }
     }
 
-    // --- Configuración (turnos del Frente, límite, contacto y correo de alertas) ---
+    // --- Correo de alertas (Avanzado > Correos) y ventana de novedades ---
+    // Los turnos, los motivos, el horario y el contacto de cada espacio están en su tarjeta (Espacios)
     function mensajeConfig(texto, tipo) {
       const p = document.getElementById('configMensaje');
       p.className = 'config-mensaje' + (tipo ? ' ' + tipo : '');
       p.textContent = texto;
-    }
-
-    function filaTurnoConfig(t = { nombre: '', inicio: '', fin: '' }) {
-      const fila = document.createElement('div');
-      fila.className = 'config-turno';
-      const nombre = document.createElement('input');
-      nombre.type = 'text';
-      nombre.maxLength = 20;
-      nombre.placeholder = 'Nombre (ej: Merienda)';
-      nombre.value = t.nombre;
-      nombre.setAttribute('aria-label', 'Nombre del turno');
-      nombre.dataset.campo = 'nombre';
-      const inicio = document.createElement('input');
-      inicio.type = 'time';
-      inicio.value = t.inicio;
-      inicio.setAttribute('aria-label', 'Hora de inicio');
-      inicio.dataset.campo = 'inicio';
-      const fin = document.createElement('input');
-      fin.type = 'time';
-      fin.value = t.fin;
-      fin.setAttribute('aria-label', 'Hora de fin');
-      fin.dataset.campo = 'fin';
-      const quitar = document.createElement('button');
-      quitar.type = 'button';
-      quitar.className = 'btn-small btn-cancel';
-      quitar.textContent = 'Quitar';
-      quitar.addEventListener('click', () => {
-        if (document.querySelectorAll('#configTurnos .config-turno').length <= 1) {
-          alert('Tiene que quedar al menos un turno.');
-          return;
-        }
-        fila.remove();
-      });
-      fila.append(nombre, inicio, fin, quitar);
-      return fila;
-    }
-
-    // Un motivo del Frente en Configuración (texto + Quitar)
-    function filaMotivoConfig(texto = '') {
-      const fila = document.createElement('div');
-      fila.className = 'config-turno config-motivo';
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.maxLength = 60;
-      input.value = texto;
-      input.placeholder = 'Ej: Recaudación - Comisión de Deportes';
-      input.setAttribute('aria-label', 'Motivo del Frente');
-      const quitar = document.createElement('button');
-      quitar.type = 'button';
-      quitar.className = 'btn-small btn-cancel';
-      quitar.textContent = 'Quitar';
-      quitar.addEventListener('click', () => {
-        if (document.querySelectorAll('#configMotivos .config-motivo').length <= 1) {
-          alert('Tiene que quedar al menos un motivo.');
-          return;
-        }
-        fila.remove();
-      });
-      fila.append(input, quitar);
-      return fila;
-    }
-
-    function agregarMotivoConfig() {
-      const cont = document.getElementById('configMotivos');
-      if (cont.children.length >= 10) { alert('Se pueden tener hasta 10 motivos.'); return; }
-      const fila = filaMotivoConfig();
-      cont.appendChild(fila);
-      fila.querySelector('input').focus();
-    }
-
-    function agregarTurnoConfig() {
-      const contenedor = document.getElementById('configTurnos');
-      if (contenedor.children.length >= 5) {
-        alert('Se pueden tener hasta 5 turnos.');
-        return;
-      }
-      contenedor.appendChild(filaTurnoConfig());
     }
 
     async function cargarConfiguracionAdmin() {
@@ -4003,25 +3920,29 @@
         const res = await fetchConJWT(`${API_BASE}/superadmin/configuracion`);
         if (!res.ok) throw new Error(await leerError(res));
         const c = await res.json();
-        document.getElementById('configTurnos').replaceChildren(...c.turnos_frente.map(t => filaTurnoConfig(t)));
-        document.getElementById('configEmailFrente').value = c.contacto_email_frente;
-        document.getElementById('configWhatsapp').value = c.contacto_whatsapp_frente;
         document.getElementById('configEmailAlertas').value = c.email_alertas;
-        // Motivos del Frente y horario del Altillo (si el servidor todavía no los tiene, quedan vacíos)
-        document.getElementById('configMotivos').replaceChildren(...(c.motivos_frente || []).map(m => filaMotivoConfig(m)));
-        const horas = (desde, hasta) => Array.from({ length: hasta - desde + 1 }, (_, i) => desde + i);
-        const opcionesHora = (id, lista, valor) => {
-          const sel = document.getElementById(id);
-          sel.replaceChildren(...lista.map(h => new Option(`${String(h).padStart(2, '0')}:00`, h)));
-          if (valor != null) sel.value = String(valor);
-        };
-        opcionesHora('configAltilloDesde', horas(5, 22), c.altillo_hora_desde);
-        opcionesHora('configAltilloHasta', horas(6, 23), c.altillo_hora_hasta);
-        document.getElementById('configAltilloMax').value = c.altillo_max_horas ?? '';
         llenarNovedades(c.ventana_novedades);
       } catch (error) {
         console.error('Error cargando la configuración:', error);
         mensajeConfig('No se pudo cargar la configuración.', 'error');
+      }
+    }
+
+    async function guardarCorreoAlertas() {
+      mensajeConfig('Guardando…');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/configuracion`, {
+          method: 'POST',
+          body: JSON.stringify({ email_alertas: document.getElementById('configEmailAlertas').value.trim() })
+        });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) return mensajeConfig(datos.error || 'No se pudo guardar.', 'error');
+        if (datos.config) document.getElementById('configEmailAlertas').value = datos.config.email_alertas;
+        mensajeConfig(datos.mensaje === 'No había cambios' ? 'No había cambios para guardar.' : '✓ Guardado. Las próximas alertas y la copia mensual van a ese correo.', 'ok');
+        cargarActividad();
+      } catch (error) {
+        mensajeConfig('No se pudo conectar con el servidor.', 'error');
+        avisarErrorConexion(error);
       }
     }
 
@@ -4215,47 +4136,6 @@
       }
     }
 
-    async function guardarConfiguracion() {
-      const turnos = [...document.querySelectorAll('#configTurnos .config-turno')].map(fila => ({
-        nombre: fila.querySelector('[data-campo="nombre"]').value.trim(),
-        inicio: fila.querySelector('[data-campo="inicio"]').value,
-        fin: fila.querySelector('[data-campo="fin"]').value
-      }));
-      const cuerpo = {
-        turnos_frente: turnos,
-        contacto_email_frente: document.getElementById('configEmailFrente').value.trim(),
-        contacto_whatsapp_frente: document.getElementById('configWhatsapp').value.trim(),
-        email_alertas: document.getElementById('configEmailAlertas').value.trim()
-      };
-      const motivos = [...document.querySelectorAll('#configMotivos input')].map(i => i.value.trim()).filter(Boolean);
-      if (motivos.length) cuerpo.motivos_frente = motivos;
-      if (document.getElementById('configAltilloDesde').options.length) {
-        cuerpo.altillo_hora_desde = Number(document.getElementById('configAltilloDesde').value);
-        cuerpo.altillo_hora_hasta = Number(document.getElementById('configAltilloHasta').value);
-        cuerpo.altillo_max_horas = Number(document.getElementById('configAltilloMax').value);
-      }
-      mensajeConfig('Guardando…');
-      try {
-        const res = await fetchConJWT(`${API_BASE}/superadmin/configuracion`, {
-          method: 'POST',
-          body: JSON.stringify(cuerpo)
-        });
-        const datos = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          mensajeConfig(datos.error || 'No se pudo guardar.', 'error');
-          return;
-        }
-        mensajeConfig(datos.mensaje === 'No había cambios' ? 'No había cambios para guardar.' : '✓ Configuración guardada. Ya se aplica en la página.', 'ok');
-        await cargarTurnos();
-        filtrarReservas();
-        cargarConfiguracionAdmin().then(() => mensajeConfig(datos.mensaje === 'No había cambios' ? 'No había cambios para guardar.' : '✓ Configuración guardada. Ya se aplica en la página.', 'ok'));
-        cargarActividad();
-      } catch (error) {
-        mensajeConfig('No se pudo conectar con el servidor.', 'error');
-        avisarErrorConexion(error);
-      }
-    }
-
     // Mensaje de error que manda el servidor (por ejemplo, 403 "Solo el admin supremo puede hacer esto")
     // ===== Herramientas del admin supremo (octubre 2026) =====
 
@@ -4439,7 +4319,7 @@
             'Anonimiza las reservas de más de 6 meses (una vez por día)'],
           ['Lista de espera', `${e.lista_espera_pendientes} esperando aviso`, 'ok', ''],
           ['Reportes nuevos', `${e.reportes_nuevos}`, e.reportes_nuevos > 0 ? 'aviso' : 'ok', 'Se ven en la pestaña "Reportes"'],
-          ['Reservas', e.pausa_reservas && e.pausa_reservas.activa ? 'PAUSADAS' : 'Abiertas', e.pausa_reservas && e.pausa_reservas.activa ? 'mal' : 'ok', 'Se pausan en Mantenimiento → "Pausar las reservas"'],
+          ['Reservas', e.pausa_reservas && e.pausa_reservas.activa ? 'PAUSADAS' : 'Abiertas', e.pausa_reservas && e.pausa_reservas.activa ? 'mal' : 'ok', 'Se pausan en Página pública → "Pausar las reservas"'],
           ['Clave SMTP de Gmail', 'Vence el 16/10/2027', 'ok', 'O a los 90 días sin enviar nada desde reservas@ceq-una.com']
         ];
         cont.replaceChildren(...tarjetas.map(([titulo, valor, estado, nota]) => {
@@ -4492,7 +4372,9 @@
         const res = await fetchConJWT(`${API_BASE}/superadmin/personalizacion`);
         if (!res.ok) throw new Error(await leerError(res));
         personalizacion = await res.json();
-        armarReglas();
+        // Las tarjetas de los espacios avisan si una regla contradice los Términos: si se armaron
+        // antes de tener esto y ninguna está abierta, se arman de nuevo
+        if (espaciosEditorLista.length && !document.querySelector('#espaciosEditor details[open]')) pintarEspaciosEditor(espaciosEditorLista);
         armarAnuncio();
         armarTextos();
         armarEditorRespuestas();
@@ -4500,110 +4382,6 @@
         armarSelectorCorreos();
       } catch (error) {
         console.error('Error al cargar la personalización:', error);
-        document.getElementById('reglasEspacios').replaceChildren(crear('p', { className: 'nota', textContent: 'No se pudieron cargar las reglas. Reintentá en unos segundos.' }));
-      }
-    }
-
-    // --- Reglas de los espacios ---
-    function campoNumero(campo, valor, min, max) {
-      return crear('input', { type: 'number', min, max, step: 1, value: valor, dataset: { campo }, oninput: avisoTerminosReglas });
-    }
-
-    function armarReglas() {
-      const contenedor = document.getElementById('reglasEspacios');
-      contenedor.replaceChildren(...sesion.espacios.filter(id => personalizacion.reglas[id]).map(id => {
-        const r = personalizacion.reglas[id];
-        const esFrente = id === 3;
-        const dias = crear('div', { className: 'regla-dias' }, NOMBRES_DIAS.map(([n, nombre]) =>
-          crear('label', { className: 'check' }, [crear('input', { type: 'checkbox', checked: r.dias.includes(n), dataset: { dia: n }, onchange: avisoTerminosReglas }), nombre])));
-        const recordatorio = crear('input', { type: 'checkbox', checked: r.recordatorio, dataset: { campo: 'recordatorio' }, onchange: avisoTerminosReglas });
-        const limite = esFrente
-          ? crear('div', { className: 'regla-fila' }, ['Máximo', campoNumero('limite', personalizacion.max_reservas_por_persona_mes, 1, 20), 'reservas por persona por mes'])
-          : crear('div', { className: 'regla-fila' }, ['Máximo', campoNumero('limite', r.limite_por_persona_mes, 0, 20), 'reservas por persona por mes (0 = sin límite)']);
-        return crear('div', { className: 'espacio-card', dataset: { espacio: id } }, [
-          crear('div', { className: 'espacio-cab' }, [crear('strong', { textContent: espacios[id] })]),
-          crear('span', { className: 'etiqueta', textContent: 'Días que se puede reservar' }),
-          dias,
-          crear('span', { className: 'etiqueta', textContent: 'Cancelar gratis desde la página' }),
-          crear('div', { className: 'regla-fila' }, ['Hasta', campoNumero('plazo', r.plazo_cancelacion_dias, 0, 14), 'días antes']),
-          crear('p', { className: 'ayuda', textContent: `0 = hasta que empiece la reserva. Después del plazo, la persona tiene que escribir ${esFrente ? 'por WhatsApp o al correo del Frente' : (id === 1 ? 'a reservas@ceq-una.com' : 'al contacto del espacio')}.` }),
-          crear('span', { className: 'etiqueta', textContent: 'Recordatorio por correo' }),
-          crear('div', { className: 'regla-fila' }, [crear('label', { className: 'check' }, [recordatorio, 'Mandar el recordatorio']), campoNumero('recordatorio_dias', r.recordatorio_dias, 1, 7), 'días antes']),
-          crear('span', { className: 'etiqueta', textContent: 'Anticipación para reservar' }),
-          crear('div', { className: 'regla-fila' }, ['Mínimo', campoNumero('min', r.anticipacion_min_dias, 0, 30), 'días antes (0 = se puede para hoy)']),
-          crear('div', { className: 'regla-fila' }, ['Máximo', campoNumero('max', r.anticipacion_max_dias, 0, 365), 'días antes (0 = sin límite: manda qué meses están habilitados)']),
-          crear('span', { className: 'etiqueta', textContent: 'Límite por persona' }),
-          limite,
-          crear('span', { className: 'etiqueta', textContent: 'Acompañantes' }),
-          crear('div', { className: 'regla-fila' }, ['Hasta', campoNumero('acompanantes', r.acompanantes_max ?? (esFrente ? 0 : 4), 0, 10), 'acompañantes por reserva (0 = no se piden)']),
-          crear('p', { className: 'ayuda', textContent: 'Cada uno con nombre y celular; se ven en el panel, el Excel y los correos, nunca en la página pública.' }),
-          crear('label', { className: 'etiqueta', textContent: 'Normas de uso (opcional)' }),
-          crear('textarea', { className: 'corto', maxLength: 1500, value: r.normas, dataset: { campo: 'normas' }, placeholder: 'Ej: Dejá el espacio limpio y con la luz apagada.' }),
-          crear('p', { className: 'ayuda', textContent: 'Si escribís normas, se muestran al reservar (hay que tildar que se leyeron) y van en los correos de confirmación y recordatorio.' })
-        ]);
-      }));
-      avisoTerminosReglas();
-    }
-
-    function leerReglas() {
-      const reglas = {};
-      let max = null;
-      document.querySelectorAll('#reglasEspacios .espacio-card').forEach(card => {
-        const id = Number(card.dataset.espacio);
-        const num = campo => Number(card.querySelector(`[data-campo="${campo}"]`).value);
-        reglas[id] = {
-          dias: [...card.querySelectorAll('[data-dia]')].filter(c => c.checked).map(c => Number(c.dataset.dia)),
-          plazo_cancelacion_dias: num('plazo'),
-          recordatorio: card.querySelector('[data-campo="recordatorio"]').checked,
-          recordatorio_dias: num('recordatorio_dias'),
-          anticipacion_min_dias: num('min'),
-          anticipacion_max_dias: num('max'),
-          limite_por_persona_mes: id === 3 ? 0 : num('limite'),
-          acompanantes_max: num('acompanantes'),
-          normas: card.querySelector('[data-campo="normas"]').value
-        };
-        if (id === 3) max = num('limite');
-      });
-      return { reglas, max_reservas_por_persona_mes: max };
-    }
-
-    // Los Términos describen estas reglas con comodines ({dias_reserva}, {plazo_cancelacion_frente},
-    // {recordatorio}…) que se completan solos. Si alguien los sacó del texto y la regla cambió, o si
-    // se cambia algo que el texto no menciona (el plazo del Altillo), se avisa qué revisar.
-    function avisoTerminosReglas() {
-      if (!personalizacion) return;
-      const { reglas } = leerReglas();
-      const def = personalizacion.reglas_defecto;
-      const usados = personalizacion.legal_comodines_usados || [];
-      const articulos = [];
-      if (!usados.includes('dias_reserva') && [3, 1].some(id => [...reglas[id].dias].sort().join() !== [...def[id].dias].sort().join())) articulos.push('los días en que se reserva');
-      if (!usados.includes('plazo_cancelacion_frente') && reglas[3].plazo_cancelacion_dias !== def[3].plazo_cancelacion_dias) articulos.push('el plazo para cancelar el Frente');
-      if (!usados.includes('plazo_cancelacion_altillo') && reglas[1].plazo_cancelacion_dias !== def[1].plazo_cancelacion_dias) articulos.push('el plazo para cancelar el Altillo (hoy los Términos solo hablan del Frente)');
-      if (reglas[3].acompanantes_max > 0) articulos.push('los acompañantes en el Frente (el artículo 6.2 habla solo del Altillo)');
-      if (!usados.includes('recordatorio') && [3, 1].some(id => reglas[id].recordatorio !== def[id].recordatorio || reglas[id].recordatorio_dias !== def[id].recordatorio_dias)) articulos.push('el recordatorio');
-      const aviso = document.getElementById('reglasAvisoTerminos');
-      aviso.textContent = articulos.length
-        ? `⚠️ Con estas reglas, revisá en los Términos y condiciones ${articulos.join(', ')}: el texto no lo dice así. Corregilo en Avanzado → Términos y privacidad (podés usar los comodines, que se completan solos).`
-        : '';
-      aviso.hidden = !articulos.length;
-    }
-
-    async function guardarReglas() {
-      const cuerpo = leerReglas();
-      mensajePersonalizacion('reglasMensaje', 'Guardando…');
-      try {
-        const res = await fetchConJWT(`${API_BASE}/superadmin/reglas`, { method: 'POST', body: JSON.stringify(cuerpo) });
-        const datos = await res.json().catch(() => ({}));
-        if (!res.ok) return mensajePersonalizacion('reglasMensaje', datos.error || 'No se pudo guardar.', 'error');
-        mensajePersonalizacion('reglasMensaje', datos.mensaje === 'No había cambios' ? 'No había cambios para guardar.' : '✓ Reglas guardadas. Ya se aplican en la página.', 'ok');
-        if (datos.reglas) {
-          personalizacion.reglas = datos.reglas;
-          personalizacion.max_reservas_por_persona_mes = datos.max_reservas_por_persona_mes;
-          cargarActividad();
-        }
-      } catch (error) {
-        mensajePersonalizacion('reglasMensaje', 'No se pudo conectar con el servidor.', 'error');
-        avisarErrorConexion(error);
       }
     }
 
@@ -4806,7 +4584,7 @@
           if (r.anticipacion_min_dias > 0) partes.push(`Se reserva con al menos ${pl(r.anticipacion_min_dias, 'día', 'días')} de anticipación.`);
           if (r.anticipacion_max_dias > 0) partes.push(`Se puede reservar con hasta ${pl(r.anticipacion_max_dias, 'día', 'días')} de anticipación.`);
           if (limite) partes.push(`En el ${nombre}, máximo ${pl(limite, 'reserva', 'reservas')} por persona por mes.`);
-          texto = partes.join(' ') + ' (armado solo con las Reglas)';
+          texto = partes.join(' ') + ' (armado solo con las reglas del espacio)';
         }
         const ayuda = crear('div', { className: 'vp-ayuda' }, [(texto ? texto + ' ' : '') + 'Al reservar aceptás los ', crear('u', { textContent: 'términos y condiciones' }), ' y la ', crear('u', { textContent: 'política de privacidad' }), '.']);
         piezas = [crear('div', { className: 'vp-caja' }, [div('vp-boton', 'Crear reserva'), ayuda])];
@@ -4857,32 +4635,6 @@
       select.value = personalizacion.plantillas[elegido] ? elegido : 'confirmacion';
       correoClaveActual = '';
       mostrarPlantilla();
-      armarDestinatariosAvisos();
-    }
-
-    // Quién recibe los avisos internos de cada espacio (un correo por línea)
-    function armarDestinatariosAvisos() {
-      const d = personalizacion.avisos_destinatarios || {};
-      document.getElementById('avisosCampos').replaceChildren(...sesion.espacios.map(id => crear('label', {}, [
-        (espacios[id] || `Espacio ${id}`) + ' ',
-        crear('textarea', { className: 'corto', spellcheck: false, value: (d[id] || []).join('\n'), dataset: { espacio: id } })
-      ])));
-    }
-    async function guardarDestinatariosAvisos() {
-      const lista = cuadro => cuadro.value.split(/[\n,;]+/).map(c => c.trim()).filter(Boolean);
-      mensajePersonalizacion('avisosMensaje', 'Guardando…');
-      try {
-        const res = await fetchConJWT(`${API_BASE}/superadmin/avisos-destinatarios`, { method: 'POST', body: JSON.stringify(Object.fromEntries([...document.querySelectorAll('#avisosCampos textarea')].map(a => [a.dataset.espacio, lista(a)]))) });
-        const datos = await res.json().catch(() => ({}));
-        if (!res.ok) return mensajePersonalizacion('avisosMensaje', datos.error || 'No se pudo guardar.', 'error');
-        if (datos.avisos_destinatarios) personalizacion.avisos_destinatarios = datos.avisos_destinatarios;
-        armarDestinatariosAvisos();
-        mensajePersonalizacion('avisosMensaje', datos.mensaje === 'No había cambios' ? 'No había cambios para guardar.' : '✓ Guardado. Los próximos avisos ya van a estos correos.', 'ok');
-        cargarActividad();
-      } catch (error) {
-        mensajePersonalizacion('avisosMensaje', 'No se pudo conectar con el servidor.', 'error');
-        avisarErrorConexion(error);
-      }
     }
 
     function camposCorreo() {
@@ -5581,7 +5333,7 @@
 
 
     // ========== ESPACIOS Y CUENTAS (admin supremo) ==========
-    // "Crear y cambiar espacios" y "Cuentas del panel". Todo se arma con crear() y textContent: lo
+    // "Espacios" y "Cuentas del panel". Todo se arma con crear() y textContent: lo
     // que se escribe nunca se toma como HTML.
 
     // Se llama cada vez que cambia la lista de espacios o se vuelven a cargar los datos
@@ -5608,118 +5360,341 @@
         if (res.ok) aplicarSesion(await res.json());
       } catch (e) { /* se sigue con lo que había */ }
       await cargarDatos();
-      cargarEspaciosAdmin();
       cargarPersonalizacion();
       cargarCuentas();
       cargarActividad();
     }
 
-    const lineas = texto => String(texto || '').split('\n').map(l => l.trim()).filter(Boolean);
+    const lineas = texto => String(texto || '').split(/[\n,;]+/).map(l => l.trim()).filter(Boolean);
 
-    // El formulario de un espacio (uno que ya existe o el nuevo)
-    function formularioEspacio(e) {
-      const nuevo = !e;
-      const d = e || { nombre: '', modo: 'publico', contacto_texto: '', horario: 'bloques', turnos: [], hora_desde: 7, hora_hasta: 19, max_horas: 2, motivos: [], contacto_email: '', contacto_whatsapp: '', de_siempre: false };
-      const campo = (texto, control, ayuda) => crear('label', {}, [texto, control, ...(ayuda ? [crear('span', { className: 'ayuda', textContent: ayuda })] : [])]);
-      const nombre = crear('input', { type: 'text', maxLength: 40, value: d.nombre, placeholder: 'Ej: Polideportivo' });
-      const modo = crear('select', {}, [new Option('Cualquier persona, desde la página', 'publico'), new Option('Solo a través de un moderador', 'moderador')]);
-      modo.value = d.modo;
-      const cartel = crear('textarea', { className: 'corto', maxLength: 400, value: d.contacto_texto, placeholder: 'Ej: Para reservar el Polideportivo escribí a deportes@ejemplo.com o al 0981 123 456.' });
-      const mensaje = crear('p', { className: 'config-mensaje', role: 'status' });
-      const partes = [
-        campo('Nombre del espacio', nombre),
-        campo('Quién puede reservar', modo, 'Con "solo a través de un moderador", la gente ve el calendario con lo libre y lo ocupado, pero no puede reservar: ve el cartel de abajo, y la reserva la carga un moderador desde "Cargar reserva".'),
-        campo('Cartel que ve la gente (solo si se reserva a través de un moderador)', cartel, 'Vacío = un texto automático con el correo de contacto del espacio.')
-      ];
-      let leerHorario = () => ({});
-      if (d.de_siempre) {
-        partes.push(crear('p', { className: 'ayuda', textContent: `Los turnos, los motivos, el horario y el contacto del ${d.nombre} se cambian en "Turnos, horarios y contacto"; sus días, plazos y límites, en "Reglas de cada espacio".` }));
-      } else {
-        const horario = crear('select', {}, [new Option('Bloques de 1 hora (como el Altillo)', 'bloques'), new Option('Turnos fijos con nombre (como el Frente)', 'turnos')]);
-        horario.value = d.horario;
-        const turnos = crear('textarea', { className: 'corto', spellcheck: false, value: (d.turnos || []).map(x => `${x.nombre}, ${x.inicio}, ${x.fin}`).join('\n'), placeholder: 'Mañana, 08:00, 12:00\nTarde, 14:00, 18:00' });
-        const desde = crear('input', { type: 'number', min: 5, max: 22, value: d.hora_desde == null ? 7 : d.hora_desde });
-        const hasta = crear('input', { type: 'number', min: 6, max: 23, value: d.hora_hasta == null ? 19 : d.hora_hasta });
-        const maximo = crear('input', { type: 'number', min: 1, max: 12, value: d.max_horas == null ? 2 : d.max_horas });
-        const grupoTurnos = campo('Turnos (uno por línea: nombre, desde, hasta)', turnos, 'Entre 1 y 5 turnos, entre las 06:00 y las 22:00, sin superponerse.');
-        const grupoBloques = crear('div', {}, [
-          crear('div', { className: 'regla-fila' }, ['Abre a las', desde, 'y cierra a las', hasta, '(horas enteras)']),
-          crear('div', { className: 'regla-fila' }, ['Hasta', maximo, 'horas por reserva'])
-        ]);
-        const mostrar = () => { grupoTurnos.hidden = horario.value !== 'turnos'; grupoBloques.hidden = horario.value === 'turnos'; };
-        horario.onchange = mostrar;
-        mostrar();
-        const motivos = crear('textarea', { className: 'corto', value: (d.motivos || []).join('\n'), placeholder: 'Partido\nEntrenamiento' });
-        const email = crear('input', { type: 'email', maxLength: 100, value: d.contacto_email || '', placeholder: 'reservas@ceq-una.com' });
-        const whatsapp = crear('input', { type: 'text', inputMode: 'numeric', maxLength: 20, value: d.contacto_whatsapp || '', placeholder: '595981123456' });
-        partes.push(
-          campo('Cómo se reserva', horario), grupoTurnos, grupoBloques,
-          campo('Motivos para elegir (uno por línea)', motivos, 'Vacío = la persona escribe el motivo. Hasta 10.'),
-          campo('Correo de contacto del espacio', email, 'Vacío = reservas@ceq-una.com. Es a quien responde la gente y lo que figura en los correos.'),
-          campo('WhatsApp del espacio (opcional, con código de país)', whatsapp)
-        );
-        leerHorario = () => ({
-          horario: horario.value,
-          turnos: lineas(turnos.value).map(l => { const [n = '', i = '', f = ''] = l.split(',').map(x => x.trim()); return { nombre: n, inicio: i, fin: f }; }),
-          hora_desde: Number(desde.value), hora_hasta: Number(hasta.value), max_horas: Number(maximo.value),
-          motivos: lineas(motivos.value), contacto_email: email.value.trim(), contacto_whatsapp: whatsapp.value.trim()
-        });
-      }
-      const enviar = async (metodo, ruta, cuerpo, boton) => {
-        boton.disabled = true;
-        mensajePersonalizacion2(mensaje, 'Guardando…');
-        try {
-          const res = await fetchConJWT(`${API_BASE}${ruta}`, { method: metodo, ...(cuerpo ? { body: JSON.stringify(cuerpo) } : {}) });
-          const datos = await res.json().catch(() => ({}));
-          if (!res.ok) return mensajePersonalizacion2(mensaje, datos.error || 'No se pudo guardar.', 'error');
-          pintarEspaciosEditor(datos.espacios || [], datos.mensaje);
-          refrescarPorEspacios();
-        } catch (error) {
-          mensajePersonalizacion2(mensaje, 'No se pudo conectar con el servidor.', 'error');
-        } finally {
-          boton.disabled = false;
-        }
-      };
-      const cuerpo = () => ({ nombre: nombre.value, modo: modo.value, contacto_texto: cartel.value, ...leerHorario() });
-      const botones = crear('div', { className: 'novedades-botones' });
-      if (nuevo) {
-        botones.append(crear('button', { className: 'btn-primario-chico', type: 'button', textContent: 'Crear espacio', onclick: ev => enviar('POST', '/superadmin/espacios', cuerpo(), ev.target) }));
-      } else {
-        botones.append(crear('button', { className: 'btn-primario-chico', type: 'button', textContent: 'Guardar', onclick: ev => enviar('PUT', `/superadmin/espacios/${d.id}/definicion`, cuerpo(), ev.target) }));
-        if (!d.de_siempre) {
-          botones.append(crear('button', { className: 'btn-peligro', type: 'button', textContent: 'Quitar este espacio', onclick: ev => {
-            if (!confirm(`¿Quitar el espacio ${d.nombre}? Se borran sus bloqueos y su lista de espera. Las reservas anteriores se conservan. No se puede deshacer.`)) return;
-            enviar('DELETE', `/superadmin/espacios/${d.id}`, null, ev.target);
-          } }));
-        }
-      }
-      return crear('div', { className: 'config-campos form-una-columna' }, [...partes, botones, mensaje]);
-    }
+    // ----- La pantalla "Espacios": una tarjeta por espacio, con todo lo suyo y un solo Guardar -----
+    // Lo último que mandó el servidor (para el aviso de los Términos y para repintar una sola tarjeta)
+    let espaciosEditorLista = [];
+    const ESPACIO_NUEVO = {
+      id: null, nombre: '', publico: false, aviso: '', mostrar_aviso: true, de_siempre: false, modo: 'publico', contacto_texto: '',
+      horario: 'bloques', turnos: [], hora_desde: 7, hora_hasta: 19, max_horas: 2, motivos: [], contacto_email: '', contacto_whatsapp: '',
+      reglas: { dias: [1, 2, 3, 4, 5], plazo_cancelacion_dias: 0, recordatorio: true, recordatorio_dias: 2, anticipacion_min_dias: 0, anticipacion_max_dias: 0, limite_por_persona_mes: 0, acompanantes_max: 0, normas: '' },
+      avisos_destinatarios: [], limite_por_persona: 0, limite_minimo: 0
+    };
 
     function mensajePersonalizacion2(el, texto, tipo) {
       el.textContent = texto;
       el.className = 'config-mensaje' + (tipo ? ' ' + tipo : '');
     }
 
-    function pintarEspaciosEditor(lista, aviso) {
-      const cont = document.getElementById('espaciosEditor');
-      const resumen = e => [e.nombre, e.horario === 'turnos' ? 'por turnos' : 'por bloques de 1 hora', e.modo === 'moderador' ? 'solo a través de un moderador' : 'reserva la gente'].join(' · ');
-      cont.replaceChildren(
-        ...(aviso ? [crear('p', { className: 'config-mensaje ok', role: 'status', textContent: '✓ ' + aviso })] : []),
-        ...lista.map(e => crear('details', { className: 'espacio-card' }, [crear('summary', { className: 'etiqueta', textContent: resumen(e) }), formularioEspacio(e)])),
-        crear('details', { className: 'espacio-card' }, [crear('summary', { className: 'etiqueta', textContent: '+ Crear un espacio nuevo' }),
-          crear('p', { className: 'ayuda', textContent: 'El espacio nuevo queda sin publicar. Después revisá sus reglas (días, plazos, límites) en "Reglas de cada espacio", quién recibe sus avisos en "Correos automáticos" y publicalo en "Espacios disponibles".' }),
-          formularioEspacio(null)])
-      );
+    // Una lista de renglones que se agregan y se quitan (turnos y motivos)
+    function listaEditable({ filas, nuevaFila, maximo, minimo, textoAgregar, queEs }) {
+      const cont = crear('div', { className: 'config-turnos' });
+      const agregar = dato => {
+        const fila = nuevaFila(dato);
+        fila.append(crear('button', { type: 'button', className: 'btn-small btn-cancel', textContent: 'Quitar', onclick: () => {
+          if (cont.children.length <= minimo) return alert(`Tiene que quedar al menos ${queEs}.`);
+          fila.remove();
+        } }));
+        cont.appendChild(fila);
+        return fila;
+      };
+      filas.forEach(agregar);
+      const boton = crear('button', { type: 'button', className: 'btn-small', textContent: textoAgregar, onclick: () => {
+        if (cont.children.length >= maximo) return alert(`Se pueden tener hasta ${maximo}.`);
+        agregar().querySelector('input').focus();
+      } });
+      return { cont, boton };
     }
 
-    async function cargarEspaciosEditor() {
+    // Los Términos describen las reglas del Frente y del Altillo con comodines ({dias_reserva},
+    // {plazo_cancelacion_frente}, {recordatorio}…) que se completan solos. Si alguien los sacó del
+    // texto y la regla cambió, o si se cambia algo que el texto no menciona (el plazo del Altillo),
+    // se avisa qué revisar. `id` y `reglasDeLaTarjeta` son los de la tarjeta que se está tocando.
+    function avisoTerminosReglas(id, reglasDeLaTarjeta, aviso) {
+      aviso.hidden = true;
+      if (!personalizacion || (id !== 3 && id !== 1)) return;
+      const guardadas = n => (espaciosEditorLista.find(e => e.id === n) || {}).reglas;
+      const reglas = { 3: guardadas(3), 1: guardadas(1), [id]: reglasDeLaTarjeta };
+      const def = personalizacion.reglas_defecto;
+      if (!reglas[3] || !reglas[1] || !def) return;
+      const usados = personalizacion.legal_comodines_usados || [];
+      const articulos = [];
+      if (!usados.includes('dias_reserva') && [3, 1].some(n => [...reglas[n].dias].sort().join() !== [...def[n].dias].sort().join())) articulos.push('los días en que se reserva');
+      if (!usados.includes('plazo_cancelacion_frente') && reglas[3].plazo_cancelacion_dias !== def[3].plazo_cancelacion_dias) articulos.push('el plazo para cancelar el Frente');
+      if (!usados.includes('plazo_cancelacion_altillo') && reglas[1].plazo_cancelacion_dias !== def[1].plazo_cancelacion_dias) articulos.push('el plazo para cancelar el Altillo (hoy los Términos solo hablan del Frente)');
+      if (reglas[3].acompanantes_max > 0) articulos.push('los acompañantes en el Frente (el artículo 6.2 habla solo del Altillo)');
+      if (!usados.includes('recordatorio') && [3, 1].some(n => reglas[n].recordatorio !== def[n].recordatorio || reglas[n].recordatorio_dias !== def[n].recordatorio_dias)) articulos.push('el recordatorio');
+      aviso.textContent = articulos.length
+        ? `⚠️ Con estas reglas, revisá en los Términos y condiciones ${articulos.join(', ')}: el texto no lo dice así. Corregilo en Avanzado → Página pública → Términos y privacidad (podés usar los comodines, que se completan solos).`
+        : '';
+      aviso.hidden = !articulos.length;
+    }
+
+    // La tarjeta de un espacio (uno que ya existe, o la de "crear un espacio nuevo" si no se pasa ninguno)
+    function tarjetaEspacio(e, { abierta = false, aviso = '' } = {}) {
+      const nuevo = !e;
+      const d = e || ESPACIO_NUEVO;
+      const esFrente = d.id === 3, esAltillo = d.id === 1;
+      const r = d.reglas || ESPACIO_NUEVO.reglas;
+      const bloque = (titulo, hijos) => crear('div', { className: 'esp-bloque' }, [crear('p', { className: 'tarjeta-titulo', textContent: titulo }), ...hijos]);
+      const ayuda = texto => crear('p', { className: 'ayuda', textContent: texto });
+      const campo = (texto, control) => crear('label', { className: 'esp-campo' }, [texto, control]);
+      const mensaje = crear('p', { className: 'config-mensaje' + (aviso ? ' ok' : ''), role: 'status', textContent: aviso ? '✓ ' + aviso : '' });
+      const avisoTerminos = crear('p', { className: 'nota aviso-terminos', hidden: true });
+
+      // 1. Nombre
+      const nombre = crear('input', { type: 'text', maxLength: 40, value: d.nombre, placeholder: 'Ej: Polideportivo' });
+
+      // 2. Publicación
+      const publico = crear('input', { type: 'checkbox', checked: d.publico === true });
+      const avisoTexto = crear('textarea', { className: 'corto', maxLength: 1000, value: d.aviso || '', placeholder: 'Ej: Por el momento, este espacio se reserva con planilla.' });
+      const mostrarAviso = crear('input', { type: 'checkbox', checked: d.mostrar_aviso !== false });
+
+      // 3. Quién reserva
+      const modo = crear('select', {}, [new Option('Cualquier persona, desde la página', 'publico'), new Option('Solo a través de un moderador', 'moderador')]);
+      modo.value = d.modo === 'moderador' ? 'moderador' : 'publico';
+      const cartel = crear('textarea', { className: 'corto', maxLength: 400, value: d.contacto_texto || '', placeholder: 'Ej: Para reservar el Polideportivo escribí a deportes@ejemplo.com o al 0981 123 456.' });
+      const grupoCartel = crear('div', { className: 'esp-sub' }, [campo('Cartel que ve la gente', cartel), ayuda('Vacío = un texto automático con el correo de contacto del espacio.')]);
+      const alCambiarModo = () => { grupoCartel.hidden = modo.value !== 'moderador'; };
+      modo.onchange = alCambiarModo;
+      alCambiarModo();
+
+      // 4. Cómo se reserva
+      const horario = crear('select', {}, [new Option('Bloques de 1 hora', 'bloques'), new Option('Turnos fijos con nombre', 'turnos')]);
+      horario.value = d.horario === 'turnos' ? 'turnos' : 'bloques';
+      const turnos = listaEditable({
+        filas: d.turnos && d.turnos.length ? d.turnos : (d.horario === 'turnos' ? [undefined] : []), maximo: 5, minimo: 1, textoAgregar: '+ Agregar turno', queEs: 'un turno',
+        nuevaFila: (t = { nombre: '', inicio: '', fin: '' }) => crear('div', { className: 'config-turno' }, [
+          crear('input', { type: 'text', maxLength: 20, value: t.nombre, placeholder: 'Nombre (ej: Merienda)', 'aria-label': 'Nombre del turno', dataset: { campo: 'nombre' } }),
+          crear('input', { type: 'time', value: t.inicio, 'aria-label': 'Hora de inicio', dataset: { campo: 'inicio' } }),
+          crear('input', { type: 'time', value: t.fin, 'aria-label': 'Hora de fin', dataset: { campo: 'fin' } })
+        ])
+      });
+      const horas = (desde, hasta, valor) => {
+        const sel = crear('select', {}, Array.from({ length: hasta - desde + 1 }, (_, i) => new Option(`${String(desde + i).padStart(2, '0')}:00`, desde + i)));
+        sel.value = String(valor);
+        return sel;
+      };
+      const desde = horas(5, 22, d.hora_desde == null ? 7 : d.hora_desde);
+      const hasta = horas(6, 23, d.hora_hasta == null ? 19 : d.hora_hasta);
+      const maximo = crear('input', { type: 'number', min: 1, max: 12, step: 1, value: d.max_horas == null ? 2 : d.max_horas });
+      const grupoTurnos = crear('div', { className: 'esp-sub' }, [turnos.cont, turnos.boton,
+        ayuda('Entre 1 y 5 turnos, entre las 06:00 y las 22:00, sin superponerse. Cambiar un turno no toca las reservas que ya existen: se siguen mostrando con su horario.')]);
+      const grupoBloques = crear('div', { className: 'esp-sub' }, [
+        crear('div', { className: 'regla-fila' }, ['Abre a las', desde, 'y cierra a las', hasta]),
+        crear('div', { className: 'regla-fila' }, ['Hasta', maximo, 'horas por reserva']),
+        ayuda('El último bloque empieza 1 hora antes del cierre.' + (esAltillo ? ' Los Términos (art. 5.2) dicen el horario con el comodín {horario_altillo}, así que se actualizan solos.' : ''))
+      ]);
+      const alCambiarHorario = () => {
+        grupoTurnos.hidden = horario.value !== 'turnos';
+        grupoBloques.hidden = horario.value === 'turnos';
+        // Al pasar a turnos por primera vez, un renglón vacío para empezar
+        if (horario.value === 'turnos' && !turnos.cont.children.length) turnos.boton.click();
+      };
+      horario.onchange = alCambiarHorario;
+      alCambiarHorario();
+      const comoSeReserva = d.de_siempre
+        ? [ayuda(esFrente ? 'El Frente se reserva siempre por turnos fijos: eso no se puede cambiar.' : 'El Altillo se reserva siempre por bloques de 1 hora: eso no se puede cambiar.'), grupoTurnos, grupoBloques]
+        : [campo('Se reserva por', horario), grupoTurnos, grupoBloques,
+            ...(nuevo ? [] : [ayuda('Si hay reservas activas que todavía no pasaron, el horario nuevo tiene que incluirlas: si no, primero hay que cancelarlas o moverlas.')])];
+
+      // 5. Motivos
+      const motivos = listaEditable({
+        filas: d.motivos || [], maximo: 10, minimo: esFrente ? 1 : 0, textoAgregar: '+ Agregar motivo', queEs: 'un motivo',
+        nuevaFila: (m = '') => crear('div', { className: 'config-turno config-motivo' }, [
+          crear('input', { type: 'text', maxLength: 60, value: m, placeholder: 'Ej: Recaudación - Comisión de Deportes', 'aria-label': 'Motivo' })
+        ])
+      });
+      const bloqueMotivos = esAltillo
+        ? [ayuda('En el Altillo el motivo lo escribe siempre la persona: no lleva lista. Eso no se puede cambiar.')]
+        : [motivos.cont, motivos.boton, ayuda(esFrente
+            ? 'La lista que se elige al reservar (entre 1 y 10). Quitar un motivo no cambia las reservas que ya lo usan.'
+            : 'La lista que se elige al reservar (hasta 10). Sin ningún motivo, la persona escribe el suyo.')];
+
+      // 6. Contacto
+      const email = crear('input', { type: 'email', maxLength: 100, value: d.contacto_email || '', placeholder: 'reservas@ceq-una.com' });
+      const whatsapp = crear('input', { type: 'text', inputMode: 'numeric', maxLength: 20, value: d.contacto_whatsapp || '', placeholder: '595981123456' });
+      const bloqueContacto = esAltillo
+        ? [ayuda('El contacto del Altillo es siempre reservas@ceq-una.com, sin WhatsApp. Eso no se puede cambiar.')]
+        : [crear('div', { className: 'config-campos' }, [campo('Correo', email), campo(`WhatsApp, con código de país${esFrente ? '' : ' (opcional)'}`, whatsapp)]),
+            ayuda(`Es a quien le escribe la gente (por ejemplo, para cancelar fuera de plazo) y lo que figura en los correos.${esFrente ? '' : ' Correo vacío = reservas@ceq-una.com.'}`)];
+
+      // 7. Reglas
+      const revisarTerminos = () => avisoTerminosReglas(d.id, leerReglas(), avisoTerminos);
+      const numero = (valor, min, max) => crear('input', { type: 'number', min, max, step: 1, value: valor, oninput: revisarTerminos });
+      const dias = NOMBRES_DIAS.map(([n, texto]) => crear('label', { className: 'check' }, [crear('input', { type: 'checkbox', checked: r.dias.includes(n), value: String(n), onchange: revisarTerminos }), texto]));
+      const plazo = numero(r.plazo_cancelacion_dias, 0, 14);
+      const recordatorio = crear('input', { type: 'checkbox', checked: r.recordatorio !== false, onchange: revisarTerminos });
+      const recordatorioDias = numero(r.recordatorio_dias, 1, 7);
+      const anticipacionMin = numero(r.anticipacion_min_dias, 0, 30);
+      const anticipacionMax = numero(r.anticipacion_max_dias, 0, 365);
+      const limiteMinimo = d.limite_minimo || 0;
+      const limite = numero(d.limite_por_persona == null ? 0 : d.limite_por_persona, limiteMinimo, 20);
+      const acompanantes = numero(r.acompanantes_max == null ? 0 : r.acompanantes_max, 0, 10);
+      const normas = crear('textarea', { className: 'corto', maxLength: 1500, value: r.normas || '', placeholder: 'Ej: Dejá el espacio limpio y con la luz apagada.' });
+      function leerReglas() {
+        return {
+          dias: dias.map(l => l.querySelector('input')).filter(c => c.checked).map(c => Number(c.value)),
+          plazo_cancelacion_dias: Number(plazo.value), recordatorio: recordatorio.checked, recordatorio_dias: Number(recordatorioDias.value),
+          anticipacion_min_dias: Number(anticipacionMin.value), anticipacion_max_dias: Number(anticipacionMax.value),
+          acompanantes_max: Number(acompanantes.value), normas: normas.value
+        };
+      }
+      const etiqueta = texto => crear('span', { className: 'etiqueta', textContent: texto });
+
+      // 8. Quién recibe los avisos internos
+      const destinatarios = crear('textarea', { className: 'corto', spellcheck: false, value: (d.avisos_destinatarios || []).join('\n'), placeholder: 'moderador@ejemplo.com' });
+
+      // Lo que se manda al servidor: todo lo de la tarjeta, junto
+      const cuerpo = () => ({
+        nombre: nombre.value, publico: publico.checked, aviso: avisoTexto.value.trim(), mostrar_aviso: mostrarAviso.checked,
+        modo: modo.value, contacto_texto: cartel.value,
+        ...(d.de_siempre ? {} : { horario: horario.value }),
+        ...(esAltillo || (!esFrente && horario.value !== 'turnos') ? { hora_desde: Number(desde.value), hora_hasta: Number(hasta.value), max_horas: Number(maximo.value) } : {}),
+        ...(esFrente || (!esAltillo && horario.value === 'turnos') ? { turnos: [...turnos.cont.children].map(f => ({
+          nombre: f.querySelector('[data-campo="nombre"]').value.trim(), inicio: f.querySelector('[data-campo="inicio"]').value, fin: f.querySelector('[data-campo="fin"]').value })) } : {}),
+        ...(esAltillo ? {} : { motivos: [...motivos.cont.querySelectorAll('input')].map(i => i.value.trim()).filter(Boolean), contacto_email: email.value.trim(), contacto_whatsapp: whatsapp.value.trim() }),
+        reglas: leerReglas(), limite_por_persona: Number(limite.value),
+        ...(nuevo && !lineas(destinatarios.value).length ? {} : { avisos_destinatarios: lineas(destinatarios.value) })
+      });
+      const pedir = async (metodo, ruta, datos) => {
+        const res = await fetchConJWT(`${API_BASE}${ruta}`, { method: metodo, ...(datos ? { body: JSON.stringify(datos) } : {}) });
+        return { ok: res.ok, datos: await res.json().catch(() => ({})) };
+      };
+      const conBoton = async (boton, tarea) => {
+        boton.disabled = true;
+        mensajePersonalizacion2(mensaje, 'Guardando…');
+        try {
+          await tarea();
+        } catch (error) {
+          mensajePersonalizacion2(mensaje, 'No se pudo conectar con el servidor.', 'error');
+          avisarErrorConexion(error);
+        } finally {
+          boton.disabled = false;
+        }
+      };
+      const guardar = boton => {
+        const c = cuerpo();
+        if (!nuevo && c.publico !== (d.publico === true)) {
+          const pregunta = c.publico
+            ? `¿Publicar el ${d.nombre}? Desde ya se va a poder ${c.modo === 'moderador' ? 'ver en la página (las reservas las carga un moderador)' : 'reservar desde la página'}.`
+            : `¿Dejar de publicar el ${d.nombre}? Nadie va a poder reservarlo desde la página hasta que lo vuelvas a publicar. ${c.mostrar_aviso && c.aviso ? 'Al entrar, se va a mostrar el aviso.' : 'No se va a mostrar ningún aviso al entrar.'} Las reservas que ya existen no se tocan (si hace falta, cancelalas en la pestaña Reservas).`;
+          if (!confirm(pregunta)) return;
+        }
+        conBoton(boton, async () => {
+          let id = d.id;
+          if (nuevo) {
+            // Primero se crea (nombre y cómo se reserva) y después se le guarda todo lo demás
+            const creado = await pedir('POST', '/superadmin/espacios', c);
+            if (!creado.ok) return mensajePersonalizacion2(mensaje, creado.datos.error || 'No se pudo crear el espacio.', 'error');
+            id = creado.datos.id;
+          }
+          const r2 = await pedir('PUT', `/superadmin/espacios/${id}`, c);
+          if (!r2.ok) {
+            if (!nuevo) return mensajePersonalizacion2(mensaje, r2.datos.error || 'No se pudo guardar.', 'error');
+            // Se creó, pero algo de lo demás no pasó: queda sin publicar y se abre su tarjeta para corregirlo
+            await cargarEspaciosEditor({ abierto: id, error: `El espacio se creó, pero falta corregir algo antes de guardar el resto: ${r2.datos.error || 'no se pudo guardar.'}` });
+            return refrescarPorEspacios();
+          }
+          const sinCambios = r2.datos.mensaje === 'No había cambios';
+          const texto = nuevo
+            ? `Se creó el espacio ${c.nombre.trim()}${c.publico ? ' y ya está publicado.' : '. Todavía no está publicado: cuando esté listo, marcá "Publicado" y guardá.'}`
+            : (sinCambios ? 'No había cambios para guardar.' : 'Guardado. Ya se aplica en la página.');
+          if (nuevo) {
+            pintarEspaciosEditor(r2.datos.espacios || [], { abierto: id, aviso: texto });
+          } else {
+            // Solo se vuelve a armar esta tarjeta: lo que esté a medio escribir en las otras no se pierde
+            espaciosEditorLista = r2.datos.espacios || espaciosEditorLista;
+            const actualizado = espaciosEditorLista.find(x => x.id === id);
+            if (actualizado) tarjeta.replaceWith(tarjetaEspacio(actualizado, { abierta: true, aviso: texto }));
+          }
+          if (!sinCambios) refrescarPorEspacios();
+        });
+      };
+      const botones = crear('div', { className: 'novedades-botones' }, [
+        crear('button', { className: 'btn-primario-chico', type: 'button', textContent: nuevo ? 'Crear espacio' : `Guardar ${d.nombre}`, onclick: ev => guardar(ev.currentTarget) })
+      ]);
+      if (!nuevo && !d.de_siempre) {
+        botones.append(crear('button', { className: 'btn-peligro', type: 'button', textContent: 'Quitar este espacio', onclick: ev => {
+          if (!confirm(`¿Quitar el espacio ${d.nombre}? Se borran sus bloqueos y su lista de espera. Las reservas anteriores se conservan. No se puede deshacer.`)) return;
+          conBoton(ev.currentTarget, async () => {
+            const q = await pedir('DELETE', `/superadmin/espacios/${d.id}`);
+            if (!q.ok) return mensajePersonalizacion2(mensaje, q.datos.error || 'No se pudo quitar.', 'error');
+            pintarEspaciosEditor(q.datos.espacios || [], { aviso: q.datos.mensaje });
+            refrescarPorEspacios();
+          });
+        } }));
+      }
+
+      const estado = nuevo ? null : crear('span', {
+        className: `status-badge ${d.publico ? 'status-activa' : 'status-cancelada'}`,
+        textContent: d.publico ? 'Publicado' : (d.mostrar_aviso !== false && d.aviso ? 'Sin publicar · con aviso' : 'Sin publicar')
+      });
+      const resumen = nuevo ? [crear('strong', { textContent: '+ Crear un espacio nuevo' })] : [
+        crear('strong', { textContent: d.nombre }), estado,
+        crear('span', { className: 'esp-resumen', textContent: [d.horario === 'turnos' ? 'por turnos' : 'por bloques de 1 hora', d.modo === 'moderador' ? 'solo a través de un moderador' : 'reserva la gente'].join(' · ') })
+      ];
+      const tarjeta = crear('details', { className: 'espacio-card esp-tarjeta', open: abierta, dataset: { espacio: nuevo ? 'nuevo' : d.id } }, [
+        crear('summary', {}, resumen),
+        crear('div', { className: 'esp-form' }, [
+          bloque('1. Nombre', [nombre]),
+          bloque('2. Publicación', [
+            crear('label', { className: 'check' }, [publico, 'Publicado: aparece en la página de reservas']),
+            campo('Aviso para cuando no está publicado', avisoTexto),
+            crear('label', { className: 'check' }, [mostrarAviso, 'Mostrar ese aviso en una ventana al entrar a la página']),
+            ayuda('Sin publicar, el botón del espacio dice "No disponible". Desmarcá la ventana para que no aparezca ningún aviso al entrar.')
+          ]),
+          bloque('3. Quién reserva', [modo,
+            ayuda('Con "solo a través de un moderador", la gente ve el calendario con lo libre y lo ocupado y un cartel con el contacto; la reserva la carga un moderador desde la pestaña "Cargar reserva".'),
+            grupoCartel]),
+          bloque('4. Cómo se reserva', comoSeReserva),
+          bloque('5. Motivos', bloqueMotivos),
+          bloque('6. Contacto', bloqueContacto),
+          bloque('7. Reglas', [
+            etiqueta('Días que se puede reservar'), crear('div', { className: 'regla-dias' }, dias),
+            etiqueta('Cancelar gratis desde la página'),
+            crear('div', { className: 'regla-fila' }, ['Hasta', plazo, 'días antes']),
+            ayuda('0 = hasta que empiece la reserva. Después del plazo, la persona tiene que escribir al contacto del espacio.'),
+            etiqueta('Recordatorio por correo'),
+            crear('div', { className: 'regla-fila' }, [crear('label', { className: 'check' }, [recordatorio, 'Mandar el recordatorio']), recordatorioDias, 'días antes']),
+            etiqueta('Anticipación para reservar'),
+            crear('div', { className: 'regla-fila' }, ['Mínimo', anticipacionMin, 'días antes (0 = se puede para hoy)']),
+            crear('div', { className: 'regla-fila' }, ['Máximo', anticipacionMax, 'días antes (0 = sin límite: manda qué meses están habilitados)']),
+            etiqueta('Límite por persona'),
+            crear('div', { className: 'regla-fila' }, ['Máximo', limite, limiteMinimo > 0 ? 'reservas por persona por mes (entre 1 y 20; el Frente siempre tiene límite)' : 'reservas por persona por mes (0 = sin límite)']),
+            etiqueta('Acompañantes'),
+            crear('div', { className: 'regla-fila' }, ['Hasta', acompanantes, 'acompañantes por reserva (0 = no se piden)']),
+            ayuda('Cada uno con nombre y celular; se ven en el panel, el Excel y los correos, nunca en la página pública.'),
+            campo('Normas de uso (opcional)', normas),
+            ayuda('Si escribís normas, se muestran al reservar (hay que tildar que se leyeron) y van en los correos de confirmación y recordatorio.'),
+            avisoTerminos
+          ]),
+          bloque('8. Quién recibe los avisos internos', [destinatarios,
+            ayuda(`Los correos que reciben los avisos de este espacio (nueva reserva, cancelaciones…). Uno por línea, de 1 a 5.${nuevo ? ' Vacío = el correo general de la Secretaría.' : ''} "Responder" en un aviso le escribe directo a la persona que reservó.`)]),
+          crear('div', { className: 'esp-pie' }, [botones, mensaje,
+            ...(nuevo ? [] : [ayuda('Se guarda todo lo de esta tarjeta junto. Si algo está mal, no se guarda nada y te dice qué corregir. Las reservas que ya existen no cambian.')])])
+        ])
+      ]);
+      if (!nuevo) revisarTerminos();
+      return tarjeta;
+    }
+
+    function pintarEspaciosEditor(lista, { abierto = null, aviso = '', error = '' } = {}) {
+      espaciosEditorLista = lista;
+      const cont = document.getElementById('espaciosEditor');
+      cont.replaceChildren(
+        ...(aviso && abierto == null ? [crear('p', { className: 'config-mensaje ok', role: 'status', textContent: '✓ ' + aviso })] : []),
+        ...(error ? [crear('p', { className: 'config-mensaje error', role: 'status', textContent: error })] : []),
+        ...lista.map(e => tarjetaEspacio(e, { abierta: e.id === abierto, aviso: e.id === abierto ? aviso : '' })),
+        tarjetaEspacio(null)
+      );
+      const laAbierta = abierto != null && cont.querySelector(`[data-espacio="${abierto}"]`);
+      if (laAbierta) laAbierta.scrollIntoView({ block: 'nearest' });
+    }
+
+    async function cargarEspaciosEditor(opciones) {
       const cont = document.getElementById('espaciosEditor');
       try {
         const res = await fetchConJWT(`${API_BASE}/superadmin/espacios`);
         const datos = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(datos.error || 'Error');
-        pintarEspaciosEditor(datos.espacios || []);
+        pintarEspaciosEditor(datos.espacios || [], opciones);
       } catch (error) {
         cont.replaceChildren(crear('p', { className: 'nota', textContent: 'No se pudieron cargar los espacios. Reintentá en unos segundos.' }));
       }
@@ -5803,22 +5778,56 @@
 
 
     // ========== DETECTOR DE ABUSOS E INFORME DEL PERÍODO (admin supremo) ==========
+    // Atajos del período: llenan las dos fechas y buscan. '' = sin fechas (los últimos 90 días, como siempre)
+    function periodoAbusos(cual) {
+      const hoy = hoyEnAsuncionStr();
+      const [anio, mes] = hoy.split('-').map(Number);
+      const restar = dias => { const f = new Date(hoy + 'T00:00:00Z'); f.setUTCDate(f.getUTCDate() - dias); return f.toISOString().slice(0, 10); };
+      const dosCifras = n => String(n).padStart(2, '0');
+      const ultimoDia = (a, m) => new Date(Date.UTC(a, m, 0)).getUTCDate();
+      let desde = '', hasta = '';
+      if (cual === '30' || cual === '90') { desde = restar(Number(cual)); hasta = hoy; }
+      else if (cual === 'mes') { desde = `${anio}-${dosCifras(mes)}-01`; hasta = `${anio}-${dosCifras(mes)}-${dosCifras(ultimoDia(anio, mes))}`; }
+      else if (cual === 'semestre') { desde = `${anio}-${mes <= 6 ? '01' : '07'}-01`; hasta = `${anio}-${mes <= 6 ? '06-30' : '12-31'}`; }
+      document.getElementById('abusosDesde').value = desde;
+      document.getElementById('abusosHasta').value = hasta;
+      buscarAbusos();
+    }
+
     async function buscarAbusos() {
       const cont = document.getElementById('abusosLista');
+      const desde = document.getElementById('abusosDesde').value, hasta = document.getElementById('abusosHasta').value;
+      const dmy = f => String(f).split('-').reverse().join('/');
+      if (desde && hasta && desde > hasta) {
+        cont.replaceChildren(crear('p', { className: 'config-mensaje error', role: 'status', textContent: 'La fecha "Desde" no puede ser posterior a la fecha "Hasta".' }));
+        return;
+      }
+      const q = new URLSearchParams();
+      if (desde) q.set('desde', desde);
+      if (hasta) q.set('hasta', hasta);
       cont.replaceChildren(crear('p', { className: 'nota', textContent: 'Buscando…' }));
       try {
-        const res = await fetchConJWT(`${API_BASE}/superadmin/abusos`);
+        const res = await fetchConJWT(`${API_BASE}/superadmin/abusos${q.toString() ? '?' + q : ''}`);
         const datos = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(datos.error || 'Error');
+        if (!res.ok) {
+          cont.replaceChildren(crear('p', { className: 'config-mensaje error', role: 'status', textContent: datos.error || 'No se pudo buscar. Reintentá en unos segundos.' }));
+          return;
+        }
         const casos = datos.casos || [];
+        const periodo = datos.hasta
+          ? `con fecha del ${dmy(datos.desde)} al ${dmy(datos.hasta)}`
+          : `con fecha desde el ${dmy(datos.desde)} en adelante${desde ? '' : ' (los últimos 90 días y lo que ya está reservado)'}`;
         const resumen = crear('p', { className: 'nota', textContent:
-          `Se revisaron ${datos.revisadas} reservas de los últimos 90 días (desde el ${String(datos.desde).split('-').reverse().join('/')}). ` +
+          `Período revisado: reservas ${periodo}. Se revisaron ${datos.revisadas} ${datos.revisadas === 1 ? 'reserva' : 'reservas'}. ` +
           (casos.length ? `Hay ${casos.length} caso${casos.length === 1 ? '' : 's'} para mirar.` : 'No apareció nada raro.') +
           (datos.con_red ? '' : ' La señal de "misma conexión" todavía no está activa (falta aplicar la migración de la base).') });
-        cont.replaceChildren(resumen, ...casos.map(c => {
+        const avisoViejas = datos.periodo_con_anonimizadas
+          ? [crear('p', { className: 'nota aviso-terminos', textContent: `⚠️ Una parte del período es anterior al ${dmy(datos.sin_datos_antes_de)}: esas reservas ya están anonimizadas (sin nombre, contacto ni huella de red) y no se pudieron revisar.` })]
+          : [];
+        cont.replaceChildren(resumen, ...avisoViejas, ...casos.map(c => {
           const tabla = crear('table', { className: 'tabla-chica' }, [
             crear('thead', {}, [crear('tr', {}, ['N.º', 'Espacio', 'Fecha', 'Horario', 'Nombre', 'Contacto', 'Estado'].map(x => crear('th', { textContent: x })))]),
-            crear('tbody', {}, c.reservas.map(r => crear('tr', {}, [`#${r.id}`, r.espacio, String(r.fecha).split('-').reverse().join('/'), r.horario, r.nombre, r.contacto, r.estado === 'activa' ? 'Activa' : 'Cancelada']
+            crear('tbody', {}, c.reservas.map(r => crear('tr', {}, [`#${r.id}`, r.espacio, dmy(r.fecha), r.horario, r.nombre, r.contacto, r.estado === 'activa' ? 'Activa' : 'Cancelada']
               .map(x => crear('td', { textContent: x })))))
           ]);
           return crear('details', { className: 'espacio-card', open: c.pasa_el_limite }, [
@@ -5909,113 +5918,6 @@
       } catch (error) {
         if (ventana) ventana.close();
         mensajePersonalizacion('informeMensaje', 'No se pudo conectar con el servidor.', 'error');
-      }
-    }
-
-    // --- Espacios: habilitar/deshabilitar cada espacio, y su aviso ---
-    async function cargarEspaciosAdmin() {
-      const cont = document.getElementById('espaciosAdmin');
-      try {
-        const res = await fetchConJWT(`${API_BASE}/espacios`);
-        if (!res.ok) throw new Error(await leerError(res));
-        const lista = await res.json();
-        cont.replaceChildren();
-
-        sesion.espacios.forEach(id => { // primero el Frente, después el Altillo y después los creados desde el panel
-          const e = (Array.isArray(lista) ? lista : []).find(x => Number(x.id) === id);
-          if (!e) return;
-
-          const card = document.createElement('div');
-          card.className = 'espacio-card';
-
-          const cab = document.createElement('div');
-          cab.className = 'espacio-cab';
-          const nombre = document.createElement('strong');
-          nombre.textContent = e.nombre;
-          const badge = document.createElement('span');
-          badge.className = `status-badge ${e.publico ? 'status-activa' : 'status-cancelada'}`;
-          badge.textContent = e.publico ? 'Disponible' : 'No disponible';
-          cab.append(nombre, badge);
-
-          const check = document.createElement('label');
-          check.className = 'check';
-          const input = document.createElement('input');
-          input.type = 'checkbox';
-          input.id = `espacioPublico${id}`;
-          input.checked = e.publico === true;
-          check.append(input, document.createTextNode('Se puede reservar desde la página'));
-
-          const etiqueta = document.createElement('label');
-          etiqueta.className = 'etiqueta';
-          etiqueta.htmlFor = `espacioAviso${id}`;
-          etiqueta.textContent = 'Aviso que se muestra cuando no está disponible';
-          const area = document.createElement('textarea');
-          area.id = `espacioAviso${id}`;
-          area.maxLength = 1000;
-          area.value = e.aviso || '';
-          area.placeholder = 'Ej: Por el momento, este espacio se reserva con planilla.';
-
-          // Deshabilitar sin ventana: el texto del aviso se guarda igual, solo no se muestra
-          const checkAviso = document.createElement('label');
-          checkAviso.className = 'check';
-          const inputAviso = document.createElement('input');
-          inputAviso.type = 'checkbox';
-          inputAviso.id = `espacioMostrarAviso${id}`;
-          inputAviso.checked = e.mostrar_aviso !== false;
-          checkAviso.append(inputAviso, document.createTextNode('Mostrar este aviso al entrar a la página'));
-          const ayuda = document.createElement('p');
-          ayuda.className = 'ayuda';
-          ayuda.textContent = 'Desmarcalo para deshabilitar el espacio sin que aparezca ninguna ventana.';
-
-          if (!e.publico && (e.mostrar_aviso === false || !e.aviso)) badge.textContent = 'No disponible · sin aviso';
-
-          const btn = document.createElement('button');
-          btn.className = 'btn-primario-chico';
-          btn.textContent = 'Guardar';
-          btn.addEventListener('click', () => guardarEspacio(id, e.nombre, e.publico === true, btn));
-
-          card.append(cab, check, etiqueta, area, checkAviso, ayuda, btn);
-          cont.appendChild(card);
-        });
-      } catch (error) {
-        console.error('Error cargando espacios:', error);
-        cont.replaceChildren();
-        const p = document.createElement('p');
-        p.className = 'vacio';
-        p.textContent = 'No se pudieron cargar los espacios.';
-        cont.appendChild(p);
-      }
-    }
-
-    async function guardarEspacio(id, nombre, estabaPublico, boton) {
-      const publico = document.getElementById(`espacioPublico${id}`).checked;
-      const aviso = document.getElementById(`espacioAviso${id}`).value.trim();
-      const mostrar_aviso = document.getElementById(`espacioMostrarAviso${id}`).checked;
-
-      if (publico !== estabaPublico) {
-        const pregunta = publico
-          ? `¿Habilitar el ${nombre}? Desde ya se va a poder reservar desde la página.`
-          : `¿Deshabilitar el ${nombre}? Nadie va a poder reservarlo desde la página hasta que lo vuelvas a habilitar. ${mostrar_aviso && aviso ? 'Al entrar, se va a mostrar el aviso.' : 'No se va a mostrar ningún aviso al entrar.'} Las reservas que ya existen no se tocan (si hace falta, cancelalas en la pestaña Reservas).`;
-        if (!confirm(pregunta)) return;
-      }
-
-      boton.disabled = true;
-      try {
-        const res = await fetchConJWT(`${API_BASE}/superadmin/espacios/${id}`, {
-          method: 'POST',
-          body: JSON.stringify({ publico, aviso, mostrar_aviso })
-        });
-        if (!res.ok) {
-          alert(await leerError(res));
-          return;
-        }
-        alert(`Listo: el ${nombre} ${publico ? 'ya se puede reservar desde la página' : 'quedó como "No disponible" en la página'}.`);
-        cargarEspaciosAdmin();
-        cargarActividad();
-      } catch (error) {
-        avisarErrorConexion(error);
-      } finally {
-        boton.disabled = false;
       }
     }
 

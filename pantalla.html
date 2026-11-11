@@ -6,6 +6,10 @@
 <meta name="robots" content="noindex">
 <title>Reservas de hoy · Centro de Estudiantes de Química</title>
 <link rel="icon" href="/favicon.ico">
+<!-- La misma tipografía que la página de reservas -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <!--
   MODO PANTALLA: las reservas de hoy, para dejar en un monitor o una tele del CEQ.
   - Muestra lo mismo que el calendario público (nombre y motivo), nada más: no pide contraseña.
@@ -13,21 +17,45 @@
   - pantalla.html?espacio=3 muestra un solo espacio (el número es el del espacio: 3 Frente, 1 Altillo).
   - pantalla.html?fecha=2026-11-20 muestra otro día (para probar).
   Todo se escribe con textContent: un nombre o un motivo nunca se toma como HTML.
+  Colores y tipografía: los mismos que la página de reservas (index.html). Las variables de :root
+  son una copia de las de index.html: si allá cambia un color, copiarlo acá.
 -->
 <style>
-  :root { --marino: #173874; --azul: #2F6BD0; --fondo: #0E1F42; --tarjeta: #FFFFFF; --suave: #5B6B86; --linea: #D8E1EE; --libre: #1E7B4A; --ocupado: #173874; }
+  /* Copia de las variables de index.html, para que las dos páginas se vean iguales */
+  :root {
+    --marino: #173874;
+    --azul: #3873CE;
+    --azul-hover: #2D62B5;
+    --cielo: #D6E6FA;
+    --tarjeta: #EFF7FE;
+    --blanco: #FFFFFF;
+    --texto: #1E1E1E;
+    --suave: #5A6B85;
+    --linea: #C9DBF3;
+    --libre: #3873CE;
+    --parcial-bg: #FFF3D6;
+    --parcial: #A86A00;
+    --lleno-bg: #FBE3E1;
+    --lleno: #B2392F;
+    --ok-bg: #E3F4EA;
+    --ok: #1D7A47;
+    --radio: 18px;
+    --radio-chico: 8px;
+    --f: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; }
-  body { font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif; background: var(--fondo); color: #fff; padding: clamp(12px, 2vw, 28px); }
+  /* Fondo celeste y letras oscuras, como la página de reservas */
+  body { font-family: var(--f); background: var(--cielo); color: var(--texto); padding: clamp(12px, 2vw, 28px); }
   header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: clamp(12px, 2vw, 24px); }
   .marca { display: flex; align-items: center; gap: 14px; }
   .marca img { width: clamp(40px, 5vw, 64px); height: auto; }
-  h1 { font-size: clamp(22px, 3.4vw, 44px); margin: 0; line-height: 1.1; }
-  .fecha { font-size: clamp(14px, 1.6vw, 22px); opacity: .85; margin-top: 4px; }
+  h1 { font-size: clamp(22px, 3.4vw, 44px); font-weight: 800; margin: 0; line-height: 1.1; color: var(--marino); }
+  .fecha { font-size: clamp(14px, 1.6vw, 22px); font-weight: 500; color: var(--marino); margin-top: 4px; }
   .fecha::first-letter { text-transform: uppercase; }
-  .reloj { font-size: clamp(30px, 5vw, 68px); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .reloj { font-size: clamp(30px, 5vw, 68px); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--marino); }
   main { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: clamp(12px, 1.6vw, 22px); }
-  .espacio { background: var(--tarjeta); color: #14213D; border-radius: 14px; padding: clamp(14px, 1.6vw, 22px); }
+  .espacio { background: var(--tarjeta); color: var(--texto); border: 1px solid var(--linea); border-radius: var(--radio); padding: clamp(14px, 1.6vw, 22px); }
   .espacio h2 { margin: 0 0 12px; font-size: clamp(20px, 2.4vw, 32px); color: var(--marino); display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .espacio h2 small { font-size: .5em; font-weight: 600; color: var(--suave); }
   .franja { display: grid; grid-template-columns: minmax(96px, auto) 1fr; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--linea); }
@@ -36,14 +64,19 @@
   .hora span { display: block; font-weight: 600; font-size: .72em; color: var(--suave); }
   .quien { font-size: clamp(16px, 1.8vw, 24px); font-weight: 600; overflow-wrap: anywhere; }
   .quien small { display: block; font-size: .7em; font-weight: 400; color: var(--suave); }
-  .libre .quien { color: var(--libre); font-weight: 600; }
+  .libre .quien { color: var(--ok); font-weight: 600; }
   .bloqueado .quien { color: var(--suave); }
-  .paso { opacity: .45; }
-  .ahora { background: #EEF4FC; margin: 0 -10px; padding: 10px; border-radius: 10px; border-top-color: transparent; }
-  .ahora .hora::after { content: "AHORA"; display: inline-block; margin-left: 8px; font-size: .55em; background: var(--azul); color: #fff; border-radius: 4px; padding: 1px 6px; vertical-align: middle; }
+  .paso { opacity: .5; }
+  /* El renglón de AHORA: azul marino con letras blancas, para que se distinga de lejos sobre la tarjeta clara */
+  .ahora { background: var(--marino); margin: 0 -10px; padding: 12px 10px; border-radius: 10px; border-top-color: transparent; }
+  .ahora + .franja { border-top-color: transparent; }
+  .ahora .hora, .ahora .quien, .ahora.libre .quien, .ahora.bloqueado .quien { color: var(--blanco); }
+  .ahora .hora span, .ahora .quien small { color: #DCE8FA; }
+  .ahora .hora::after { content: "AHORA"; display: inline-block; margin-left: 8px; font-size: .55em; font-weight: 800; letter-spacing: .04em; background: var(--blanco); color: var(--marino); border-radius: 4px; padding: 1px 6px; vertical-align: middle; }
   .vacio { color: var(--suave); font-size: clamp(15px, 1.6vw, 20px); margin: 6px 0 0; }
-  footer { margin-top: clamp(12px, 2vw, 22px); font-size: clamp(12px, 1.2vw, 16px); opacity: .8; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .error { color: #FFD2D2; }
+  footer { margin-top: clamp(12px, 2vw, 22px); font-size: clamp(12px, 1.2vw, 16px); font-weight: 500; color: var(--marino); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  /* "Sin conexión": rojo sobre fondo rosado, que se lee sobre el celeste */
+  .error { color: var(--lleno); background: var(--lleno-bg); border: 1px solid var(--lleno); border-radius: var(--radio-chico); padding: 4px 10px; font-weight: 700; }
 </style>
 </head>
 <body>
