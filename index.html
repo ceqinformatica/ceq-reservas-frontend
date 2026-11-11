@@ -95,6 +95,9 @@
     .space-buttons { display: flex; gap: 8px; margin: 18px 0 16px; flex-wrap: wrap; }
     .space-btn { border: 1px solid var(--marino); background: transparent; color: var(--marino); border-radius: 5px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; }
     .space-btn.active { background: var(--marino); color: var(--blanco); }
+    /* Espacios que se reservan solo a través de un moderador: se ve el calendario y el cartel, no el formulario */
+    .form-panel.solo-moderador > *:not(h2):not(#statusMessage):not(.resumen):not(.grupo-turnos):not(#cartelModerador) { display: none !important; }
+    #cartelModerador { background: #EEF4FC; border-left: 4px solid var(--marino); border-radius: 6px; padding: 12px 14px; margin: 0 0 14px; font-size: 14px; line-height: 1.5; white-space: pre-line; }
     .space-btn.no-disponible { border-color: #C3CCDA; color: #8C98AC; background: #E6EBF2; cursor: not-allowed; display: inline-flex; align-items: center; gap: 8px; }
     .space-btn.no-disponible span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; background: #D3DBE6; color: #6C788C; border-radius: 999px; padding: 2px 8px; }
 
@@ -406,6 +409,7 @@
     <section class="panel form-panel" aria-labelledby="tituloForm">
       <h2 class="titulo-seccion" id="tituloForm">Tu reserva</h2>
       <div id="statusMessage"></div>
+      <div id="cartelModerador" role="note" hidden></div>
 
       <div class="resumen">
         <div class="form-group">
@@ -418,7 +422,7 @@
         </div>
       </div>
 
-      <div class="form-group">
+      <div class="form-group grupo-turnos">
         <label>Turno <span class="required">*</span></label>
         <div class="hours-grid" id="hoursGrid"></div>
         <div class="vacio-turnos">Primero elegí un día en el calendario.</div>
@@ -601,6 +605,71 @@
       'Recaudación - Congreso o Evento Académico'
     ];
     let ALTILLO = { hora_desde: 7, hora_hasta: 19, max_horas: 2 };
+
+    // Cómo se reserva cada espacio (viene de /api/configuracion): por turnos fijos o por bloques de
+    // 1 hora, sus motivos, su contacto y si se reserva solo a través de un moderador. Las variables
+    // de arriba (TURNOS_FRENTE, MOTIVOS_FRENTE y ALTILLO) guardan siempre lo del espacio ELEGIDO:
+    // usarDefDelEspacio() las cambia al pasar de un espacio a otro.
+    let DEFS = {};
+    function defDe(id = espacioSeleccionado) {
+      return DEFS[id] || { nombre: espacios[id] || '', modo: 'publico', horario: 'bloques', hora_desde: 7, hora_hasta: 19, max_horas: 2, motivos: [], contacto: {} };
+    }
+    const porTurnos = (id = espacioSeleccionado) => defDe(id).horario === 'turnos';
+    const soloModerador = (id = espacioSeleccionado) => defDe(id).modo === 'moderador';
+    const idsDeEspacios = () => [3, 1, ...Object.keys(DEFS).map(Number).filter(id => id !== 3 && id !== 1)];
+
+    // Toma del servidor la definición de cada espacio (solo lo que tiene la forma esperada). Con
+    // un servidor anterior, arma las del Frente y el Altillo con lo que ya se había leído.
+    function leerDefiniciones(datos) {
+      const nuevas = {
+        3: { nombre: 'Frente', modo: 'publico', horario: 'turnos', turnos: TURNOS_FRENTE, motivos: MOTIVOS_FRENTE, contacto: { whatsapp: configuracionPublica.whatsapp } },
+        1: { nombre: 'Altillo', modo: 'publico', horario: 'bloques', ...ALTILLO, motivos: [], contacto: {} }
+      };
+      const lista = datos && datos.espacios && typeof datos.espacios === 'object' ? datos.espacios : {};
+      const horaOk = h => typeof h === 'string' && /^\d{2}:\d{2}$/.test(h);
+      Object.entries(lista).forEach(([clave, d]) => {
+        const id = Number(clave);
+        if (!Number.isInteger(id) || id < 1 || !d || typeof d !== 'object') return;
+        const comun = {
+          nombre: typeof d.nombre === 'string' && d.nombre ? d.nombre : (espacios[id] || `Espacio ${id}`),
+          modo: d.modo === 'moderador' ? 'moderador' : 'publico',
+          motivos: (Array.isArray(d.motivos) ? d.motivos : []).filter(m => typeof m === 'string' && m.trim()),
+          contacto: {
+            email: d.contacto && /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(d.contacto.email || '') ? d.contacto.email : '',
+            whatsapp: d.contacto && /^\d{8,15}$/.test(d.contacto.whatsapp || '') ? d.contacto.whatsapp : ''
+          },
+          aviso_moderador: typeof d.aviso_moderador === 'string' ? d.aviso_moderador : ''
+        };
+        if (d.horario === 'turnos') {
+          const turnos = (Array.isArray(d.turnos) ? d.turnos : []).filter(x => x && x.nombre && horaOk(x.inicio) && horaOk(x.fin));
+          if (turnos.length) nuevas[id] = { ...comun, horario: 'turnos', turnos };
+        } else if (Number.isInteger(d.hora_desde) && Number.isInteger(d.hora_hasta) && Number.isInteger(d.max_horas) &&
+            d.hora_desde >= 0 && d.hora_hasta <= 24 && d.hora_desde < d.hora_hasta && d.max_horas >= 1) {
+          nuevas[id] = { ...comun, horario: 'bloques', hora_desde: d.hora_desde, hora_hasta: d.hora_hasta, max_horas: d.max_horas };
+        }
+      });
+      DEFS = nuevas;
+      Object.entries(DEFS).forEach(([id, d]) => { if (d.nombre) espacios[id] = d.nombre; });
+    }
+
+    // Deja en TURNOS_FRENTE, MOTIVOS_FRENTE y ALTILLO lo del espacio elegido
+    function usarDefDelEspacio() {
+      const d = defDe();
+      if (d.horario === 'turnos') TURNOS_FRENTE = d.turnos;
+      else ALTILLO = { hora_desde: d.hora_desde, hora_hasta: d.hora_hasta, max_horas: d.max_horas };
+      if (d.motivos && d.motivos.length) MOTIVOS_FRENTE = d.motivos;
+    }
+
+    // En los espacios que se reservan solo a través de un moderador se ve el calendario (qué está
+    // libre y qué no) y un cartel con el contacto, en lugar del formulario
+    function aplicarModoModerador() {
+      const solo = soloModerador() && espaciosPublicos[espacioSeleccionado] === true;
+      document.querySelector('.form-panel').classList.toggle('solo-moderador', solo);
+      const cartel = document.getElementById('cartelModerador');
+      cartel.hidden = !solo;
+      cartel.textContent = solo ? (defDe().aviso_moderador || `Las reservas del ${espacios[espacioSeleccionado]} se hacen a través de un moderador.`) : '';
+      document.getElementById('tituloForm').textContent = solo ? 'Cómo reservar' : 'Tu reserva';
+    }
     // Cuántos acompañantes se pueden anotar en el espacio elegido (Reglas; por defecto Altillo 4, Frente 0)
     const maxAcompanantes = () => reglaDe(espacioSeleccionado).acompanantes_max || 0;
 
@@ -624,7 +693,7 @@
     // ¿Queda algún turno (Frente) o bloque de 1 hora (Altillo) que se pueda reservar hoy?
     // Un bloque del Altillo se puede tomar mientras no haya terminado (igual que en el servidor).
     function quedaLugarHoy(fecha) {
-      if (espacioSeleccionado === 3) return turnosOcupadosFrente(fecha).some(ocupado => !ocupado);
+      if (porTurnos()) return turnosOcupadosFrente(fecha).some(ocupado => !ocupado);
       const ahora = minutosAhoraEnAsuncion();
       const ocupaciones = [
         ...reservasActuales.filter(r => r.espacio_id === espacioSeleccionado && r.fecha === fecha),
@@ -640,8 +709,8 @@
 
     function turnosOcupadosFrente(fecha) {
       const ocupaciones = [
-        ...reservasActuales.filter(r => r.espacio_id === 3 && r.fecha === fecha),
-        ...bloqueosCargados.filter(b => b.espacio_id === 3 && b.fecha === fecha)
+        ...reservasActuales.filter(r => r.espacio_id === espacioSeleccionado && r.fecha === fecha),
+        ...bloqueosCargados.filter(b => b.espacio_id === espacioSeleccionado && b.fecha === fecha)
       ];
       return TURNOS_FRENTE.map(t => horarioYaPaso(fecha, t.inicio) ||
         ocupaciones.some(o => seSuperponen(o.hora_inicio.substring(0, 5), o.hora_fin.substring(0, 5), t.inicio, t.fin)));
@@ -650,9 +719,9 @@
     // Espejo de la función del mismo nombre en server.js. Recibe horas "HH:MM".
     function descripcionHorario(espacioId, horaInicioHHMM, horaFinHHMM) {
       const rango = `${horaInicioHHMM} - ${horaFinHHMM}`;
-      if (Number(espacioId) === 3) {
-        const nombreTurno = nombreTurnoFrente(horaInicioHHMM, horaFinHHMM);
-        if (nombreTurno) return `${nombreTurno} (${rango})`;
+      if (porTurnos(espacioId)) {
+        const turno = (defDe(espacioId).turnos || []).find(x => x.inicio === horaInicioHHMM && x.fin === horaFinHHMM);
+        if (turno) return `${turno.nombre} (${rango})`;
       }
       return rango;
     }
@@ -682,9 +751,11 @@
         pausaReservas = p && p.activa === true && typeof p.mensaje === 'string' ? p.mensaje : '';
         // Reglas de cada espacio: solo se toma lo que tiene la forma esperada
         const reglas = datos.reglas && typeof datos.reglas === 'object' ? datos.reglas : {};
-        [3, 1].forEach(id => {
+        Object.keys(reglas).map(Number).filter(id => Number.isInteger(id) && id > 0).forEach(id => {
           const r = reglas[id];
           if (!r || !Array.isArray(r.dias)) return;
+          // Un espacio creado desde el panel: parte de las reglas de un espacio sin acompañantes
+          if (!REGLAS[id]) REGLAS[id] = { ...REGLAS[1], acompanantes_max: 0 };
           const dias = r.dias.filter(d => Number.isInteger(d) && d >= 0 && d <= 6);
           const entero = (x, defecto) => (Number.isInteger(x) && x >= 0 ? x : defecto);
           if (!dias.length) return;
@@ -704,9 +775,12 @@
         Object.keys(TEXTOS).forEach(k => { if (typeof textos[k] === 'string') TEXTOS[k] = textos[k]; });
         const cinta = datos.anuncio;
         anuncio = cinta && typeof cinta.texto === 'string' && cinta.texto ? { texto: cinta.texto, tipo: cinta.tipo === 'importante' ? 'importante' : 'info' } : null;
+        leerDefiniciones(datos);
       } catch (error) {
         console.error('Error al cargar la configuración:', error);
+        if (!Object.keys(DEFS).length) leerDefiniciones(null);
       }
+      usarDefDelEspacio();
       aplicarTextosPagina();
       actualizarAyudaReserva();
       llenarMotivosFrente();
@@ -756,14 +830,14 @@
       const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
       const partes = ['Te llega un email con tu código para cancelar.'];
       if (r.plazo_cancelacion_dias > 0) {
-        partes.push(`En el ${nombre}, la cancelación es gratis hasta ${plural(r.plazo_cancelacion_dias, 'día', 'días')} antes de la fecha; después, solo ${espacioSeleccionado === 3 ? 'por WhatsApp' : 'escribiendo por correo'}.`);
+        partes.push(`En el ${nombre}, la cancelación es gratis hasta ${plural(r.plazo_cancelacion_dias, 'día', 'días')} antes de la fecha; después, solo ${porTurnos() ? 'por WhatsApp' : 'escribiendo por correo'}.`);
       }
       if (r.anticipacion_min_dias > 0) partes.push(`Se reserva con al menos ${plural(r.anticipacion_min_dias, 'día', 'días')} de anticipación.`);
       if (r.anticipacion_max_dias > 0) partes.push(`Se puede reservar con hasta ${plural(r.anticipacion_max_dias, 'día', 'días')} de anticipación.`);
       if (r.limite_por_persona_mes) partes.push(`En el ${nombre}, máximo ${plural(r.limite_por_persona_mes, 'reserva', 'reservas')} por persona por mes.`);
       // Texto propio de este espacio (admin supremo > Textos de la página), con {plazo} y {limite}
       // completados con sus reglas. Vacío: el armado de arriba.
-      const plantilla = TEXTOS[espacioSeleccionado === 3 ? 'ayuda_reserva_frente' : 'ayuda_reserva_altillo'] || '';
+      const plantilla = (espacioSeleccionado == 3 ? TEXTOS.ayuda_reserva_frente : espacioSeleccionado == 1 ? TEXTOS.ayuda_reserva_altillo : '') || '';
       const propio = plantilla
         .replace(/\{plazo\}/g, r.plazo_cancelacion_dias > 0 ? `${plural(r.plazo_cancelacion_dias, 'día', 'días')} antes` : 'el inicio de la reserva')
         .replace(/\{limite\}/g, r.limite_por_persona_mes ? plural(r.limite_por_persona_mes, 'reserva', 'reservas') : 'sin límite');
@@ -807,7 +881,7 @@
 
     // El Frente usa la lista de motivos; el Altillo, texto libre. Los acompañantes, en el espacio que los permita
     function aplicarCampoMotivo() {
-      const esFrente = espacioSeleccionado === 3;
+      const esFrente = defDe().motivos.length > 0; // con lista de motivos (como el Frente) o texto libre
       document.getElementById('motivoFrente').hidden = !esFrente;
       document.getElementById('motivo').hidden = esFrente;
       document.getElementById('etiquetaMotivo').htmlFor = esFrente ? 'motivoFrente' : 'motivo';
@@ -819,7 +893,7 @@
     }
 
     function motivoElegido() {
-      return espacioSeleccionado === 3
+      return defDe().motivos.length > 0
         ? document.getElementById('motivoFrente').value
         : document.getElementById('motivo').value.trim();
     }
@@ -876,7 +950,7 @@
     function leerAcompanantes() {
       const acompanantes = [];
       let error = '';
-      if (espacioSeleccionado !== 1) return { acompanantes, error };
+      if (maxAcompanantes() === 0) return { acompanantes, error };
       document.querySelectorAll('#acompLista .acomp-fila').forEach((fila, i) => {
         const nombre = fila.querySelector('.acomp-nombre').value.trim();
         const celular = fila.querySelector('.acomp-celular').value.trim();
@@ -958,7 +1032,7 @@
       const fecha = params.get('fecha');
       const espacio = Number(params.get('espacio'));
       if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return;
-      if ((espacio === 1 || espacio === 3) && espaciosPublicos[espacio] === true && espacio !== espacioSeleccionado) {
+      if (espaciosPublicos[espacio] === true && espacio !== espacioSeleccionado) {
         seleccionarEspacio(espacio);
       }
       const [anio, mes] = fecha.split('-').map(Number);
@@ -1155,7 +1229,7 @@
     // turnos; en el Altillo, horas. Solo para meses habilitados y si queda alguno (si no queda
     // ninguno, se ve la lista de espera). Con pocos lugares se resalta.
     function lugaresLibresDelDia(fecha) {
-      if (espacioSeleccionado === 3) return turnosOcupadosFrente(fecha).filter(ocupado => !ocupado).length;
+      if (porTurnos()) return turnosOcupadosFrente(fecha).filter(ocupado => !ocupado).length;
       const ocupaciones = [
         ...reservasActuales.filter(r => r.espacio_id === espacioSeleccionado && r.fecha === fecha),
         ...bloqueosCargados.filter(b => b.espacio_id === espacioSeleccionado && b.fecha === fecha)
@@ -1194,8 +1268,8 @@
         return;
       }
       const nombreMes = new Intl.DateTimeFormat('es-PY', { month: 'long' }).format(mesCalendario);
-      const unidad = espacioSeleccionado === 3 ? (libres === 1 ? 'turno libre' : 'turnos libres') : (libres === 1 ? 'hora libre' : 'horas libres');
-      const pocos = espacioSeleccionado === 3 ? libres <= 5 : libres <= 10;
+      const unidad = porTurnos() ? (libres === 1 ? 'turno libre' : 'turnos libres') : (libres === 1 ? 'hora libre' : 'horas libres');
+      const pocos = porTurnos() ? libres <= 5 : libres <= 10;
       caja.textContent = `${pocos ? 'Quedan solo' : 'Quedan'} ${libres} ${unidad} en el ${espacios[espacioSeleccionado]} en ${nombreMes}.`;
       caja.classList.toggle('pocos', pocos);
       caja.style.display = 'block';
@@ -1210,6 +1284,7 @@
         lista.forEach(e => {
           if (typeof e.publico !== 'boolean') return;
           espaciosPublicos[e.id] = e.publico;
+          if (typeof e.nombre === 'string' && e.nombre) espacios[e.id] = e.nombre;
           avisosEspacios[e.id] = e.aviso || '';
           mostrarAvisoEspacio[e.id] = e.mostrar_aviso !== false;
         });
@@ -1220,6 +1295,19 @@
 
     // Habilita o deshabilita los botones de espacio según espaciosPublicos
     function aplicarEspacios() {
+      // Un botón por espacio creado desde el panel (si está publicado); si se quitó, se saca su botón
+      const caja = document.querySelector('.space-buttons');
+      caja.querySelectorAll('.space-btn').forEach(btn => {
+        const id = parseInt(btn.dataset.espacio);
+        if (id !== 3 && id !== 1 && (!DEFS[id] || espaciosPublicos[id] !== true)) btn.remove();
+      });
+      idsDeEspacios().filter(id => id !== 3 && id !== 1 && espaciosPublicos[id] === true && !caja.querySelector(`.space-btn[data-espacio="${id}"]`)).forEach(id => {
+        const btn = document.createElement('button');
+        btn.className = 'space-btn';
+        btn.dataset.espacio = String(id);
+        btn.addEventListener('click', () => { if (!btn.disabled) seleccionarEspacio(id); });
+        caja.appendChild(btn);
+      });
       document.querySelectorAll('.space-btn').forEach(btn => {
         const id = parseInt(btn.dataset.espacio);
         const abierto = espaciosPublicos[id] === true;
@@ -1239,9 +1327,12 @@
       });
       // Si el espacio elegido quedó deshabilitado, pasar al otro (si ese sí está habilitado)
       if (espaciosPublicos[espacioSeleccionado] !== true) {
-        const otro = [3, 1].find(id => espaciosPublicos[id] === true);
+        const otro = idsDeEspacios().find(id => espaciosPublicos[id] === true);
         if (otro) seleccionarEspacio(otro);
       }
+      usarDefDelEspacio();
+      aplicarCampoMotivo();
+      aplicarModoModerador();
     }
 
     function seleccionarEspacio(id) {
@@ -1249,6 +1340,9 @@
         b.classList.toggle('active', parseInt(b.dataset.espacio) === id);
       });
       espacioSeleccionado = id;
+      usarDefDelEspacio();
+      llenarMotivosFrente();
+      aplicarModoModerador();
       document.getElementById('espacioNombre').value = espacios[espacioSeleccionado];
       aplicarCampoMotivo();
       actualizarAyudaReserva();
@@ -1423,7 +1517,7 @@
           dayEl.classList.add('available'); // Verde - Sin reservas
         } else {
           // Para Frente: lleno si todos los turnos están ocupados (reservas o bloqueos)
-          if (espacioSeleccionado === 3) {
+          if (porTurnos()) {
             dayEl.classList.add(turnosOcupadosFrente(fecha).every(Boolean) ? 'full' : 'partial');
           } else {
             // Calcular cuántas horas están ocupadas (para Altillo/Sala)
@@ -1457,8 +1551,8 @@
             }
 
             // Calcular horas disponibles según espacio
-            const horaMin = espacioSeleccionado === 3 ? 7 : ALTILLO.hora_desde;
-            const horaMax = espacioSeleccionado === 3 ? 18 : ALTILLO.hora_hasta;
+            const horaMin = porTurnos() ? 7 : ALTILLO.hora_desde;
+            const horaMax = porTurnos() ? 18 : ALTILLO.hora_hasta;
             const horasDisponibles = hayBloqueoTotal ? 0 : (horaMax - horaMin) - horasOcupadas.size;
 
             if (horasDisponibles === 0) {
@@ -1475,7 +1569,7 @@
           if (!dayEl.classList.contains('disabled') && !quedaLugarHoy(fecha)) {
             dayEl.classList.remove('available', 'partial');
             dayEl.classList.add('full');
-          } else if (dayEl.classList.contains('available') && espacioSeleccionado === 3 && turnosOcupadosFrente(fecha).some(Boolean)) {
+          } else if (dayEl.classList.contains('available') && porTurnos() && turnosOcupadosFrente(fecha).some(Boolean)) {
             dayEl.classList.replace('available', 'partial');
           }
         }
@@ -1489,9 +1583,9 @@
         // En Frente, cada día muestra 3 rayitas (Desayuno, Almuerzo, Merienda): azul si el
         // turno está libre, apagada si está ocupado. Así se ve qué queda sin tocar el día.
         let indicador = '';
-        if (espacioSeleccionado === 3 && !dayEl.classList.contains('disabled')) {
+        if (porTurnos() && !dayEl.classList.contains('disabled')) {
           indicador = `<span class="dots">${turnosOcupadosFrente(fecha).map(o => `<i class="${o ? 'x' : ''}"></i>`).join('')}</span>`;
-        } else if (reservasDia.length > 0 && espacioSeleccionado !== 3) {
+        } else if (reservasDia.length > 0 && !porTurnos()) {
           indicador = `<div class="calendar-day-indicator">${reservasDia.length} reserva${reservasDia.length > 1 ? 's' : ''}</div>`;
         }
         dayEl.innerHTML = `<div class="calendar-day-number">${dia}</div>${indicador}`;
@@ -1570,16 +1664,16 @@
       validarFormulario();
 
       // Si es Frente, mostrar un botón por turno
-      if (espacioSeleccionado === 3) {
+      if (porTurnos()) {
         const turnos = TURNOS_FRENTE;
         let hayTurnoLibre = false;
 
         const reservasDelDia = reservasActuales.filter(r => 
-          r.espacio_id === 3 && r.fecha === fecha
+          r.espacio_id === espacioSeleccionado && r.fecha === fecha
         );
 
         const bloqueosDelDia = bloqueosCargados.filter(b => 
-          b.espacio_id === 3 && b.fecha === fecha
+          b.espacio_id === espacioSeleccionado && b.fecha === fecha
         );
 
         turnos.forEach(turno => {
@@ -1697,7 +1791,7 @@
 
     // true si ese día tiene algún turno (Frente) o bloque de una hora (Altillo) libre
     function diaTieneLugar(fecha) {
-      if (espacioSeleccionado === 3) return turnosOcupadosFrente(fecha).some(ocupado => !ocupado);
+      if (porTurnos()) return turnosOcupadosFrente(fecha).some(ocupado => !ocupado);
       const ocupaciones = [
         ...reservasActuales.filter(r => r.espacio_id === espacioSeleccionado && r.fecha === fecha),
         ...bloqueosCargados.filter(b => b.espacio_id === espacioSeleccionado && b.fecha === fecha)
@@ -1745,7 +1839,7 @@
 
     function actualizarListaEspera() {
       const caja = document.getElementById('listaEspera');
-      const llenos = espaciosPublicos[espacioSeleccionado] === true && !pausaReservas ? (mesesSinLugar() || []) : [];
+      const llenos = espaciosPublicos[espacioSeleccionado] === true && !pausaReservas && !soloModerador() ? (mesesSinLugar() || []) : [];
       // Si ya está armado para este espacio y estos meses no se vuelve a armar (el refresco
       // automático no le borra a la persona lo que está escribiendo)
       const clave = llenos.length ? `${espacioSeleccionado}:${llenos.join(',')}` : '';
@@ -1997,6 +2091,7 @@
     }
 
     function validarFormulario() {
+      if (soloModerador()) { document.getElementById('btnReservar').disabled = true; return; }
       const nombre = document.getElementById('nombre').value.trim();
       const celular = document.getElementById('celular').value.trim();
       const email = document.getElementById('email').value.trim();
@@ -2042,7 +2137,7 @@
 
         // Para Frente: horasSeleccionadas = [inicio, fin] directamente
         // Para Altillo/Sala: horasSeleccionadas = [hora1, hora2, ...] y hay que sumar 1 a la última
-        if (espacioSeleccionado === 3) {
+        if (porTurnos()) {
           // Frente: usar directamente
           horaInicio = horasSeleccionadas[0];
           horaFin = horasSeleccionadas[1];
@@ -2160,9 +2255,11 @@
       const plazo = reglaDe(espacioId).plazo_cancelacion_dias;
       if (!plazo) return '';
       // configuracionPublica.whatsapp ya se validó como solo números (ver cargarConfiguracion)
-      const contacto = espacioId === 3
-        ? `por <a href="https://wa.me/${configuracionPublica.whatsapp}" target="_blank" rel="noopener">WhatsApp</a>`
-        : 'a reservas@ceq-una.com';
+      // El WhatsApp y el correo ya se validaron al leerlos (solo números; correo sin signos de HTML)
+      const contactoEspacio = defDe(espacioId).contacto || {};
+      const contacto = contactoEspacio.whatsapp
+        ? `por <a href="https://wa.me/${contactoEspacio.whatsapp}" target="_blank" rel="noopener">WhatsApp</a>`
+        : `a ${contactoEspacio.email || 'reservas@ceq-una.com'}`;
       const textoDias = plazo === 1 ? '1 día' : `${plazo} días`;
       if (diasHasta(fecha) < plazo) {
         return `${plazo === 1 ? 'Como la reserva es hoy' : `Como faltan menos de ${textoDias}`}, esta reserva ya no se puede cancelar con el código. Si necesitás cancelarla, escribinos ${contacto}.`;

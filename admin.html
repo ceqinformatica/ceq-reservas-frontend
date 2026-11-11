@@ -391,6 +391,21 @@
     .config-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
     .config-campos label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--marino); }
     .config-mensaje { font-size: 14px; font-weight: 600; }
+    /* Formularios de "Crear y cambiar espacios" y "Cuentas del panel": una sola columna */
+    /* Detector de abusos: las tablas se desplazan adentro de su tarjeta, sin ensanchar la página */
+    #abusosLista, #abusosLista details { min-width: 0; max-width: 100%; }
+    #abusosLista details { overflow: hidden; margin-top: 10px; }
+    #abusosLista summary { white-space: normal; overflow-wrap: anywhere; cursor: pointer; }
+    #abusosLista .table-wrapper { overflow-x: auto; margin-top: 10px; }
+    #abusosLista table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    #abusosLista th, #abusosLista td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--linea); white-space: nowrap; }
+    .form-una-columna { grid-template-columns: minmax(0, 1fr); max-width: 640px; margin-top: 12px; }
+    .form-una-columna select, .form-una-columna textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--linea); border-radius: var(--radio-chico); font: inherit; font-weight: 400; background: var(--blanco); color: inherit; }
+    .form-una-columna textarea { min-height: 76px; resize: vertical; }
+    .form-una-columna .ayuda { font-weight: 400; }
+    .form-una-columna .regla-fila input { width: 84px; }
+    .form-una-columna .check { display: flex; grid-template-columns: none; align-items: center; gap: 6px; font-weight: 400; }
+    .form-una-columna .check input { width: auto; }
     .config-mensaje.error { color: var(--lleno); }
     .config-mensaje.ok { color: var(--ok); }
     @media (max-width: 520px) { .config-turno { grid-template-columns: 1fr 1fr; } }
@@ -535,6 +550,10 @@
       <p class="sub" style="text-align:center;">Sistema de Reservas del CEQ</p>
       <div id="loginError" class="login-error"></div>
       <div class="form-group">
+        <label for="usuarioInput">Usuario</label>
+        <input type="text" id="usuarioInput" placeholder="Por ejemplo: moderadores" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="40">
+      </div>
+      <div class="form-group">
         <label for="passwordInput">Contraseña</label>
         <input type="password" id="passwordInput" placeholder="Ingresá la contraseña" autocomplete="current-password">
       </div>
@@ -555,6 +574,7 @@
         <nav aria-label="Principal">
           <ul class="menu">
             <li class="solo-pc"><a href="https://reservas.ceq-una.com/">Ver página pública</a></li>
+            <li class="solo-pc"><a href="https://reservas.ceq-una.com/pantalla.html" target="_blank" rel="noopener">Modo pantalla</a></li>
             <li><button class="logout-btn" onclick="logout()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg>Cerrar sesión</button></li>
           </ul>
         </nav>
@@ -571,10 +591,10 @@
           <button class="tab-btn active" onclick="switchTab('hoy')">Hoy</button>
           <button class="tab-btn" onclick="switchTab('reservas')">Reservas</button>
           <button class="tab-btn" onclick="switchTab('bloqueos')">Bloqueos</button>
-          <button class="tab-btn" onclick="switchTab('meses')">Meses</button>
-          <button class="tab-btn" onclick="switchTab('prioridad')">Prioridad</button>
+          <button class="tab-btn solo-general" onclick="switchTab('meses')">Meses</button>
+          <button class="tab-btn" onclick="switchTab('prioridad')">Cargar reserva</button>
           <button class="tab-btn" onclick="switchTab('exportar')">Exportar</button>
-          <button class="tab-btn" onclick="switchTab('reportes')">Reportes</button>
+          <button class="tab-btn solo-general" onclick="switchTab('reportes')">Reportes</button>
           <!-- Solo con la contraseña del admin supremo (el servidor igual rechaza estas acciones al admin normal) -->
           <button class="tab-btn solo-super" hidden onclick="switchTab('avanzado')">Avanzado</button>
         </div>
@@ -812,22 +832,40 @@
 
         <!-- TAB: RESERVA DE PRIORIDAD -->
         <div id="tab-prioridad" class="tab-content">
-          <h3>Reserva de prioridad · Frente (Comisión Directiva)</h3>
+          <h3>Cargar una reserva</h3>
           <p class="nota">
-            A diferencia de un bloqueo, esto crea una reserva real: ocupa el turno de verdad.
-            Sirve para que la Comisión Directiva se asegure un horario ANTES de habilitar
-            ese mes al público. Cuando lo habilites después, ese turno ya va a figurar
-            como ocupado, no libre. Estas reservas no tienen límite por persona.
+            Crea una reserva real a nombre de otra persona: ocupa el horario de verdad y a la persona le
+            llega la confirmación con su código. Sirve para dos cosas: cargar las reservas de los espacios
+            que se reservan <strong>solo a través de un moderador</strong>, y asegurar un horario
+            (por ejemplo, para la Comisión Directiva) ANTES de habilitar ese mes al público.
+            Estas reservas no tienen límite por persona.
           </p>
 
           <div class="dos-col">
             <div class="form-col">
               <div class="form-group">
+                <label for="prioridadEspacio">Espacio</label>
+                <select id="prioridadEspacio" onchange="llenarCargarReserva()">
+                  <option value="3">Frente</option>
+                  <option value="1">Altillo</option>
+                </select>
+              </div>
+
+              <div class="form-group">
                 <label for="prioridadFecha">Fecha</label>
                 <input type="date" id="prioridadFecha">
               </div>
 
-              <div class="form-group">
+              <div class="form-group" id="prioridadGrupoHoras" hidden>
+                <label for="prioridadDesde">Horario (horas completas)</label>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <select id="prioridadDesde" aria-label="Desde"></select>
+                  <span>a</span>
+                  <select id="prioridadHasta" aria-label="Hasta"></select>
+                </div>
+              </div>
+
+              <div class="form-group" id="prioridadGrupoTurno">
                 <label for="prioridadTurno">Turno</label>
                 <select id="prioridadTurno">
                   <option value="07:00|10:00">Desayuno (07:00 - 10:00)</option>
@@ -853,14 +891,15 @@
 
               <div class="form-group">
                 <label for="prioridadMotivo">Motivo</label>
-                <input type="text" id="prioridadMotivo" placeholder="Ej: Reunión de Comisión Directiva">
+                <input type="text" id="prioridadMotivo" placeholder="Ej: Reunión de Comisión Directiva" list="prioridadMotivos" maxlength="500">
+                <datalist id="prioridadMotivos"></datalist>
               </div>
 
-              <button class="btn-block" style="width: 100%;" onclick="crearReservaPrioridad()">Crear reserva de prioridad</button>
+              <button class="btn-block" style="width: 100%;" onclick="crearReservaPrioridad()">Cargar reserva</button>
             </div>
 
             <div>
-              <h4>Reservas de prioridad realizadas</h4>
+              <h4>Reservas cargadas desde el panel</h4>
               <div id="prioridadList" class="lista-scroll"></div>
             </div>
           </div>
@@ -939,6 +978,22 @@
           </p>
           <div id="espaciosAdmin" class="espacios-grid"></div>
 
+          <h3 class="mt">Crear y cambiar espacios</h3>
+          <p class="nota">
+            Cada espacio se reserva por <strong>bloques de 1 hora</strong> o por <strong>turnos fijos</strong>, y lo
+            puede reservar cualquier persona desde la página o <strong>solo un moderador</strong> (la gente ve qué
+            está libre y a quién escribirle). Tocá un espacio para cambiarlo, o creá uno nuevo al final.
+          </p>
+          <div id="espaciosEditor"></div>
+
+          <h3 class="mt">Cuentas del panel</h3>
+          <p class="nota">
+            Cada cuenta entra con su usuario y su contraseña y ve el panel solo con los espacios que le des.
+            La cuenta <strong>supremo</strong> ve todo, y <strong>moderadores</strong> es la contraseña compartida
+            de siempre (Frente y Altillo). Las contraseñas se guardan cifradas: no se pueden volver a ver, solo cambiar.
+          </p>
+          <div id="cuentasEditor"></div>
+
           <h3 class="mt">Ventana de novedades</h3>
           <p class="nota">
             La ventana que aparece al entrar a la página para contar novedades. Cada persona la ve una
@@ -985,7 +1040,7 @@
           <p class="nota">Calculadas con todas las reservas guardadas (las de hace más de 6 meses ya no tienen nombre, pero se cuentan igual).</p>
           <div class="filters">
             <select id="statsEspacio" onchange="mostrarEstadisticas()" aria-label="Espacio">
-              <option value="">Los dos espacios</option>
+              <option value="">Todos los espacios</option>
               <option value="3">Frente</option>
               <option value="1">Altillo</option>
             </select>
@@ -995,6 +1050,16 @@
               <option value="1">Este mes</option>
               <option value="12">Último año</option>
             </select>
+          </div>
+          <div class="espacio-card mt-chico">
+            <span class="etiqueta">Informe para la Comisión</span>
+            <p class="ayuda">Arma un informe para imprimir o guardar como PDF: reservas por espacio y por mes, cancelaciones, asistencia, horarios más pedidos, reportes de problemas, correos que no salieron y actividad del panel. Sin nombres ni contactos. Sin fechas, toma el semestre en curso.</p>
+            <div class="filters">
+              <label>Desde <input type="date" id="informeDesde"></label>
+              <label>Hasta <input type="date" id="informeHasta"></label>
+              <button class="btn-primario-chico" type="button" onclick="generarInforme()">Armar el informe</button>
+            </div>
+            <p class="config-mensaje" id="informeMensaje" role="status"></p>
           </div>
           <div id="statsContenido" class="stats-grupo"></div>
 
@@ -1006,6 +1071,17 @@
               <tbody id="listaEsperaBody"></tbody>
             </table>
           </div>
+
+          <h3 class="mt">Detector de abusos</h3>
+          <p class="nota">
+            El límite por persona se controla por correo o por celular, y no se verifica ninguno de los dos. Acá se
+            juntan las reservas de los últimos 90 días que parecen de una misma persona con datos distintos: el mismo
+            celular con varios correos, el mismo correo con varios celulares, el mismo nombre con todo distinto, o la
+            misma conexión de internet con varias personas. <strong>No bloquea ni cancela nada:</strong> es para que
+            lo mires y decidas. Arriba salen los casos que, juntos, pasan el límite del mes.
+          </p>
+          <div class="filters"><button class="btn-primario-chico" type="button" onclick="buscarAbusos()">Buscar casos</button></div>
+          <div id="abusosLista"></div>
 
           <h3 class="mt">Datos de una persona</h3>
           <p class="nota">Para responder un pedido de la Política de Privacidad (art. 11): buscá por correo o celular para ver todo lo que hay guardado de esa persona, descargarlo o borrarlo. Borrar deja sus reservas sin nombre ni contacto (como a los 6 meses) y la saca de la lista de espera. No se puede deshacer.</p>
@@ -1173,10 +1249,7 @@
           <details class="espacio-card mt-chico avisos-destinatarios">
             <summary class="etiqueta">Quién recibe los avisos internos (nueva reserva, cancelaciones…) — tocá para ver</summary>
             <p class="ayuda">Un correo por línea, de 1 a 5 por espacio. "Responder" en un aviso le escribe directo a la persona que reservó.</p>
-            <div class="config-campos">
-              <label>Frente <textarea id="avisosFrente" class="corto" spellcheck="false"></textarea></label>
-              <label>Altillo <textarea id="avisosAltillo" class="corto" spellcheck="false"></textarea></label>
-            </div>
+            <div class="config-campos" id="avisosCampos"></div>
             <div class="novedades-botones"><button class="btn-small" type="button" onclick="guardarDestinatariosAvisos()">Guardar quién recibe los avisos</button></div>
             <p class="config-mensaje" id="avisosMensaje" role="status"></p>
           </details>
@@ -1329,8 +1402,7 @@
           <div class="espacio-card">
             <div class="filters">
               <select id="feriadosAnio" aria-label="Año" onchange="armarFeriados()"></select>
-              <label class="check"><input type="checkbox" id="feriadosFrente" checked> Frente</label>
-              <label class="check"><input type="checkbox" id="feriadosAltillo" checked> Altillo</label>
+              <span id="feriadosEspacios" style="display:contents"></span>
             </div>
             <div id="feriadosLista" class="feriados-lista"></div>
             <div class="novedades-botones"><button class="btn-primario-chico" type="button" onclick="aplicarFeriados()">Bloquear los marcados</button></div>
@@ -1481,11 +1553,8 @@
 
     function descripcionHorario(espacioId, horaInicioHHMM, horaFinHHMM) {
       const rango = `${horaInicioHHMM} - ${horaFinHHMM}`;
-      if (Number(espacioId) === 3) {
-        const nombreTurno = nombreTurnoFrente(horaInicioHHMM, horaFinHHMM);
-        if (nombreTurno) return `${nombreTurno} (${rango})`;
-      }
-      return rango;
+      const turno = nombreTurno(espacioId, horaInicioHHMM, horaFinHHMM);
+      return turno ? `${turno} (${rango})` : rango;
     }
 
     async function cargarTurnos() {
@@ -1498,6 +1567,10 @@
         if (turnos.length > 0) TURNOS_FRENTE = turnos;
         const a = datos.altillo;
         if (a && Number.isInteger(a.hora_desde) && Number.isInteger(a.hora_hasta)) ALTILLO_ADMIN = { hora_desde: a.hora_desde, hora_hasta: a.hora_hasta };
+        if (datos.espacios && typeof datos.espacios === 'object') {
+          DEF_ESPACIOS = datos.espacios;
+          Object.entries(datos.espacios).forEach(([id, d]) => { if (d && d.nombre) espacios[id] = d.nombre; });
+        }
       } catch (error) {
         console.error('Error al cargar los turnos:', error);
       } finally {
@@ -1566,6 +1639,97 @@
     // las acciones avanzadas (/api/superadmin/*) a cualquier sesión de admin normal.
     let rolAdmin = 'admin';
 
+    // La cuenta con la que se entró: su nombre, los espacios que maneja y si ve "lo general"
+    // (meses, reportes y correos que no salieron). El servidor es el que manda: acá solo se decide
+    // qué se muestra.
+    let sesion = { rol: 'admin', usuario: 'moderadores', nombre: 'Moderadores', espacios: [3, 1], general: true };
+    function aplicarSesion(datos) {
+      const d = datos || {};
+      const lista = Array.isArray(d.espacios) ? d.espacios : [{ id: 3, nombre: 'Frente' }, { id: 1, nombre: 'Altillo' }];
+      lista.forEach(e => { espacios[e.id] = e.nombre; });
+      sesion = {
+        rol: d.rol === 'superadmin' ? 'superadmin' : 'admin', usuario: d.usuario || 'moderadores', nombre: d.nombre || '',
+        espacios: lista.map(e => Number(e.id)), general: d.general !== false
+      };
+      aplicarRol(sesion.rol);
+      if (sesion.rol !== 'superadmin' && sesion.nombre) document.getElementById('rolEtiqueta').textContent = sesion.nombre;
+      // Lo que no es de un espacio
+      document.querySelectorAll('.solo-general').forEach(el => { el.hidden = !sesion.general; });
+      if (!sesion.general && ['tab-meses', 'tab-reportes'].some(id => document.getElementById(id).classList.contains('active'))) switchTab('reservas');
+      prepararEspacios();
+    }
+
+    // Cómo se reserva cada espacio (viene de /api/configuracion): por turnos o por bloques de 1 hora
+    let DEF_ESPACIOS = {};
+    function defEspacioPanel(id) {
+      const d = DEF_ESPACIOS[Number(id)];
+      if (d) return d;
+      if (Number(id) === 3) return { horario: 'turnos', turnos: TURNOS_FRENTE, motivos: [] };
+      if (Number(id) === 1) return { horario: 'bloques', hora_desde: ALTILLO_ADMIN.hora_desde, hora_hasta: ALTILLO_ADMIN.hora_hasta, max_horas: 2, motivos: [] };
+      return { horario: 'bloques', hora_desde: 0, hora_hasta: 24, max_horas: 24, motivos: [] };
+    }
+    function nombreTurno(espacioId, inicio, fin) {
+      const d = defEspacioPanel(espacioId);
+      if (d.horario !== 'turnos') return '';
+      const turno = (d.turnos || []).find(x => x.inicio === inicio && x.fin === fin);
+      return turno ? turno.nombre : '';
+    }
+
+    // Las listas para elegir espacio se arman con los espacios de la cuenta. Sirve para todas las
+    // que tenían escritos "Altillo" y "Frente": las otras opciones (por ejemplo "Todos") quedan.
+    function llenarSelectsDeEspacios() {
+      document.querySelectorAll('select').forEach(sel => {
+        const opciones = [...sel.options];
+        if (!sel.dataset.espacios) {
+          if (!opciones.some(o => o.value === '1' && o.textContent.trim() === 'Altillo')) return;
+          sel.dataset.espacios = '1';
+          opciones.filter(o => ['1', '3'].includes(o.value)).forEach(o => o.remove());
+        }
+        const elegido = sel.value;
+        [...sel.options].filter(o => o.dataset.esp).forEach(o => o.remove());
+        sesion.espacios.forEach(id => {
+          const o = new Option(espacios[id] || `Espacio ${id}`, String(id));
+          o.dataset.esp = '1';
+          sel.add(o);
+        });
+        if ([...sel.options].some(o => o.value === elegido)) sel.value = elegido;
+      });
+    }
+
+    // "Cargar reserva": según el espacio elegido, se elige un turno o un horario por horas
+    function llenarCargarReserva() {
+      const selEspacio = document.getElementById('prioridadEspacio');
+      if (!selEspacio || !selEspacio.value) return;
+      const d = defEspacioPanel(selEspacio.value);
+      const porTurnos = d.horario === 'turnos';
+      document.getElementById('prioridadGrupoTurno').hidden = !porTurnos;
+      document.getElementById('prioridadGrupoHoras').hidden = porTurnos;
+      if (porTurnos) {
+        const sel = document.getElementById('prioridadTurno');
+        const elegido = sel.value;
+        sel.replaceChildren(...(d.turnos || []).map(x => new Option(`${x.nombre} (${x.inicio} - ${x.fin})`, `${x.inicio}|${x.fin}`)));
+        if ([...sel.options].some(o => o.value === elegido)) sel.value = elegido;
+      } else {
+        const horas = (a, b) => Array.from({ length: Math.max(b - a + 1, 0) }, (_, i) => `${String(a + i).padStart(2, '0')}:00`);
+        const desde = document.getElementById('prioridadDesde'), hasta = document.getElementById('prioridadHasta');
+        const antes = [desde.value, hasta.value];
+        desde.replaceChildren(...horas(d.hora_desde, d.hora_hasta - 1).map(h => new Option(h, h)));
+        hasta.replaceChildren(...horas(d.hora_desde + 1, d.hora_hasta).map(h => new Option(h, h)));
+        if ([...desde.options].some(o => o.value === antes[0])) desde.value = antes[0];
+        if ([...hasta.options].some(o => o.value === antes[1])) hasta.value = antes[1];
+      }
+      // Motivos de la lista del espacio, como sugerencias (el moderador puede escribir otro)
+      const lista = document.getElementById('prioridadMotivos');
+      lista.replaceChildren(...(d.motivos || []).map(m => new Option(m, m)));
+    }
+
+    function prepararEspacios() {
+      llenarSelectsDeEspacios();
+      llenarCargarReserva();
+      if (document.getElementById('loteEspacio')) llenarHorasLote();
+      if (typeof alCambiarLosEspacios === 'function') alCambiarLosEspacios();
+    }
+
     function aplicarRol(rol) {
       rolAdmin = rol === 'superadmin' ? 'superadmin' : 'admin';
       const esSuper = rolAdmin === 'superadmin';
@@ -1619,6 +1783,8 @@
     // LOGIN CON JWT (cookie httpOnly, AUTH-002)
     async function login() {
       const password = document.getElementById('passwordInput').value;
+      // Vacío = como siempre (la contraseña compartida de los moderadores o la del admin supremo)
+      const usuario = document.getElementById('usuarioInput').value.trim().toLowerCase();
       
       if (!password) {
         document.getElementById('loginError').textContent = 'Ingresa la contraseña';
@@ -1630,7 +1796,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ password })
+          body: JSON.stringify(usuario ? { usuario, password } : { password })
         });
         
         const data = await res.json();
@@ -1641,7 +1807,13 @@
         }
         
         // El backend ya seteó la cookie httpOnly con el token; acá no se guarda nada.
-        aplicarRol(data.rol);
+        // La cuenta y sus espacios se le preguntan al servidor (no vienen en la respuesta del login)
+        let cuenta = { rol: data.rol };
+        try {
+          const resSesion = await fetch(`${ADMIN_API}/api/admin/verificar-sesion`, { credentials: 'include' });
+          if (resSesion.ok) cuenta = await resSesion.json();
+        } catch (e) { /* queda solo con el rol */ }
+        aplicarSesion(cuenta);
         mostrarPanel();
         document.getElementById('passwordInput').value = '';
         document.getElementById('loginError').textContent = '';
@@ -1684,7 +1856,7 @@
         });
         if (res.ok) {
           const data = await res.json().catch(() => ({}));
-          aplicarRol(data.rol);
+          aplicarSesion(data);
           mostrarPanel();
           cargarDatos();
         } else {
@@ -1711,6 +1883,7 @@
         ['legal', 'Términos y privacidad', 'Editar los textos legales', ['Términos y privacidad']]
       ]],
       ['Espacios y reglas', [
+        ['crearespacios', 'Crear y cambiar espacios', 'Agregar un espacio, su horario y quién lo reserva', ['Crear y cambiar espacios']],
         ['espacios', 'Espacios disponibles', 'Qué espacios se pueden reservar', ['Espacios disponibles']],
         ['reglas', 'Reglas de cada espacio', 'Días, plazos, límites, acompañantes y normas', ['Reglas de cada espacio']],
         ['configuracion', 'Turnos, horarios y contacto', 'Turnos y motivos del Frente, horario del Altillo, contacto', ['Turnos, horarios y contacto']],
@@ -1722,6 +1895,7 @@
       ]],
       ['Personas', [
         ['espera', 'Lista de espera', 'Quién espera un lugar', ['Lista de espera']],
+        ['abusos', 'Detector de abusos', 'Quién reserva con varios correos o celulares', ['Detector de abusos']],
         ['persona', 'Datos de una persona', 'Pedidos de privacidad', ['Datos de una persona']]
       ]],
       ['Informes', [
@@ -1732,6 +1906,7 @@
         ['pausa', 'Pausar las reservas', 'Cerrar las reservas por un imprevisto', ['Pausar las reservas']],
         ['copia', 'Copia de seguridad', 'Bajar todas las reservas', ['Copia de seguridad']],
         ['limpieza', 'Limpieza', 'Borrar canceladas y reportes', ['Eliminar reservas canceladas', 'Eliminar reportes de errores']],
+        ['cuentas', 'Cuentas del panel', 'Usuario y contraseña de cada moderador, por espacio', ['Cuentas del panel']],
         ['seguridad', 'Contraseña y sesiones', 'Contraseña de los admins y cerrar sesiones', ['Contraseña de los admins', 'Cerrar todas las sesiones']]
       ]]
     ];
@@ -1858,6 +2033,7 @@
       try {
         const [res] = await Promise.all([fetchConJWT(`${API_BASE}/admin/reservas`), cargarTurnos()]);
         if (!res.ok) throw new Error('Error al cargar reservas');
+        prepararEspacios();
         
         const data = await res.json();
         reservasActuales = Array.isArray(data) ? data : [];
@@ -2034,7 +2210,7 @@
       hora.className = 'hoy-hora';
       hora.textContent = `${ini} - ${fin}`;
       const sub = document.createElement('small');
-      const turno = Number(r.espacio_id) === 3 ? nombreTurnoFrente(ini, fin) : '';
+      const turno = nombreTurno(r.espacio_id, ini, fin);
       sub.textContent = [espacios[r.espacio_id], turno, etiqueta].filter(Boolean).join(' · ');
       hora.appendChild(sub);
 
@@ -2111,6 +2287,7 @@
 
     // Correos que no salieron (los pendientes se reintentan solos; los "no enviado" se pueden reintentar)
     async function cargarCorreosHoy() {
+      if (!sesion.general) return; // los correos que no salieron tampoco
       try {
         const res = await fetchConJWT(`${API_BASE}/admin/correos`);
         if (!res.ok) return;
@@ -2385,11 +2562,12 @@
     function llenarHorasLote() {
       const espacio = document.getElementById('loteEspacio').value;
       let horas;
-      if (espacio === '3') {
-        horas = [...new Set(TURNOS_FRENTE.flatMap(t => [t.inicio, t.fin]))].sort();
+      const defLote = defEspacioPanel(espacio);
+      if (defLote.horario === 'turnos') {
+        horas = [...new Set((defLote.turnos || []).flatMap(t => [t.inicio, t.fin]))].sort();
       } else {
         horas = [];
-        for (let h = ALTILLO_ADMIN.hora_desde; h <= ALTILLO_ADMIN.hora_hasta; h++) horas.push(`${String(h).padStart(2, '0')}:00`);
+        for (let h = defLote.hora_desde; h <= defLote.hora_hasta; h++) horas.push(`${String(h).padStart(2, '0')}:00`);
       }
       const llenar = (id, lista, elegida) => {
         const sel = document.getElementById(id);
@@ -2770,15 +2948,17 @@
 
     // RESERVA DE PRIORIDAD (Comisión Directiva) — solo Frente
     async function crearReservaPrioridad() {
-      const espacio_id = '3';
+      const espacio_id = document.getElementById('prioridadEspacio').value;
       const fecha = document.getElementById('prioridadFecha').value;
       const nombre_solicitante = document.getElementById('prioridadNombre').value.trim();
       const celular = document.getElementById('prioridadCelular').value.trim();
       const email = document.getElementById('prioridadEmail').value.trim();
       const motivo = document.getElementById('prioridadMotivo').value.trim();
-      const [hora_inicio, hora_fin] = document.getElementById('prioridadTurno').value.split('|');
+      const [hora_inicio, hora_fin] = defEspacioPanel(espacio_id).horario === 'turnos'
+        ? document.getElementById('prioridadTurno').value.split('|')
+        : [document.getElementById('prioridadDesde').value, document.getElementById('prioridadHasta').value];
 
-      if (!fecha || !nombre_solicitante || !celular || !email || !motivo) {
+      if (!espacio_id || !fecha || !nombre_solicitante || !celular || !email || !motivo || !hora_inicio || !hora_fin) {
         alert('Completá todos los campos');
         return;
       }
@@ -2801,7 +2981,7 @@
         const data = await res.json();
 
         if (res.ok) {
-          alert('✓ Reserva de prioridad creada');
+          alert('✓ Reserva cargada');
           document.getElementById('prioridadFecha').value = '';
           document.getElementById('prioridadNombre').value = '';
           document.getElementById('prioridadCelular').value = '';
@@ -2809,7 +2989,7 @@
           document.getElementById('prioridadMotivo').value = '';
           await cargarDatos(); // refresca tabla, calendario y estadísticas con la nueva reserva
         } else {
-          alert(data.error || 'Error al crear la reserva de prioridad');
+          alert(data.error || 'Error al cargar la reserva');
         }
       } catch (error) {
         alert('Error de conexión al crear la reserva');
@@ -2834,7 +3014,7 @@
       if (prioridad.length === 0) {
         const vacio = document.createElement('p');
         vacio.className = 'vacio';
-        vacio.textContent = 'Todavía no hay reservas de prioridad.';
+        vacio.textContent = 'Todavía no hay reservas cargadas desde el panel.';
         lista.appendChild(vacio);
         return;
       }
@@ -2960,7 +3140,7 @@
           r.id,
           serialFecha(r.fecha),
           DIAS_SEMANA[new Date(Date.UTC(a, m - 1, d)).getUTCDay()],
-          Number(r.espacio_id) === 3 ? (nombreTurnoFrente(inicio, fin) || '-') : '-',
+          (nombreTurno(r.espacio_id, inicio, fin) || '-'),
           inicio,
           fin,
           sanitizarParaExcel(r.nombre_solicitante),
@@ -3006,7 +3186,7 @@
         [],
         ['Por espacio', 'Activas', 'Canceladas', 'Total']
       ];
-      [3, 1, 2].forEach(id => {
+      [...new Set([3, 1, 2, ...Object.keys(espacios).map(Number)])].forEach(id => {
         const delEspacio = reservas.filter(r => Number(r.espacio_id) === id);
         if (delEspacio.length === 0) return;
         const act = contar(delEspacio, r => r.estado === 'activa');
@@ -3294,6 +3474,7 @@
 
     // REPORTES
     async function cargarReportes() {
+      if (!sesion.general) return; // los reportes no son de un espacio: solo con "lo general"
       try {
         const res = await fetchConJWT(`${API_BASE}/admin/reportes`);
         if (!res.ok) throw new Error('Error al cargar reportes');
@@ -3480,7 +3661,7 @@
       const conteo = {};
       activas.forEach(r => {
         const ini = r.hora_inicio.substring(0, 5), fin = r.hora_fin.substring(0, 5);
-        const k = Number(r.espacio_id) === 3 ? `Frente · ${nombreTurnoFrente(ini, fin) || `${ini}-${fin}`}` : `Altillo · ${ini}-${fin}`;
+        const k = `${espacios[r.espacio_id] || 'Otro espacio'} · ${nombreTurno(r.espacio_id, ini, fin) || `${ini}-${fin}`}`;
         conteo[k] = (conteo[k] || 0) + 1;
       });
       const filasTurnos = Object.entries(conteo).sort((x, y) => y[1] - x[1]).slice(0, 10);
@@ -4092,18 +4273,19 @@
       document.getElementById('editarFecha').value = r.fecha;
       document.getElementById('editarFecha').min = hoyEnAsuncionStr();
       const ini = r.hora_inicio.substring(0, 5), fin = r.hora_fin.substring(0, 5);
-      const esFrente = Number(r.espacio_id) === 3;
+      const esFrente = defEspacioPanel(r.espacio_id).horario === 'turnos';
       document.getElementById('editarGrupoTurno').hidden = !esFrente;
       document.getElementById('editarGrupoHoras').hidden = esFrente;
       if (esFrente) {
         const sel = document.getElementById('editarTurno');
-        sel.replaceChildren(...TURNOS_FRENTE.map(t => new Option(`${t.nombre} (${t.inicio} - ${t.fin})`, `${t.inicio}|${t.fin}`)));
+        sel.replaceChildren(...(defEspacioPanel(r.espacio_id).turnos || []).map(t => new Option(`${t.nombre} (${t.inicio} - ${t.fin})`, `${t.inicio}|${t.fin}`)));
         sel.value = `${ini}|${fin}`;
       } else {
         const desde = document.getElementById('editarDesde'), hasta = document.getElementById('editarHasta');
         const horas = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => `${dosDigitos(a + i)}:00`);
-        desde.replaceChildren(...horas(ALTILLO_ADMIN.hora_desde, ALTILLO_ADMIN.hora_hasta - 1).map(h => new Option(h, h)));
-        hasta.replaceChildren(...horas(ALTILLO_ADMIN.hora_desde + 1, ALTILLO_ADMIN.hora_hasta).map(h => new Option(h, h)));
+        const defEditar = defEspacioPanel(r.espacio_id);
+        desde.replaceChildren(...horas(defEditar.hora_desde, defEditar.hora_hasta - 1).map(h => new Option(h, h)));
+        hasta.replaceChildren(...horas(defEditar.hora_desde + 1, defEditar.hora_hasta).map(h => new Option(h, h)));
         desde.value = ini;
         hasta.value = fin;
       }
@@ -4120,7 +4302,7 @@
     async function guardarEdicion() {
       if (!reservaEditando) return;
       const r = reservaEditando;
-      const esFrente = Number(r.espacio_id) === 3;
+      const esFrente = defEspacioPanel(r.espacio_id).horario === 'turnos';
       const [hora_inicio, hora_fin] = esFrente
         ? document.getElementById('editarTurno').value.split('|')
         : [document.getElementById('editarDesde').value, document.getElementById('editarHasta').value];
@@ -4329,7 +4511,7 @@
 
     function armarReglas() {
       const contenedor = document.getElementById('reglasEspacios');
-      contenedor.replaceChildren(...[3, 1].map(id => {
+      contenedor.replaceChildren(...sesion.espacios.filter(id => personalizacion.reglas[id]).map(id => {
         const r = personalizacion.reglas[id];
         const esFrente = id === 3;
         const dias = crear('div', { className: 'regla-dias' }, NOMBRES_DIAS.map(([n, nombre]) =>
@@ -4344,7 +4526,7 @@
           dias,
           crear('span', { className: 'etiqueta', textContent: 'Cancelar gratis desde la página' }),
           crear('div', { className: 'regla-fila' }, ['Hasta', campoNumero('plazo', r.plazo_cancelacion_dias, 0, 14), 'días antes']),
-          crear('p', { className: 'ayuda', textContent: `0 = hasta que empiece la reserva. Después del plazo, la persona tiene que escribir ${esFrente ? 'por WhatsApp o al correo del Frente' : 'a reservas@ceq-una.com'}.` }),
+          crear('p', { className: 'ayuda', textContent: `0 = hasta que empiece la reserva. Después del plazo, la persona tiene que escribir ${esFrente ? 'por WhatsApp o al correo del Frente' : (id === 1 ? 'a reservas@ceq-una.com' : 'al contacto del espacio')}.` }),
           crear('span', { className: 'etiqueta', textContent: 'Recordatorio por correo' }),
           crear('div', { className: 'regla-fila' }, [crear('label', { className: 'check' }, [recordatorio, 'Mandar el recordatorio']), campoNumero('recordatorio_dias', r.recordatorio_dias, 1, 7), 'días antes']),
           crear('span', { className: 'etiqueta', textContent: 'Anticipación para reservar' }),
@@ -4681,14 +4863,16 @@
     // Quién recibe los avisos internos de cada espacio (un correo por línea)
     function armarDestinatariosAvisos() {
       const d = personalizacion.avisos_destinatarios || {};
-      document.getElementById('avisosFrente').value = (d[3] || []).join('\n');
-      document.getElementById('avisosAltillo').value = (d[1] || []).join('\n');
+      document.getElementById('avisosCampos').replaceChildren(...sesion.espacios.map(id => crear('label', {}, [
+        (espacios[id] || `Espacio ${id}`) + ' ',
+        crear('textarea', { className: 'corto', spellcheck: false, value: (d[id] || []).join('\n'), dataset: { espacio: id } })
+      ])));
     }
     async function guardarDestinatariosAvisos() {
-      const lista = id => document.getElementById(id).value.split(/[\n,;]+/).map(c => c.trim()).filter(Boolean);
+      const lista = cuadro => cuadro.value.split(/[\n,;]+/).map(c => c.trim()).filter(Boolean);
       mensajePersonalizacion('avisosMensaje', 'Guardando…');
       try {
-        const res = await fetchConJWT(`${API_BASE}/superadmin/avisos-destinatarios`, { method: 'POST', body: JSON.stringify({ 3: lista('avisosFrente'), 1: lista('avisosAltillo') }) });
+        const res = await fetchConJWT(`${API_BASE}/superadmin/avisos-destinatarios`, { method: 'POST', body: JSON.stringify(Object.fromEntries([...document.querySelectorAll('#avisosCampos textarea')].map(a => [a.dataset.espacio, lista(a)]))) });
         const datos = await res.json().catch(() => ({}));
         if (!res.ok) return mensajePersonalizacion('avisosMensaje', datos.error || 'No se pudo guardar.', 'error');
         if (datos.avisos_destinatarios) personalizacion.avisos_destinatarios = datos.avisos_destinatarios;
@@ -5223,7 +5407,7 @@
     }
     async function aplicarFeriados() {
       const marcados = [...document.querySelectorAll('#feriadosLista input:checked')];
-      const espaciosElegidos = [document.getElementById('feriadosFrente').checked && 3, document.getElementById('feriadosAltillo').checked && 1].filter(Boolean);
+      const espaciosElegidos = [...document.querySelectorAll('#feriadosEspacios input')].filter(c => c.checked).map(c => Number(c.value));
       const p = document.getElementById('feriadosMensaje');
       if (!marcados.length || !espaciosElegidos.length) { p.className = 'config-mensaje error'; p.textContent = 'Marcá al menos un feriado y un espacio.'; return; }
       if (!confirm(`¿Bloquear ${marcados.length} feriado(s) todo el día en ${espaciosElegidos.map(e => espacios[e]).join(' y ')}?`)) return;
@@ -5395,7 +5579,340 @@
       return [...document.querySelectorAll(`#${tbodyId} input[type="checkbox"]:checked`)].map(cb => Number(cb.value));
     }
 
-    // --- Espacios: habilitar/deshabilitar el Frente y el Altillo, y su aviso ---
+
+    // ========== ESPACIOS Y CUENTAS (admin supremo) ==========
+    // "Crear y cambiar espacios" y "Cuentas del panel". Todo se arma con crear() y textContent: lo
+    // que se escribe nunca se toma como HTML.
+
+    // Se llama cada vez que cambia la lista de espacios o se vuelven a cargar los datos
+    function alCambiarLosEspacios() {
+      // Feriados: una casilla por espacio
+      const cont = document.getElementById('feriadosEspacios');
+      if (cont) {
+        const marcados = new Set([...cont.querySelectorAll('input')].filter(c => !c.checked).map(c => c.value));
+        cont.replaceChildren(...sesion.espacios.map(id => crear('label', { className: 'check' }, [
+          crear('input', { type: 'checkbox', value: String(id), checked: !marcados.has(String(id)) }), ' ' + (espacios[id] || `Espacio ${id}`)
+        ])));
+      }
+      if (rolAdmin === 'superadmin' && !alCambiarLosEspacios.cargado) {
+        alCambiarLosEspacios.cargado = true;
+        cargarEspaciosEditor();
+        cargarCuentas();
+      }
+    }
+
+    // Después de crear, cambiar o quitar un espacio: se vuelve a preguntar todo lo que depende de ellos
+    async function refrescarPorEspacios() {
+      try {
+        const res = await fetch(`${ADMIN_API}/api/admin/verificar-sesion`, { credentials: 'include' });
+        if (res.ok) aplicarSesion(await res.json());
+      } catch (e) { /* se sigue con lo que había */ }
+      await cargarDatos();
+      cargarEspaciosAdmin();
+      cargarPersonalizacion();
+      cargarCuentas();
+      cargarActividad();
+    }
+
+    const lineas = texto => String(texto || '').split('\n').map(l => l.trim()).filter(Boolean);
+
+    // El formulario de un espacio (uno que ya existe o el nuevo)
+    function formularioEspacio(e) {
+      const nuevo = !e;
+      const d = e || { nombre: '', modo: 'publico', contacto_texto: '', horario: 'bloques', turnos: [], hora_desde: 7, hora_hasta: 19, max_horas: 2, motivos: [], contacto_email: '', contacto_whatsapp: '', de_siempre: false };
+      const campo = (texto, control, ayuda) => crear('label', {}, [texto, control, ...(ayuda ? [crear('span', { className: 'ayuda', textContent: ayuda })] : [])]);
+      const nombre = crear('input', { type: 'text', maxLength: 40, value: d.nombre, placeholder: 'Ej: Polideportivo' });
+      const modo = crear('select', {}, [new Option('Cualquier persona, desde la página', 'publico'), new Option('Solo a través de un moderador', 'moderador')]);
+      modo.value = d.modo;
+      const cartel = crear('textarea', { className: 'corto', maxLength: 400, value: d.contacto_texto, placeholder: 'Ej: Para reservar el Polideportivo escribí a deportes@ejemplo.com o al 0981 123 456.' });
+      const mensaje = crear('p', { className: 'config-mensaje', role: 'status' });
+      const partes = [
+        campo('Nombre del espacio', nombre),
+        campo('Quién puede reservar', modo, 'Con "solo a través de un moderador", la gente ve el calendario con lo libre y lo ocupado, pero no puede reservar: ve el cartel de abajo, y la reserva la carga un moderador desde "Cargar reserva".'),
+        campo('Cartel que ve la gente (solo si se reserva a través de un moderador)', cartel, 'Vacío = un texto automático con el correo de contacto del espacio.')
+      ];
+      let leerHorario = () => ({});
+      if (d.de_siempre) {
+        partes.push(crear('p', { className: 'ayuda', textContent: `Los turnos, los motivos, el horario y el contacto del ${d.nombre} se cambian en "Turnos, horarios y contacto"; sus días, plazos y límites, en "Reglas de cada espacio".` }));
+      } else {
+        const horario = crear('select', {}, [new Option('Bloques de 1 hora (como el Altillo)', 'bloques'), new Option('Turnos fijos con nombre (como el Frente)', 'turnos')]);
+        horario.value = d.horario;
+        const turnos = crear('textarea', { className: 'corto', spellcheck: false, value: (d.turnos || []).map(x => `${x.nombre}, ${x.inicio}, ${x.fin}`).join('\n'), placeholder: 'Mañana, 08:00, 12:00\nTarde, 14:00, 18:00' });
+        const desde = crear('input', { type: 'number', min: 5, max: 22, value: d.hora_desde == null ? 7 : d.hora_desde });
+        const hasta = crear('input', { type: 'number', min: 6, max: 23, value: d.hora_hasta == null ? 19 : d.hora_hasta });
+        const maximo = crear('input', { type: 'number', min: 1, max: 12, value: d.max_horas == null ? 2 : d.max_horas });
+        const grupoTurnos = campo('Turnos (uno por línea: nombre, desde, hasta)', turnos, 'Entre 1 y 5 turnos, entre las 06:00 y las 22:00, sin superponerse.');
+        const grupoBloques = crear('div', {}, [
+          crear('div', { className: 'regla-fila' }, ['Abre a las', desde, 'y cierra a las', hasta, '(horas enteras)']),
+          crear('div', { className: 'regla-fila' }, ['Hasta', maximo, 'horas por reserva'])
+        ]);
+        const mostrar = () => { grupoTurnos.hidden = horario.value !== 'turnos'; grupoBloques.hidden = horario.value === 'turnos'; };
+        horario.onchange = mostrar;
+        mostrar();
+        const motivos = crear('textarea', { className: 'corto', value: (d.motivos || []).join('\n'), placeholder: 'Partido\nEntrenamiento' });
+        const email = crear('input', { type: 'email', maxLength: 100, value: d.contacto_email || '', placeholder: 'reservas@ceq-una.com' });
+        const whatsapp = crear('input', { type: 'text', inputMode: 'numeric', maxLength: 20, value: d.contacto_whatsapp || '', placeholder: '595981123456' });
+        partes.push(
+          campo('Cómo se reserva', horario), grupoTurnos, grupoBloques,
+          campo('Motivos para elegir (uno por línea)', motivos, 'Vacío = la persona escribe el motivo. Hasta 10.'),
+          campo('Correo de contacto del espacio', email, 'Vacío = reservas@ceq-una.com. Es a quien responde la gente y lo que figura en los correos.'),
+          campo('WhatsApp del espacio (opcional, con código de país)', whatsapp)
+        );
+        leerHorario = () => ({
+          horario: horario.value,
+          turnos: lineas(turnos.value).map(l => { const [n = '', i = '', f = ''] = l.split(',').map(x => x.trim()); return { nombre: n, inicio: i, fin: f }; }),
+          hora_desde: Number(desde.value), hora_hasta: Number(hasta.value), max_horas: Number(maximo.value),
+          motivos: lineas(motivos.value), contacto_email: email.value.trim(), contacto_whatsapp: whatsapp.value.trim()
+        });
+      }
+      const enviar = async (metodo, ruta, cuerpo, boton) => {
+        boton.disabled = true;
+        mensajePersonalizacion2(mensaje, 'Guardando…');
+        try {
+          const res = await fetchConJWT(`${API_BASE}${ruta}`, { method: metodo, ...(cuerpo ? { body: JSON.stringify(cuerpo) } : {}) });
+          const datos = await res.json().catch(() => ({}));
+          if (!res.ok) return mensajePersonalizacion2(mensaje, datos.error || 'No se pudo guardar.', 'error');
+          pintarEspaciosEditor(datos.espacios || [], datos.mensaje);
+          refrescarPorEspacios();
+        } catch (error) {
+          mensajePersonalizacion2(mensaje, 'No se pudo conectar con el servidor.', 'error');
+        } finally {
+          boton.disabled = false;
+        }
+      };
+      const cuerpo = () => ({ nombre: nombre.value, modo: modo.value, contacto_texto: cartel.value, ...leerHorario() });
+      const botones = crear('div', { className: 'novedades-botones' });
+      if (nuevo) {
+        botones.append(crear('button', { className: 'btn-primario-chico', type: 'button', textContent: 'Crear espacio', onclick: ev => enviar('POST', '/superadmin/espacios', cuerpo(), ev.target) }));
+      } else {
+        botones.append(crear('button', { className: 'btn-primario-chico', type: 'button', textContent: 'Guardar', onclick: ev => enviar('PUT', `/superadmin/espacios/${d.id}/definicion`, cuerpo(), ev.target) }));
+        if (!d.de_siempre) {
+          botones.append(crear('button', { className: 'btn-peligro', type: 'button', textContent: 'Quitar este espacio', onclick: ev => {
+            if (!confirm(`¿Quitar el espacio ${d.nombre}? Se borran sus bloqueos y su lista de espera. Las reservas anteriores se conservan. No se puede deshacer.`)) return;
+            enviar('DELETE', `/superadmin/espacios/${d.id}`, null, ev.target);
+          } }));
+        }
+      }
+      return crear('div', { className: 'config-campos form-una-columna' }, [...partes, botones, mensaje]);
+    }
+
+    function mensajePersonalizacion2(el, texto, tipo) {
+      el.textContent = texto;
+      el.className = 'config-mensaje' + (tipo ? ' ' + tipo : '');
+    }
+
+    function pintarEspaciosEditor(lista, aviso) {
+      const cont = document.getElementById('espaciosEditor');
+      const resumen = e => [e.nombre, e.horario === 'turnos' ? 'por turnos' : 'por bloques de 1 hora', e.modo === 'moderador' ? 'solo a través de un moderador' : 'reserva la gente'].join(' · ');
+      cont.replaceChildren(
+        ...(aviso ? [crear('p', { className: 'config-mensaje ok', role: 'status', textContent: '✓ ' + aviso })] : []),
+        ...lista.map(e => crear('details', { className: 'espacio-card' }, [crear('summary', { className: 'etiqueta', textContent: resumen(e) }), formularioEspacio(e)])),
+        crear('details', { className: 'espacio-card' }, [crear('summary', { className: 'etiqueta', textContent: '+ Crear un espacio nuevo' }),
+          crear('p', { className: 'ayuda', textContent: 'El espacio nuevo queda sin publicar. Después revisá sus reglas (días, plazos, límites) en "Reglas de cada espacio", quién recibe sus avisos en "Correos automáticos" y publicalo en "Espacios disponibles".' }),
+          formularioEspacio(null)])
+      );
+    }
+
+    async function cargarEspaciosEditor() {
+      const cont = document.getElementById('espaciosEditor');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/espacios`);
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(datos.error || 'Error');
+        pintarEspaciosEditor(datos.espacios || []);
+      } catch (error) {
+        cont.replaceChildren(crear('p', { className: 'nota', textContent: 'No se pudieron cargar los espacios. Reintentá en unos segundos.' }));
+      }
+    }
+
+    // --- Cuentas del panel ---
+    function formularioCuenta(c) {
+      const nueva = !c;
+      const d = c || { usuario: '', nombre: '', espacios: [], general: false };
+      const usuario = crear('input', { type: 'text', maxLength: 30, value: d.usuario, disabled: !nueva, placeholder: 'Ej: polideportivo', autocapitalize: 'none', spellcheck: false });
+      const nombre = crear('input', { type: 'text', maxLength: 60, value: d.nombre, placeholder: 'Ej: Secretaría de Deportes' });
+      const clave = crear('input', { type: 'password', maxLength: 200, autocomplete: 'new-password', placeholder: nueva ? 'Al menos 10 caracteres' : 'Dejala vacía para no cambiarla' });
+      const casillas = sesion.espacios.map(id => crear('label', { className: 'check' }, [crear('input', { type: 'checkbox', value: String(id), checked: d.espacios.includes(id) }), ' ' + (espacios[id] || `Espacio ${id}`)]));
+      const general = crear('input', { type: 'checkbox', checked: d.general === true });
+      const mensaje = crear('p', { className: 'config-mensaje', role: 'status' });
+      const enviar = async (metodo, ruta, cuerpo, boton) => {
+        boton.disabled = true;
+        mensajePersonalizacion2(mensaje, 'Guardando…');
+        try {
+          const res = await fetchConJWT(`${API_BASE}${ruta}`, { method: metodo, ...(cuerpo ? { body: JSON.stringify(cuerpo) } : {}) });
+          const datos = await res.json().catch(() => ({}));
+          if (!res.ok) return mensajePersonalizacion2(mensaje, datos.error || 'No se pudo guardar.', 'error');
+          pintarCuentas(datos.cuentas || [], datos.mensaje);
+          cargarActividad();
+        } catch (error) {
+          mensajePersonalizacion2(mensaje, 'No se pudo conectar con el servidor.', 'error');
+        } finally {
+          boton.disabled = false;
+        }
+      };
+      const cuerpo = () => ({
+        usuario: usuario.value.trim().toLowerCase(), nombre: nombre.value.trim(), ...(clave.value ? { password: clave.value } : {}),
+        espacios: casillas.map(l => l.querySelector('input')).filter(x => x.checked).map(x => Number(x.value)), general: general.checked
+      });
+      const botones = crear('div', { className: 'novedades-botones' }, [
+        crear('button', { className: 'btn-primario-chico', type: 'button', textContent: nueva ? 'Crear cuenta' : 'Guardar', onclick: ev => enviar('POST', '/superadmin/usuarios', cuerpo(), ev.target) })
+      ]);
+      if (!nueva) {
+        botones.append(crear('button', { className: 'btn-peligro', type: 'button', textContent: 'Borrar esta cuenta', onclick: ev => {
+          if (!confirm(`¿Borrar la cuenta ${d.usuario}? Quien la use no va a poder entrar más.`)) return;
+          enviar('DELETE', `/superadmin/usuarios/${encodeURIComponent(d.usuario)}`, null, ev.target);
+        } }));
+      }
+      return crear('div', { className: 'config-campos form-una-columna' }, [
+        crear('label', {}, ['Usuario (para entrar)', usuario]),
+        crear('label', {}, ['Nombre de la cuenta (se ve arriba en el panel)', nombre]),
+        crear('label', {}, [nueva ? 'Contraseña' : 'Contraseña nueva (opcional)', clave, ...(nueva ? [] : [crear('span', { className: 'ayuda', textContent: 'Si la cambiás, se cierran las sesiones abiertas de esta cuenta.' })])]),
+        crear('span', { className: 'etiqueta', textContent: 'Espacios que maneja' }),
+        crear('div', { className: 'regla-dias' }, casillas),
+        crear('label', { className: 'check' }, [general, ' También puede habilitar meses y ver los reportes y los correos que no salieron']),
+        botones, mensaje
+      ]);
+    }
+
+    function pintarCuentas(lista, aviso) {
+      const cont = document.getElementById('cuentasEditor');
+      const nombres = c => c.espacios.map(id => espacios[id] || `Espacio ${id}`).join(', ') || 'ningún espacio';
+      cont.replaceChildren(
+        ...(aviso ? [crear('p', { className: 'config-mensaje ok', role: 'status', textContent: '✓ ' + aviso })] : []),
+        ...lista.map(c => c.fija
+          ? crear('div', { className: 'espacio-card' }, [
+              crear('div', { className: 'espacio-cab' }, [crear('strong', { textContent: c.usuario })]),
+              crear('p', { className: 'ayuda', textContent: `${c.nombre}. Maneja: ${nombres(c)}. ${c.usuario === 'supremo' ? 'Su contraseña está en Render (SUPERADMIN_PASSWORD_HASH).' : 'Su contraseña se cambia en "Contraseña y sesiones".'}` })
+            ])
+          : crear('details', { className: 'espacio-card' }, [crear('summary', { className: 'etiqueta', textContent: `${c.usuario} · ${nombres(c)}${c.general ? ' · con lo general' : ''}` }), formularioCuenta(c)])),
+        crear('details', { className: 'espacio-card' }, [crear('summary', { className: 'etiqueta', textContent: '+ Crear una cuenta nueva' }), formularioCuenta(null)])
+      );
+    }
+
+    async function cargarCuentas() {
+      const cont = document.getElementById('cuentasEditor');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/usuarios`);
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(datos.error || 'Error');
+        pintarCuentas(datos.cuentas || []);
+      } catch (error) {
+        cont.replaceChildren(crear('p', { className: 'nota', textContent: 'No se pudieron cargar las cuentas. Reintentá en unos segundos.' }));
+      }
+    }
+
+
+    // ========== DETECTOR DE ABUSOS E INFORME DEL PERÍODO (admin supremo) ==========
+    async function buscarAbusos() {
+      const cont = document.getElementById('abusosLista');
+      cont.replaceChildren(crear('p', { className: 'nota', textContent: 'Buscando…' }));
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/abusos`);
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(datos.error || 'Error');
+        const casos = datos.casos || [];
+        const resumen = crear('p', { className: 'nota', textContent:
+          `Se revisaron ${datos.revisadas} reservas de los últimos 90 días (desde el ${String(datos.desde).split('-').reverse().join('/')}). ` +
+          (casos.length ? `Hay ${casos.length} caso${casos.length === 1 ? '' : 's'} para mirar.` : 'No apareció nada raro.') +
+          (datos.con_red ? '' : ' La señal de "misma conexión" todavía no está activa (falta aplicar la migración de la base).') });
+        cont.replaceChildren(resumen, ...casos.map(c => {
+          const tabla = crear('table', { className: 'tabla-chica' }, [
+            crear('thead', {}, [crear('tr', {}, ['N.º', 'Espacio', 'Fecha', 'Horario', 'Nombre', 'Contacto', 'Estado'].map(x => crear('th', { textContent: x })))]),
+            crear('tbody', {}, c.reservas.map(r => crear('tr', {}, [`#${r.id}`, r.espacio, String(r.fecha).split('-').reverse().join('/'), r.horario, r.nombre, r.contacto, r.estado === 'activa' ? 'Activa' : 'Cancelada']
+              .map(x => crear('td', { textContent: x })))))
+          ]);
+          return crear('details', { className: 'espacio-card', open: c.pasa_el_limite }, [
+            crear('summary', { className: 'etiqueta', textContent: `${c.pasa_el_limite ? '⚠ Pasa el límite · ' : ''}${c.descripcion} · ${c.reservas.length} reservas` }),
+            crear('div', { className: 'table-wrapper' }, [tabla])
+          ]);
+        }));
+      } catch (error) {
+        cont.replaceChildren(crear('p', { className: 'nota', textContent: 'No se pudo buscar. Reintentá en unos segundos.' }));
+      }
+    }
+
+    // El informe se arma en una ventana aparte, lista para imprimir o guardar como PDF
+    async function generarInforme() {
+      const desde = document.getElementById('informeDesde').value, hasta = document.getElementById('informeHasta').value;
+      const q = desde && hasta ? `?desde=${desde}&hasta=${hasta}` : '';
+      mensajePersonalizacion('informeMensaje', 'Armando el informe…');
+      // La ventana se abre antes de pedir los datos: si no, el navegador la bloquea
+      const ventana = window.open('', '_blank');
+      try {
+        const res = await fetchConJWT(`${API_BASE}/superadmin/informe${q}`);
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { if (ventana) ventana.close(); return mensajePersonalizacion('informeMensaje', d.error || 'No se pudo armar el informe.', 'error'); }
+        const e = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const dmy = f => String(f).split('-').reverse().join('/');
+        const tabla = (titulo, cabecera, filas, vacio) => `<h2>${e(titulo)}</h2>` + (filas.length
+          ? `<table><thead><tr>${cabecera.map(c => `<th>${e(c)}</th>`).join('')}</tr></thead><tbody>${filas.map(f => `<tr>${f.map(c => `<td>${e(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+          : `<p class="vacio">${e(vacio || 'Sin datos en el período.')}</p>`);
+        const pares = objeto => Object.entries(objeto || {}).sort((a, b) => b[1] - a[1]);
+        const nombresEspacios = d.por_espacio.map(x => x.espacio);
+        const pct = (a, b) => (b ? `${Math.round(a * 100 / b)} %` : '-');
+        const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe de reservas ${e(dmy(d.desde))} al ${e(dmy(d.hasta))}</title><style>
+          @page { size: A4; margin: 16mm 14mm; }
+          * { box-sizing: border-box; }
+          body { font-family: "Segoe UI", Arial, sans-serif; color: #1c2b4a; background: #fff; font-size: 11pt; margin: 0 auto; max-width: 1000px; padding: 16px; }
+          @media print { body { padding: 0; max-width: none; } .aviso { display: none; } }
+          .cabeza { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #1c3f7a; padding-bottom: 10px; margin-bottom: 14px; }
+          .cabeza img { width: 54px; height: 54px; }
+          h1 { font-size: 16pt; margin: 0; color: #1c3f7a; }
+          .cabeza p { margin: 2px 0 0; color: #55627a; font-size: 9.5pt; }
+          h2 { font-size: 12pt; color: #1c3f7a; margin: 18px 0 6px; }
+          table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+          th, td { border: 1px solid #c9d4e5; padding: 4px 6px; text-align: left; vertical-align: top; }
+          th { background: #e3ecf8; }
+          tr { page-break-inside: avoid; }
+          .numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+          .numeros div { border: 1px solid #c9d4e5; border-radius: 6px; padding: 8px 10px; }
+          .numeros b { display: block; font-size: 17pt; color: #1c3f7a; }
+          .vacio, .pie { color: #55627a; font-size: 9.5pt; }
+          .pie { margin-top: 18px; border-top: 1px solid #c9d4e5; padding-top: 8px; }
+          .aviso { margin: 0 0 12px; padding: 8px 10px; background: #fff7d6; border: 1px solid #e8d68a; font-size: 9.5pt; }
+        </style></head><body>
+        <p class="aviso">En la ventana de imprimir, elegí <b>"Guardar como PDF"</b> como destino.</p>
+        <div class="cabeza"><img src="${location.origin}/logo-ceq.png" alt="">
+          <div><h1>Informe del Sistema de Reservas</h1>
+          <p>Centro de Estudiantes de Química · Del ${e(dmy(d.desde))} al ${e(dmy(d.hasta))} · Generado el ${e(fechaHoraAsuncion(d.generado_en))}</p></div></div>
+        <div class="numeros">
+          <div><b>${e(d.total)}</b>reservas en total</div>
+          <div><b>${e(d.activas)}</b>activas</div>
+          <div><b>${e(d.canceladas)}</b>canceladas (${e(pct(d.canceladas, d.total))})</div>
+          <div><b>${e(d.personas_distintas)}</b>personas distintas</div>
+        </div>
+        ${tabla('Por espacio', ['Espacio', 'Total', 'Activas', 'Canceladas', 'Cargadas desde el panel', 'Vino', 'No vino', 'Sin marcar', 'Acompañantes', 'Bloqueos'],
+          d.por_espacio.map(x => [x.espacio, x.total, x.activas, x.canceladas, x.cargadas_desde_el_panel, x.vino, x.no_vino, x.sin_marcar, x.acompanantes, x.bloqueos]))}
+        ${tabla('Reservas activas por mes', ['Mes', ...nombresEspacios, 'Activas', 'Total con canceladas'],
+          d.por_mes.map(m => [typeof mesLegible === 'function' ? mesLegible(m.mes) : m.mes, ...nombresEspacios.map(n => m.por_espacio[n] || 0), m.activas, m.total]))}
+        ${tabla('Por día de la semana (activas)', ['Día', 'Reservas'], d.por_dia_de_la_semana.map(x => [x.dia, x.cantidad]))}
+        ${d.por_espacio.filter(x => x.horarios.length).map(x => tabla(`${x.espacio}: horarios más pedidos (activas)`, ['Horario', 'Reservas'], x.horarios.map(h => [h.horario, h.cantidad]))).join('')}
+        ${d.por_espacio.filter(x => x.motivos.length).map(x => tabla(`${x.espacio}: motivos (activas)`, ['Motivo', 'Reservas'], x.motivos.map(m => [m.motivo, m.cantidad]))).join('')}
+        ${tabla('Quién canceló', ['Canceló', 'Reservas'], pares(d.canceladas_por), 'No hubo cancelaciones.')}
+        ${tabla('Problemas y avisos', ['Dato', 'Cantidad'], [
+          ['Reportes de problemas recibidos', d.reportes.total],
+          ...pares(d.reportes.por_estado).map(([estado, n]) => [`· ${estado}`, n]),
+          ['Correos enviados (últimos 7 días)', d.correos_ultimos_7_dias.enviados],
+          ['Correos que no salieron (últimos 7 días)', d.correos_ultimos_7_dias.perdidos],
+          ['Personas esperando un lugar ahora (lista de espera)', d.lista_de_espera_ahora.esperando],
+          ['Intentos de ingreso al panel con contraseña equivocada', d.panel.intentos_de_ingreso_fallidos],
+          ['Reservas ya anonimizadas (más de 6 meses)', d.reservas_anonimizadas]
+        ])}
+        ${tabla('Lo que más se hizo en el panel', ['Acción', 'Veces'], d.panel.mas_frecuentes.map(x => [x.accion, x.cantidad]), 'Sin actividad registrada.')}
+        <div class="pie">${d.notas.map(n => `<p>${e(n)}</p>`).join('')}</div>
+        </body></html>`;
+        if (!ventana) return mensajePersonalizacion('informeMensaje', 'El navegador bloqueó la ventana del informe. Permití las ventanas emergentes para esta página y probá de nuevo.', 'error');
+        ventana.document.open();
+        ventana.document.write(html);
+        ventana.document.close();
+        mensajePersonalizacion('informeMensaje', '✓ El informe se abrió en otra pestaña: usá Imprimir → "Guardar como PDF".', 'ok');
+      } catch (error) {
+        if (ventana) ventana.close();
+        mensajePersonalizacion('informeMensaje', 'No se pudo conectar con el servidor.', 'error');
+      }
+    }
+
+    // --- Espacios: habilitar/deshabilitar cada espacio, y su aviso ---
     async function cargarEspaciosAdmin() {
       const cont = document.getElementById('espaciosAdmin');
       try {
@@ -5404,7 +5921,7 @@
         const lista = await res.json();
         cont.replaceChildren();
 
-        [3, 1].forEach(id => { // primero el Frente, después el Altillo
+        sesion.espacios.forEach(id => { // primero el Frente, después el Altillo y después los creados desde el panel
           const e = (Array.isArray(lista) ? lista : []).find(x => Number(x.id) === id);
           if (!e) return;
 
